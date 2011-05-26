@@ -227,6 +227,13 @@ if not {
 require ["fileinto"]
 """)
 
+    def test_missing_semicolon_in_block(self):
+        self.compilation_ko("""
+if true {
+    stop
+}
+""")
+
 class LanguageRestrictions(SieveTest):
 
     def test_unknown_control(self):
