@@ -86,7 +86,7 @@ class Parser(object):
         ("right_parenthesis", r'\)'),
         ("left_cbracket", r'{'),
         ("right_cbracket", r'}'),
-        ("semi_column", r';'),
+        ("semicolon", r';'),
         ("comma", r','),
         ("hash_comment", r'#.*$'),
         ("bracket_comment", r'/\*[\s\S]*?\*/'),
@@ -100,18 +100,24 @@ class Parser(object):
         self.debug = debug
         self.lexer = Lexer(Parser.lrules)
 
+    def __dprint(self, *msgs):
+        if not self.debug:
+            return
+        for m in msgs:
+            print m
+
+    def __reset_parser(self):
+        """Reset parser's internal variables
+
+        Restore the parser to an initial state. Useful when creating a
+        new parser or reusing an existing one.
+        """
         self.result = []
         self.__cstate = None
         self.__curcommand = None
         self.__curstringlist = None
         self.__expected = None
         self.__opened_blocks = 0
-
-    def __dprint(self, *msgs):
-        if not self.debug:
-            return
-        for m in msgs:
-            print m
 
     def __set_expected(self, *args):
         """Set the next expected token.
@@ -141,7 +147,7 @@ class Parser(object):
             self.result += [self.__curcommand]
         self.__curcommand = parent
 
-    def __check_command_completion(self):
+    def __check_command_completion(self, testsemicolon=True):
         """Check for command(s) completion
 
         This function should be called each time a new argument is
@@ -150,10 +156,17 @@ class Parser(object):
         argument (nested commands case), we apply the same work to
         parent commands.
 
-        :return: True if command is considered as complete, False
-        otherwise.
+        :param testsemicolon: if True, indicates that the next
+        expected token must be a semicolon (for commands that need one)
+        :return: True if command is
+        considered as complete, False otherwise.
         """
         if self.__curcommand.iscomplete():
+            if testsemicolon and \
+                    (self.__curcommand.get_type() == "action" or \
+                         (self.__curcommand.get_type() == "control" and \
+                              not self.__curcommand.accept_children)):
+                self.__set_expected("semicolon")
             while True:
                 if self.__curcommand.parent:
                     cmd = self.__curcommand
@@ -302,9 +315,9 @@ class Parser(object):
                     self.__up()
             return True
 
-        if ttype == "semi_column":
+        if ttype == "semicolon":
             self.__cstate = None
-            if not self.__check_command_completion():
+            if not self.__check_command_completion(testsemicolon=False):
                 return False
             self.__curcommand.complete_cb()
             self.__up()
@@ -326,6 +339,7 @@ class Parser(object):
         :param text: a string containing the data to parse
         :return: True on success (no error detected), False otherwise
         """
+        self.__reset_parser()
         try:
             for ttype, tvalue in self.lexer.scan(text):
                 if ttype in ["hash_comment", "bracket_comment"]:
@@ -346,7 +360,11 @@ class Parser(object):
                         % (tvalue, text[self.lexer.pos])
                     raise ParseError(msg)
             if self.__opened_blocks:
-                raise ParseError("End of file reached while block end expected")
+                self.__set_expected("right_cbracket")
+            if self.__expected is not None:
+                raise ParseError("end of script reached while %s expected" % \
+                                     "|".join(self.__expected))
+
         except (ParseError, UnknownCommand, BadArgument, BadValue), e:
             self.error = "line %d: %s" % (self.lexer.curlineno(), str(e))
             return False
