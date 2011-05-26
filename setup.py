@@ -20,15 +20,5 @@ setup(
         "Topic :: Communications :: Email :: Filters"
         ],
     
-    long_description = """\
-Client-side SIEVE library
--------------------------
-
-This library offers tools to work with the SIEVE (An email filtering
-language) and MANAGESIEVE (A Protocol for Remotely Managing Sieve
-Scripts) protocols.
-
-It includes a SIEVE language parser and MANAGESIEVE client.
-
-"""
+    long_description = open("README.rst").read()
 )
