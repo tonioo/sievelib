@@ -3,12 +3,12 @@
 """
 Unit tests for the SIEVE language parser.
 """
-import sieveparser
+from sievelib.parser import Parser
 import unittest
 
 class SieveTest(unittest.TestCase):
     def setUp(self):
-        self.parser = sieveparser.Parser()
+        self.parser = Parser()
 
     def __checkCompilation(self, script, result):
         self.assertEqual(self.parser.parse(script), result)
@@ -220,6 +220,11 @@ if address :is "From" "tim@example.com" "tutu" {
 if not {
     discard;
 }
+""")
+
+    def test_missing_semicolon(self):
+        self.compilation_ko("""
+require ["fileinto"]
 """)
 
 class LanguageRestrictions(SieveTest):
