@@ -52,6 +52,29 @@ _________________
 What is supported
 ^^^^^^^^^^^^^^^^^
 
+All mandatory commands are supported. The RENAME extension is
+supported, with a simulated behaviour for server that do not support
+it.
 
+For the AUTHENTICATE command, supported mechanisms are DIGEST-MD5,
+PLAIN and LOGIN.
     
-    
+Basic usage
+^^^^^^^^^^^
+
+The ManageSieve client is intended to be used from another python
+application (there isn't any shell provided)::
+
+    >>> from sievelib.managesieve import Client
+    >>> c = Client("server.example.com")
+    >>> c.connect("user", "password", starttls=False, authmech="DIGEST-MD5")
+    True
+    >>> c.listscripts()
+    ("active_script", ["script1", "script2"])
+    >>> c.setactive("script1")
+    True
+    >>> c.havespace("script3", 45)
+    True
+    >>>
+
+Additionnal documentation is available with source code.

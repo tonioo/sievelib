@@ -23,7 +23,7 @@ CRLF = '\r\n'
 
 KNOWN_CAPABILITIES = ["IMPLEMENTATION", "SASL", "SIEVE", 
                       "STARTTLS", "NOTIFY", "LANGUAGE",
-                      "RENAME", "NOOP", "UNAUTHENTICATE"]
+                      "RENAME"]
 
 SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN"]
 
