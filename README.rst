@@ -22,27 +22,28 @@ only exception concerns *section 2.4.2.4. Encoding Characters Using
 Basic usage
 ^^^^^^^^^^^
 
-The parser can be used in two ways:
- * On the command-line::
+The parser can be used in two ways::
 
-    $ cd sievelib
-    $ python parser.py test.sieve
-    Syntax OK
-    $
+* On the command-line::
 
-  * From a python environment (or script/module)::
+  $ cd sievelib
+  $ python parser.py test.sieve
+  Syntax OK
+  $
 
-    >>> from sievelib.parser import Parser
-    >>> p = Parser()
-    >>> p.parse('require ["fileinto"];')
-    True
-    >>> p.dump()
-    require (type: control)
-        ["fileinto"]
-    >>> 
-    >>> p.parse('require ["fileinto"]')
-    False
-    >>> p.error
+* From a python environment (or script/module)::
+
+  >>> from sievelib.parser import Parser
+  >>> p = Parser()
+  >>> p.parse('require ["fileinto"];')
+  True
+  >>> p.dump()
+  require (type: control)
+      ["fileinto"]
+  >>> 
+  >>> p.parse('require ["fileinto"]')
+  False
+  >>> p.error
 
 Additionnal documentation is available with source code.
 
@@ -65,16 +66,16 @@ Basic usage
 The ManageSieve client is intended to be used from another python
 application (there isn't any shell provided)::
 
-    >>> from sievelib.managesieve import Client
-    >>> c = Client("server.example.com")
-    >>> c.connect("user", "password", starttls=False, authmech="DIGEST-MD5")
-    True
-    >>> c.listscripts()
-    ("active_script", ["script1", "script2"])
-    >>> c.setactive("script1")
-    True
-    >>> c.havespace("script3", 45)
-    True
-    >>>
+  >>> from sievelib.managesieve import Client
+  >>> c = Client("server.example.com")
+  >>> c.connect("user", "password", starttls=False, authmech="DIGEST-MD5")
+  True
+  >>> c.listscripts()
+  ("active_script", ["script1", "script2"])
+  >>> c.setactive("script1")
+  True
+  >>> c.havespace("script3", 45)
+  True
+  >>>
 
 Additionnal documentation is available with source code.
