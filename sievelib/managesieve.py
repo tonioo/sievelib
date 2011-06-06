@@ -87,7 +87,7 @@ class Client(object):
         enough data is available from it, we return that data.
 
         Eventually, we try to grab the missing part from the server
-        for ManageSieveClient.read_timeout seconds. If no data can be
+        for Client.read_timeout seconds. If no data can be
         retrieved, it is considered as a fatal error and an 'Error'
         exception is raised.
 
@@ -113,11 +113,11 @@ class Client(object):
         """Read one line from the server.
 
         An internal buffer is used to read data from the server
-        (blocks of ManageSieveClient.read_size bytes). If the buffer
+        (blocks of Client.read_size bytes). If the buffer
         is not empty, we try to find an entire line to return.
 
         If we failed, we try to read new content from the server for
-        ManageSieveClient.read_timeout seconds. If no data can be
+        Client.read_timeout seconds. If no data can be
         retrieved, it is considered as a fatal error and an 'Error'
         exception is raised.
         
@@ -440,7 +440,7 @@ class Client(object):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((self.srvaddr, self.srvport))
-            self.sock.settimeout(ManageSieveClient.read_timeout)
+            self.sock.settimeout(Client.read_timeout)
         except socket.error, msg:
             raise Error("Connection to server failed: %s" % str(msg))
         
