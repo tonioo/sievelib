@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name = "sievelib",
     packages = ["sievelib"],
-    version = "0.1",
+    version = "0.2",
     description = "Client-side SIEVE library",
     author = "Antoine Nguyen",
     author_email = "tonio@ngyn.org",

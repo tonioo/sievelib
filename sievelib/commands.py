@@ -21,6 +21,7 @@ provides extra information such as:
  * etc.
 
 """
+import sys
 
 class UnknownCommand(Exception):
     """Specific exception raised when an unknown command is encountered"""
@@ -104,12 +105,57 @@ class Command(object):
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
 
-    def __print(self, data, indentlevel, nocr=False):
+    def tosieve(self, indentlevel=0, target=sys.stdout):
+        """Generate the sieve syntax corresponding to this command
+
+        Recursive method.
+
+        :param indentlevel: current indentation level
+        :param target: opened file pointer where the content will be printed
+        """
+        self.__print(self.name, indentlevel, nocr=True, target=target)
+        if self.has_arguments():
+            for arg in self.args_definition:
+                if not self.arguments.has_key(arg["name"]):
+                    continue
+                target.write(" ")
+                value = self.arguments[arg["name"]]
+                if type(value) == list:
+                    if self.__get_arg_type(arg["name"]) == ["testlist"]:
+                        target.write("(")
+                        for t in value:
+                            t.tosieve(target=target)
+                            if value.index(t) != len(value) - 1:
+                                target.write(", ")
+                        target.write(")")
+                    else:
+                        target.write("[" + (", ".join(map(lambda v: '"%s"' % v.strip('"'), value))) + "]")
+                    continue
+                if isinstance(value, Command):
+                    value.tosieve(indentlevel, target=target)
+                    continue
+                if "string" in arg["type"]:
+                    target.write('"%s"' % value.strip('"'))
+                else:
+                    target.write(value)
+
+        if not self.accept_children:
+            if self.get_type() != "test":
+                print >>target, ";"
+            return
+        if self.get_type() != "control":
+            return
+        print >>target, " {"
+        for ch in self.children:
+            ch.tosieve(indentlevel + 4, target=target)
+        self.__print("}", indentlevel, target=target)
+
+    def __print(self, data, indentlevel, nocr=False, target=sys.stdout):
         text = "%s%s" % (" " * indentlevel, data)
         if nocr:
-            print text,
+            target.write(text)
         else:
-            print text
+            print >>target, text
 
     def __get_arg_type(self, arg):
         """Return the type corresponding to the given name.
@@ -296,6 +342,22 @@ class Command(object):
             raise BadArgument(self.name, avalue, 
                               self.args_definition[pos]["type"])
         return True
+
+    def __getitem__(self, name):
+        """Shorcut to access a command argument
+
+        :param name: the argument's name
+        """
+        found = False
+        for ad in self.args_definition:
+            if ad["name"] == name:
+                found = True
+                break
+        if not found:
+            raise KeyError(name)
+        if not self.arguments.has_key(name):
+            raise KeyError(name)
+        return self.arguments[name]
 
 class ControlCommand(Command):
     """Indermediate class to represent "control" commands"""
@@ -487,8 +549,8 @@ class SizeCommand(TestCommand):
          "required" : True},
         ]
 
-def get_command_instance(name, parent=None):
-    """Try to create an instance of the class corresponding to the givent name.
+def get_command_instance(name, parent=None, checkexists=True):
+    """Try to guess and create the appropriate command instance
 
     Given a command name (encountered by the parser), construct the
     associated class name and, if known, return a new instance.
@@ -502,7 +564,7 @@ def get_command_instance(name, parent=None):
     """
     cname = "%sCommand" % name.lower().capitalize()
     if not globals().has_key(cname) or \
-            (globals()[cname].is_extension and \
+            (checkexists and globals()[cname].is_extension and \
                  not name in RequireCommand.loaded_extensions):
         raise UnknownCommand(name)
     return globals()[cname](parent)
