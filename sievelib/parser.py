@@ -113,6 +113,8 @@ class Parser(object):
         new parser or reusing an existing one.
         """
         self.result = []
+        self.hash_comments = []
+
         self.__cstate = None
         self.__curcommand = None
         self.__curstringlist = None
@@ -311,8 +313,6 @@ class Parser(object):
             if not self.__curcommand.has_arguments():
                 if not self.__check_command_completion():
                     return False
-                if self.__curcommand.has_arguments():
-                    self.__up()
             return True
 
         if ttype == "semicolon":
@@ -342,7 +342,10 @@ class Parser(object):
         self.__reset_parser()
         try:
             for ttype, tvalue in self.lexer.scan(text):
-                if ttype in ["hash_comment", "bracket_comment"]:
+                if ttype == "hash_comment":
+                    self.hash_comments += [tvalue]
+                    continue
+                if ttype == "bracket_comment":
                     continue
                 if self.__expected is not None:
                     if not ttype in self.__expected:
