@@ -181,7 +181,7 @@ class Command(object):
     def has_arguments(self):
         return len(self.args_definition) != 0
 
-    def dump(self, indentlevel=0):
+    def dump(self, indentlevel=0, target=sys.stdout):
         """Display the command
 
         Pretty printing of this command and its eventual arguments and
@@ -189,7 +189,7 @@ class Command(object):
 
         :param indentlevel: integer that indicates indentation level to apply
         """
-        self.__print(self, indentlevel)
+        self.__print(self, indentlevel, target=target)
         indentlevel += 4
         if self.has_arguments():
             for arg in self.args_definition:
@@ -199,17 +199,16 @@ class Command(object):
                 if type(value) == list:
                     if self.__get_arg_type(arg["name"]) == ["testlist"]:
                         for t in value:
-                            t.dump(indentlevel)
+                            t.dump(indentlevel, target)
                     else:
-                        self.__print("[" + (",".join(value)) + "]", indentlevel)
+                        self.__print("[" + (",".join(value)) + "]", indentlevel, target=target)
                     continue
                 if isinstance(value, Command):
-                    value.dump(indentlevel)
+                    value.dump(indentlevel, target)
                     continue
-                self.__print(str(value), indentlevel)
-
+                self.__print(str(value), indentlevel, target=target)
         for ch in self.children:
-            ch.dump(indentlevel)
+            ch.dump(indentlevel, target)
 
     def addchild(self, child):
         """Add a new child to the command
