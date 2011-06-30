@@ -5,6 +5,7 @@ Unit tests for the SIEVE language parser.
 """
 from sievelib.parser import Parser
 import unittest
+import cStringIO
 
 class SieveTest(unittest.TestCase):
     def setUp(self):
@@ -19,6 +20,13 @@ class SieveTest(unittest.TestCase):
     def compilation_ko(self, script):
         self.__checkCompilation(script, False)
 
+    def representation_is(self, content):
+        target = cStringIO.StringIO()
+        self.parser.dump(target)
+        repr_ = target.getvalue()
+        target.close()
+        self.assertEqual(repr_, content.lstrip())
+
 class ValidSyntaxes(SieveTest):
 
     def test_hash_comment(self):
@@ -26,6 +34,13 @@ class ValidSyntaxes(SieveTest):
 if size :over 100k { # this is a comment
     discard;
 }
+""")
+        self.representation_is("""
+if (type: control)
+    size (type: test)
+        :over
+        100k
+    discard (type: action)
 """)
 
     def test_bracket_comment(self):
@@ -35,12 +50,27 @@ if size :over 100K { /* this is a comment
     */ ;
 }
 """)
+        self.representation_is("""
+if (type: control)
+    size (type: test)
+        :over
+        100K
+    discard (type: action)
+""")
         
     def test_string_with_bracket_comment(self):
         self.compilation_ok("""
 if header :contains "Cc" "/* comment */" {
     discard;
 }
+""")
+        self.representation_is("""
+if (type: control)
+    header (type: test)
+        :contains
+        "Cc"
+        "/* comment */"
+    discard (type: action)
 """)
 
     def test_nested_blocks(self):
@@ -53,12 +83,35 @@ if header :contains "Sender" "example.com" {
   }
 }
 """)
+        self.representation_is("""
+if (type: control)
+    header (type: test)
+        :contains
+        "Sender"
+        "example.com"
+    if (type: control)
+        header (type: test)
+            :contains
+            "Sender"
+            "me@"
+        discard (type: action)
+    elsif (type: control)
+        header (type: test)
+            :contains
+            "Sender"
+            "you@"
+        keep (type: action)
+""")
 
     def test_true_test(self):
         self.compilation_ok("""
 if true {
 
 }
+""")
+        self.representation_is("""
+if (type: control)
+    true (type: test)
 """)
 
     def test_rfc5228_extended(self):
@@ -103,12 +156,56 @@ else
         fileinto "personal";
         }
 """)
+        self.representation_is("""
+require (type: control)
+    ["fileinto"]
+if (type: control)
+    header (type: test)
+        :is
+        "Sender"
+        "owner-ietf-mta-filters@imc.org"
+    fileinto (type: action)
+        "filter"
+elsif (type: control)
+    address (type: test)
+        :DOMAIN
+        :is
+        ["From","To"]
+        "example.com"
+    keep (type: action)
+elsif (type: control)
+    anyof (type: test)
+        not (type: test)
+            address (type: test)
+                :all
+                :contains
+                ["To","Cc","Bcc"]
+                "me@example.com"
+        header (type: test)
+            :matches
+            "subject"
+            ["*make*money*fast*","*university*dipl*mas*"]
+    fileinto (type: action)
+        "spam"
+else (type: control)
+    fileinto (type: action)
+        "personal"
+""")
 
     def test_explicit_comparator(self):
         self.compilation_ok("""
 if header :contains :comparator "i;octet" "Subject" "MAKE MONEY FAST" {
   discard;
 }
+""")
+        self.representation_is("""
+if (type: control)
+    header (type: test)
+        "i;octet"
+        :contains
+        "Subject"
+        "MAKE MONEY FAST"
+    discard (type: action)
 """)
 
     def test_non_ordered_args(self):
@@ -117,6 +214,15 @@ if address :all :is "from" "tim@example.com" {
     discard;
 }
 """)
+        self.representation_is("""
+if (type: control)
+    address (type: test)
+        :all
+        :is
+        "from"
+        "tim@example.com"
+    discard (type: action)
+""")
 
     def test_multiple_not(self):
         self.compilation_ok("""
@@ -124,9 +230,48 @@ if not not not not true {
     stop;
 }
 """)
+        self.representation_is("""
+if (type: control)
+    not (type: test)
+        not (type: test)
+            not (type: test)
+                not (type: test)
+                    true (type: test)
+    stop (type: control)
+""")
 
     def test_just_one_command(self):
         self.compilation_ok("keep;")
+        self.representation_is("""
+keep (type: action)
+""")
+
+    def test_singletest_testlist(self):
+        self.compilation_ok("""
+if anyof (true) {
+    discard;
+}
+""")
+        self.representation_is("""
+if (type: control)
+    anyof (type: test)
+        true (type: test)
+    discard (type: action)
+""")
+
+    def test_truefalse_testlist(self):
+        self.compilation_ok("""
+if anyof(true, false) {
+    discard;
+}
+""")
+        self.representation_is("""
+if (type: control)
+    anyof (type: test)
+        true (type: test)
+        false (type: test)
+    discard (type: action)
+""")
 
 class InvalidSyntaxes(SieveTest):
 
@@ -234,6 +379,13 @@ if true {
 }
 """)
 
+    def test_misplaced_parenthesis(self):
+        self.compilation_ko("""
+if (true) {
+
+}
+""")
+
 class LanguageRestrictions(SieveTest):
 
     def test_unknown_control(self):
@@ -245,6 +397,22 @@ macommande "Toto";
         self.compilation_ko("""
 elsif true {
 
+}
+""")
+
+    def test_misplaced_elsif2(self):
+        self.compilation_ko("""
+elsif header :is "From" "toto" {
+
+}
+""")
+
+    def test_misplaced_nested_elsif(self):
+        self.compilation_ko("""
+if true {
+  elsif false {
+
+  }
 }
 """)
 

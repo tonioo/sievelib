@@ -129,25 +129,31 @@ class Parser(object):
         """
         self.__expected = args
 
-    def __up(self, record=True):
+    def __up(self, onlyrecord=False):
         """Return to the current command's parent
 
         This method should be called each time a command is
-        complete. In a case of top level command (no parent), it is
+        complete. In case of a top level command (no parent), it is
         recorded into a specific list for further usage.
 
-        :param record: record or not a top level command
+        :param onlyrecord: tell to only record the new command into its parent.
         """
-        parent = self.__curcommand.parent
-        if record and parent is None:
-            if self.__curcommand.must_follow is not None:
+        if self.__curcommand.must_follow is not None:
+            if not self.__curcommand.parent:
                 prevcmd = self.result[-1] if len(self.result) else None
-                if prevcmd is None or prevcmd.name not in self.__curcommand.must_follow:
-                    raise ParseError("the %s command must follow an %s command" % \
-                                         (self.__curcommand.name,
-                                          " or ".join(self.__curcommand.must_follow)))
+            else:
+                prevcmd = self.__curcommand.parent.children[-2] \
+                    if len(self.__curcommand.parent.children) >= 2 else None
+            if prevcmd is None or prevcmd.name not in self.__curcommand.must_follow:
+                raise ParseError("the %s command must follow an %s command" % \
+                                     (self.__curcommand.name,
+                                      " or ".join(self.__curcommand.must_follow)))
+
+        if not self.__curcommand.parent:
             self.result += [self.__curcommand]
-        self.__curcommand = parent
+
+        if not onlyrecord:
+            self.__curcommand = self.__curcommand.parent
 
     def __check_command_completion(self, testsemicolon=True):
         """Check for command(s) completion
@@ -163,27 +169,31 @@ class Parser(object):
         :return: True if command is
         considered as complete, False otherwise.
         """
-        if self.__curcommand.iscomplete():
-            if testsemicolon and \
-                    (self.__curcommand.get_type() == "action" or \
-                         (self.__curcommand.get_type() == "control" and \
-                              not self.__curcommand.accept_children)):
+        if not self.__curcommand.iscomplete():
+            return True
+
+        ctype = self.__curcommand.get_type()
+        if ctype == "action" or \
+                (ctype == "control" and \
+                     not self.__curcommand.accept_children):
+            if testsemicolon:
                 self.__set_expected("semicolon")
-            while True:
-                if self.__curcommand.parent:
-                    cmd = self.__curcommand
-                    self.__curcommand = self.__curcommand.parent
-                    if self.__curcommand.get_type() in ["control", "test"]:
-                        if self.__curcommand.iscomplete():
-                            continue
-                        if not self.__curcommand.check_next_arg("test", cmd, add=False):
-                            return False
-                        if not self.__curcommand.iscomplete():
-                            if self.__curcommand.variable_args_nb:
-                                self.__set_expected("comma", "right_parenthesis")
-                        else:
-                            continue
-                break
+            return True
+
+        while self.__curcommand.parent:
+            cmd = self.__curcommand
+            self.__curcommand = self.__curcommand.parent
+            if self.__curcommand.get_type() in ["control", "test"]:
+                if self.__curcommand.iscomplete():
+                    if self.__curcommand.get_type() == "control":
+                        break
+                    continue
+                if not self.__curcommand.check_next_arg("test", cmd, add=False):
+                    return False
+                if not self.__curcommand.iscomplete():
+                    if self.__curcommand.variable_args_nb:
+                        self.__set_expected("comma", "right_parenthesis")
+                    break
 
         return True
 
@@ -249,7 +259,7 @@ class Parser(object):
             self.__curcommand.check_next_arg("test", test)
             self.__expected = test.get_expected_first()
             self.__curcommand = test
-            return True
+            return self.__check_command_completion(testsemicolon=False)
 
         if ttype == "left_parenthesis":
             self.__set_expected("identifier")
@@ -286,6 +296,7 @@ class Parser(object):
         """
         if self.__cstate is None:
             if ttype == "right_cbracket":
+                self.__up()
                 self.__opened_blocks -= 1
                 self.__cstate = None
                 return True
@@ -293,8 +304,11 @@ class Parser(object):
             if ttype != "identifier":
                 return False
             command = get_command_instance(tvalue, self.__curcommand)
-            if command.get_type() not in ["action", "control"]:
+            if command.get_type() == "test":
                 raise ParseError("%s may not appear as a first command" % command.name)
+            if command.get_type() == "control" and command.accept_children \
+                    and command.has_arguments():
+                self.__set_expected("identifier")
             if self.__curcommand is not None:
                 if not self.__curcommand.addchild(command):
                     raise ParseError("%s unexpected after a %s" % \
@@ -310,9 +324,6 @@ class Parser(object):
         if ttype == "left_cbracket":
             self.__opened_blocks += 1
             self.__cstate = None
-            if not self.__curcommand.has_arguments():
-                if not self.__check_command_completion():
-                    return False
             return True
 
         if ttype == "semicolon":
@@ -386,13 +397,13 @@ class Parser(object):
         fp.close()
         return self.parse(content)
 
-    def dump(self):
+    def dump(self, target=sys.stdout):
         """Dump the parsing tree.
 
         This method displays the parsing tree on the standard output.
         """
         for r in self.result:
-            r.dump()
+            r.dump(target=target)
 
 if __name__ == "__main__":
     from optparse import OptionParser
