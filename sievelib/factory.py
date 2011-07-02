@@ -101,7 +101,9 @@ class FiltersSet(object):
         ifcontrol = get_command_instance("if")
         mtypeobj = get_command_instance(matchtype, ifcontrol)
         for c in conditions:
-            if c[0] == "size":
+            if c[0] in ("true", "false"):
+                cmd = get_command_instance(c[0], ifcontrol)
+            elif c[0] == "size":
                 cmd = get_command_instance("size", ifcontrol)
                 cmd.check_next_arg("tag", c[1])
                 cmd.check_next_arg("number", c[2])
@@ -282,8 +284,8 @@ class FiltersSet(object):
 if __name__ == "__main__":
     fs = FiltersSet("test")
     
-    fs.add_header_filter("rule1", 
-                         [("Sender", ":is", "toto@toto.com"),],
-                         [("fileinto", "Toto"),])
+    fs.addfilter("rule1", 
+                 [("Sender", ":is", "toto@toto.com"),],
+                 [("fileinto", "Toto"),])
     fs.tosieve()
     

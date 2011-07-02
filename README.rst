@@ -15,7 +15,7 @@ What is supported
 ^^^^^^^^^^^^^^^^^
 
 Currently, the provided parser only supports the functionalities
-described in the RFC.(ie. there isn't any extensions supported). The
+described in the RFC.(ie. there isn't any extension supported). The
 only exception concerns section *2.4.2.4. Encoding Characters Using
 "encoded-character"* which is not supported.
 
@@ -44,6 +44,25 @@ Or can be used from a python environment (or script/module)::
   >>> p.error
   'line 1: parsing error: end of script reached while semicolon expected'
   >>>
+
+Simple filters creation
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Some high-level classes are provided with the ``factory`` module, they
+make the generation of Sieve rules easier::
+
+  >>> from sievelib.factory import FilterSet
+  >>> fs.addfilter("rule1",
+  ...              [("Sender", ":is", "toto@toto.com"),],
+  ...              [("fileinto", "Toto"),])
+  >>> fs.tosieve()
+  require ["fileinto"];
+  
+  # Filter: rule1
+  if anyof (header :is "Sender" "toto@toto.com") {
+      fileinto "Toto";
+  }
+  >>> 
 
 Additionnal documentation is available with source code.
 
