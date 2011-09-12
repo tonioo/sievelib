@@ -134,6 +134,10 @@ class Command(object):
                 if isinstance(value, Command):
                     value.tosieve(indentlevel, target=target)
                     continue
+
+                if "tag" in arg["type"] and arg.get("write_tag", False):
+                    target.write("%s " % arg["values"][0])
+
                 if "string" in arg["type"]:
                     target.write('"%s"' % value.strip('"'))
                 else:
@@ -547,6 +551,49 @@ class SizeCommand(TestCommand):
          "type" : ["number"],
          "required" : True},
         ]
+
+class VacationCommand(ActionCommand):
+    args_definition = [
+        {"name" : "subject",
+          "type" : ["tag"],
+          "write_tag": True,
+          "values" : [":subject"],
+          "extra_arg" : {"type" : "string"},
+          "required" : False},
+        {"name" : "days",
+          "type" : ["tag"],
+          "write_tag": True,
+          "values" : [":days"],
+          "extra_arg" : {"type" : "number"},
+          "required" : False},
+        {"name" : "from",
+          "type" : ["tag"],
+          "write_tag": True,
+          "values" : [":from"],
+          "extra_arg" : {"type" : "string"},
+          "required" : False},
+        {"name" : "addresses",
+          "type" : ["tag"],
+          "write_tag": True,
+          "values" : [":addresses"],
+          "extra_arg" : {"type" : "stringlist"},
+          "required" : False},
+        {"name" : "handle",
+          "type" : ["tag"],
+          "write_tag": True,
+          "values" : [":handle"],
+          "extra_arg" : {"type" : "string"},
+          "required" : False},
+        {"name" : "mime",
+          "type" : ["tag"],
+          "write_tag": True,
+          "values" : [":mime"],
+          "required" : False},
+        {"name" : "reason",
+         "type" : ["string"],
+         "required" : True},
+        ]
+
 
 def get_command_instance(name, parent=None, checkexists=True):
     """Try to guess and create the appropriate command instance

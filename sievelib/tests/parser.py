@@ -273,6 +273,35 @@ if (type: control)
     discard (type: action)
 """)
 
+    def test_vacationext_basic(self):
+        self.compilation_ok("""
+require "vacation";
+if header :contains "subject" "cyrus" {
+    vacation "I'm out -- send mail to cyrus-bugs";
+} else {
+    vacation "I'm out -- call me at +1 304 555 0123";
+}
+""")
+
+    def test_vacationext_medium(self):
+        self.compilation_ok("""
+require "vacation";
+if header :contains "subject" "lunch" {
+    vacation :handle "ran-away" "I'm out and can't meet for lunch";
+} else {
+    vacation :handle "ran-away" "I'm out";
+}
+""")
+
+    def test_vacationext_with_limit(self):
+        self.compilation_ok("""
+require "vacation";
+vacation :days 23 :addresses ["tjs@example.edu",
+                              "ts4z@landru.example.edu"]
+   "I'm away until October 19.
+   If it's an emergency, call 911, I guess." ;
+""")
+
 class InvalidSyntaxes(SieveTest):
 
     def test_nested_comments(self):
