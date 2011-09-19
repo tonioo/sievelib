@@ -71,7 +71,7 @@ make the generation of Sieve rules easier::
 Additionnal documentation is available with source code.
 
 ManageSieve tools
-_________________
+-----------------
 
 What is supported
 ^^^^^^^^^^^^^^^^^
