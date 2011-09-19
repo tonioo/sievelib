@@ -14,10 +14,13 @@ Sieve tools
 What is supported
 ^^^^^^^^^^^^^^^^^
 
-Currently, the provided parser only supports the functionalities
-described in the RFC.(ie. there isn't any extension supported). The
-only exception concerns section *2.4.2.4. Encoding Characters Using
-"encoded-character"* which is not supported.
+Currently, the provided parser supports most of the functionalities
+described in the RFC. The only exception concerns section
+*2.4.2.4. Encoding Characters Using "encoded-character"* which is not
+supported.
+
+The following extensions are also supported:
+* Vacation (`RFC 5230 <http://tools.ietf.org/html/rfc5230>`_)
 
 Basic usage
 ^^^^^^^^^^^
