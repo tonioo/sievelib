@@ -90,6 +90,7 @@ class Parser(object):
         ("comma", r','),
         ("hash_comment", r'#.*$'),
         ("bracket_comment", r'/\*[\s\S]*?\*/'),
+        ("multiline", r'text:[^$]*[\r\n]+\.$'),
         ("string", r'"([^"\\]|\\.)*"'),
         ("identifier", r'[a-zA-Z_][\w]*'),
         ("tag", r':[a-zA-Z_][\w]*'),
@@ -121,7 +122,7 @@ class Parser(object):
         self.__expected = None
         self.__opened_blocks = 0
 
-    def __set_expected(self, *args):
+    def __set_expected(self, *args, **kwargs):
         """Set the next expected token.
 
         One or more tokens can be provided. (they will represent the
@@ -230,6 +231,9 @@ class Parser(object):
         :param tvalue: current token value
         :return: False if an error is encountered, True otherwise
         """
+        if ttype == "multiline":
+            return self.__curcommand.check_next_arg("string", tvalue)
+
         if ttype in ["number", "tag", "string"]:
             return self.__curcommand.check_next_arg(ttype, tvalue)
 
@@ -368,7 +372,7 @@ class Parser(object):
                                 % (ttype, "|".join(self.__expected))
                         raise ParseError(msg)
                     self.__expected = None
-
+                    
                 if not self.__command(ttype, tvalue):
                     msg = "unexpected token '%s' found near '%s'" \
                         % (tvalue, text[self.lexer.pos])
