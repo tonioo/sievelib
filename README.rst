@@ -4,9 +4,9 @@ sievelib
 Client-side Sieve and Managesieve library written in Python.
 
 * Sieve : An Email Filtering Language
-  <http://tools.ietf.org/html/rfc5228>
+  (`RFC 5228 <http://tools.ietf.org/html/rfc5228>`_)
 * ManageSieve : A Protocol for Remotely Managing Sieve Scripts
-  <http://tools.ietf.org/html/draft-martin-managesieve-12>
+  (`Draft <http://tools.ietf.org/html/draft-martin-managesieve-12>`_)
 
 Sieve tools
 -----------
@@ -20,6 +20,7 @@ described in the RFC. The only exception concerns section
 supported.
 
 The following extensions are also supported:
+
 * Vacation (`RFC 5230 <http://tools.ietf.org/html/rfc5230>`_)
 
 Basic usage
