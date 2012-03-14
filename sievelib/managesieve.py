@@ -543,6 +543,9 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
+        if type(content) is unicode:
+            content = str(content)
+
         content = "{%d+}%s%s" % (len(content), CRLF, content)
         code, data = \
             self.__send_command("PUTSCRIPT", [name, content])
