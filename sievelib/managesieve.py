@@ -38,6 +38,13 @@ class Response(Exception):
     def __str__(self):
         return "%s %s" % (self.code, self.data)
 
+class Literal(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return "{%d}" % self.value
+
 def authentication_required(meth):
     """Simple class method decorator.
 
@@ -140,7 +147,12 @@ class Client(object):
                 self.__read_buffer += nval
             except (socket.timeout, ssl.SSLError):
                 raise Error("Failed to read data from the server")
+
         if len(ret):
+            m = self.__size_expr.match(ret)
+            if m:
+                raise Literal(int(m.group(1)))
+
             m = self.__respcode_expr.match(ret)
             if m:
                 if m.group(1) == "BYE":
@@ -171,9 +183,12 @@ class Client(object):
             except Response, inst:
                 code = inst.code
                 data = inst.data
-                break                
-            if not len(line):
                 break
+            except Literal, inst:
+                resp += self.__read_block(inst.value)
+                continue
+            if not len(line):
+                continue
             resp += line + CRLF
             cpt += 1
             if nblines != -1 and cpt == nblines:
