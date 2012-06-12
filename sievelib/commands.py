@@ -135,6 +135,9 @@ class Command(object):
                     value.tosieve(indentlevel, target=target)
                     continue
 
+                if type(value) is unicode:
+                    value = value.encode("utf-8")
+
                 if "tag" in arg["type"] and arg.get("write_tag", False):
                     target.write("%s " % arg["values"][0])
 

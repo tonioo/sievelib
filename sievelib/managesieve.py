@@ -208,7 +208,7 @@ class Client(object):
         ret = []
         for a in args:
             if type(a) in [str, unicode] and self.__size_expr.match(a) is None:
-                ret += ['"%s"' % a]
+                ret += ['"%s"' % a.encode('utf-8')]
                 continue
             ret += ["%s" % str(a)]
         return ret
@@ -559,7 +559,7 @@ class Client(object):
         :rtype: boolean
         """
         if type(content) is unicode:
-            content = str(content)
+            content = content.encode("utf-8")
 
         content = "{%d+}%s%s" % (len(content), CRLF, content)
         code, data = \
