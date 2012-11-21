@@ -445,6 +445,21 @@ class RedirectCommand(ActionCommand):
          "required" : True}
         ]
 
+
+class FileintoCommand(ActionCommand):
+    args_definition = [
+        {"name" : "mailbox",
+         "type" : ["string"],
+         "required" : True}
+        ]
+
+class RejectCommand(ActionCommand):
+    args_definition = [
+        {"name" : "text",
+         "type" : ["string"],
+         "required" : True}
+        ]
+
 class KeepCommand(ActionCommand):
     args_definition = []
 
