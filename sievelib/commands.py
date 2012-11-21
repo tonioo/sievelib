@@ -445,15 +445,8 @@ class RedirectCommand(ActionCommand):
          "required" : True}
         ]
 
-
-class FileintoCommand(ActionCommand):
-    args_definition = [
-        {"name" : "mailbox",
-         "type" : ["string"],
-         "required" : True}
-        ]
-
 class RejectCommand(ActionCommand):
+    is_extension = True
     args_definition = [
         {"name" : "text",
          "type" : ["string"],
