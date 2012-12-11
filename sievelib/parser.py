@@ -151,6 +151,9 @@ class Parser(object):
                                       " or ".join(self.__curcommand.must_follow)))
 
         if not self.__curcommand.parent:
+            #collect current amount of hash comments for later parsing into names and desciptions
+            self.__curcommand.hash_comments = self.hash_comments
+            self.hash_comments = []
             self.result += [self.__curcommand]
 
         if not onlyrecord:
@@ -358,7 +361,7 @@ class Parser(object):
         try:
             for ttype, tvalue in self.lexer.scan(text):
                 if ttype == "hash_comment":
-                    self.hash_comments += [tvalue]
+                    self.hash_comments += [tvalue.strip()]
                     continue
                 if ttype == "bracket_comment":
                     continue

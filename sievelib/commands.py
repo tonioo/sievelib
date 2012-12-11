@@ -102,6 +102,8 @@ class Command(object):
         self.name = self.__class__.__name__.replace("Command", "")
         self.name = self.name.lower()
 
+        self.hash_comments = []
+
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
 

@@ -14,8 +14,16 @@ import cStringIO
 from commands import *
 
 class FiltersSet(object):
-    def __init__(self, name):
+    def __init__(self, name, filter_name_pretext="# Filter:", filter_desc_pretext="# Description:"):
+        """Represents a set of one or more filters
+
+        :param name: the filterset's name
+        :param filter_name_pretext: the text that is used to mark a filters name (as comment preceding the filter)
+        :param filter_desc_pretext: the text that is used to mark a filters description
+        """
         self.name = name
+        self.filter_name_pretext = filter_name_pretext
+        self.filter_desc_pretext = filter_desc_pretext
         self.requires = []
         self.filters = []
 
@@ -48,13 +56,18 @@ class FiltersSet(object):
                 else:
                     self.require(f.arguments["capabilities"])
                 continue
-            if cpt - 1 >= len(parser.hash_comments):
-                name =  "Unnamed rule %d" % cpt
-            else:
-                name = parser.hash_comments[cpt - 1].replace("# Filter: ", "")
-            self.filters += [{"name" : name,
-                              "content" : f,
-                              "enabled" : not self.__isdisabled(f)}]
+
+            name = "Unnamed rule %d" % cpt
+            description = ""
+            for comment in f.hash_comments:
+                if comment.startswith(self.filter_name_pretext):
+                    name = comment.replace(self.filter_name_pretext, "")
+                if comment.startswith(self.filter_desc_pretext):
+                    description = comment.replace(self.filter_desc_pretext, "")
+            self.filters += [{"name": name,
+                              "description": description,
+                              "content": f,
+                              "enabled": not self.__isdisabled(f)}]
             cpt += 1
 
     def require(self, name):
@@ -261,7 +274,8 @@ class FiltersSet(object):
         print 
 
         for f in self.filters:
-            print "Filter %s" % f["name"]
+            print "Filter Name:%s" % f["name"]
+            print "Filter Description:%s" % f["description"]
             f["content"].dump()
 
     def tosieve(self, target=sys.stdout):
@@ -277,7 +291,9 @@ class FiltersSet(object):
         self.__gen_require_command().tosieve(target=target)
         target.write("\n")
         for f in self.filters:
-            print >>target, "# Filter: %s" % f["name"]
+            print >>target, self.filter_name_pretext + f["name"]
+            if len(f["description"]) > 0:
+                print >>target, self.filter_desc_pretext + f["description"]
             f["content"].tosieve(target=target)
         
     
