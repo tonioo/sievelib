@@ -328,6 +328,15 @@ Mmmm, <A HREF="ocean.gif">surf</A>...
 ;
 """)
 
+    def test_reject_extension(self):
+        self.compilation_ok("""
+require "reject";
+
+if header :contains "subject" "viagra" {
+    reject;
+}
+""")
+
 class InvalidSyntaxes(SieveTest):
 
     def test_nested_comments(self):
