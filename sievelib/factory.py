@@ -84,6 +84,8 @@ class FiltersSet(object):
 
         Called just before this object is going to be dumped.
         """
+        if not len(self.requires):
+            return None
         reqcmd = get_command_instance("require")
         reqcmd.check_next_arg("stringlist", self.requires)
         return reqcmd
@@ -268,10 +270,11 @@ class FiltersSet(object):
         Available for debugging purposes
         """
         print "Dumping filters set %s\n" % self.name
-        
-        print "Dumping requirements"
-        self.__gen_require_command().dump()
-        print 
+        cmd = self.__gen_require_command()
+        if cmd:
+            print "Dumping requirements"
+            cmd.dump()
+            print
 
         for f in self.filters:
             print "Filter Name:%s" % f["name"]
@@ -288,8 +291,10 @@ class FiltersSet(object):
 
         :param target: file pointer where the sieve syntax will be printed
         """
-        self.__gen_require_command().tosieve(target=target)
-        target.write("\n")
+        cmd = self.__gen_require_command()
+        if cmd:
+            cmd.tosieve(target=target)
+            target.write("\n")
         for f in self.filters:
             print >>target, self.filter_name_pretext + f["name"]
             if len(f["description"]) > 0:
