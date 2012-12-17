@@ -175,7 +175,7 @@ class FiltersSet(object):
         """replace a specific filter
 
         Instead of removing and re-creating the filter, we update the
-        content in order to keep the original ordre between filters.
+        content in order to keep the original order between filters.
 
         :param oldname: the filter's current name
         :param newname: the filter's new name
