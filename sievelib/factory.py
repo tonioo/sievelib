@@ -169,20 +169,24 @@ class FiltersSet(object):
                 return True
         return False
 
-    def replacefilter(self, oldname, newname, filter):
+    def replacefilter(self, oldname, filter, newname=None, description=None):
         """replace a specific filter
 
         Instead of removing and re-creating the filter, we update the
-        content in order to keep the original order between filters.
+        content in order to keep the original ordre between filters.
 
         :param oldname: the filter's current name
         :param newname: the filter's new name
         :param filter: the filter object as get from FiltersSet.getfilter()
         """
+        if newname == None:
+            newname = oldname
         for f in self.filters:
             if f["name"] == oldname:
                 f["name"] = newname
                 f["content"] = filter
+                if description != None:
+                    f['description'] = description
                 if not f["enabled"]:
                     return self.disablefilter(newname)
                 return True
