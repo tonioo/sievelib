@@ -90,7 +90,7 @@ class Parser(object):
         ("comma", r','),
         ("hash_comment", r'#.*$'),
         ("bracket_comment", r'/\*[\s\S]*?\*/'),
-        ("multiline", r'text:[^$]*[\r\n]+\.$'),
+        ("multiline", r'text:[^$]*?[\r\n]+\.$'),
         ("string", r'"([^"\\]|\\.)*"'),
         ("identifier", r'[a-zA-Z_][\w]*'),
         ("tag", r':[a-zA-Z_][\w]*'),

@@ -144,7 +144,9 @@ class Command(object):
                     target.write("%s " % arg["values"][0])
 
                 if "string" in arg["type"]:
-                    target.write('"%s"' % value.strip('"'))
+                    target.write(value)
+                    if not target.startswith('"'):
+                        target.write("\n")
                 else:
                     target.write(value)
 
