@@ -421,6 +421,8 @@ if __name__ == "__main__":
                   help="Activate verbose mode")
     op.add_option("-d", "--debug", action="store_true", default=False,
                   help="Activate debug traces")
+    op.add_option("--tosieve", action="store_true",
+                  help="Print parser results using sieve")
     options, args = op.parse_args()
 
     if not len(args):
@@ -434,6 +436,9 @@ if __name__ == "__main__":
             print "OK"
             if options.verbose:
                 p.dump()
+            if options.tosieve:
+                for r in p.result:
+                    r.tosieve()
             continue
         print "ERROR"
         print p.error

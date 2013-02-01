@@ -122,6 +122,10 @@ class Command(object):
                     continue
                 target.write(" ")
                 value = self.arguments[arg["name"]]
+
+                if "tag" in arg["type"] and arg.get("write_tag", False):
+                    target.write("%s " % arg["values"][0])
+
                 if type(value) == list:
                     if self.__get_arg_type(arg["name"]) == ["testlist"]:
                         target.write("(")
@@ -140,12 +144,9 @@ class Command(object):
                 if type(value) is unicode:
                     value = value.encode("utf-8")
 
-                if "tag" in arg["type"] and arg.get("write_tag", False):
-                    target.write("%s " % arg["values"][0])
-
                 if "string" in arg["type"]:
                     target.write(value)
-                    if not target.startswith('"'):
+                    if not value.startswith('"'):
                         target.write("\n")
                 else:
                     target.write(value)
@@ -608,7 +609,6 @@ class VacationCommand(ActionCommand):
          "type" : ["string"],
          "required" : True},
         ]
-
 
 def get_command_instance(name, parent=None, checkexists=True):
     """Try to guess and create the appropriate command instance
