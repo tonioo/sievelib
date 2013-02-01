@@ -49,13 +49,13 @@ class SieveTest(unittest.TestCase):
 class AdditionalCommands(SieveTest):
 
     def test_add_command(self):
+        self.assertRaises(sievelib.commands.UnknownCommand, sievelib.commands.get_command_instance, 'mytest')
         sievelib.commands.add_commands(MytestCommand)
         sievelib.commands.get_command_instance('mytest')
-        self.assertRaises(sievelib.commands.UnknownCommand, sievelib.commands.get_command_instance, 'unknowncommand')
         self.compilation_ok("""
         mytest :testtag 10 ["testrecp1@example.com"];
         """)
-        
+
 
 class ValidSyntaxes(SieveTest):
 
