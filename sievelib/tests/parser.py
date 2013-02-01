@@ -4,8 +4,26 @@
 Unit tests for the SIEVE language parser.
 """
 from sievelib.parser import Parser
+import sievelib.commands
 import unittest
 import cStringIO
+
+
+class MytestCommand(sievelib.commands.ActionCommand):
+    args_definition = [
+        {"name" : "testtag",
+         "type" : ["tag"],
+         "write_tag": True,
+         "values" : [":testtag"],
+         "extra_arg" : {"type" : "number",
+                        "required": False},
+         "required" : False},
+        {"name" : "recipients",
+         "type" : ["string", "stringlist"],
+         "required" : True}
+    ]
+
+
 
 class SieveTest(unittest.TestCase):
     def setUp(self):
@@ -26,6 +44,18 @@ class SieveTest(unittest.TestCase):
         repr_ = target.getvalue()
         target.close()
         self.assertEqual(repr_, content.lstrip())
+
+
+class AdditionalCommands(SieveTest):
+
+    def test_add_command(self):
+        self.assertRaises(sievelib.commands.UnknownCommand, sievelib.commands.get_command_instance, 'mytest')
+        sievelib.commands.add_commands(MytestCommand)
+        sievelib.commands.get_command_instance('mytest')
+        self.compilation_ok("""
+        mytest :testtag 10 ["testrecp1@example.com"];
+        """)
+
 
 class ValidSyntaxes(SieveTest):
 
