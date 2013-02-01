@@ -22,6 +22,7 @@ provides extra information such as:
 
 """
 import sys
+from collections import Iterable
 
 class UnknownCommand(Exception):
     """Specific exception raised when an unknown command is encountered"""
@@ -609,6 +610,13 @@ class VacationCommand(ActionCommand):
          "required" : True},
         ]
 
+def add_commands(cmds, name = None):
+    if not isinstance(cmds, Iterable):
+        cmds = [cmds]
+
+    for command in cmds:
+        if command.__name__.endswith("Command"):
+            globals()[command.__name__] = command
 
 def get_command_instance(name, parent=None, checkexists=True):
     """Try to guess and create the appropriate command instance
