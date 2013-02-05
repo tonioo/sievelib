@@ -4,9 +4,13 @@
 Unit tests for the SIEVE language parser.
 """
 from sievelib.parser import Parser
+from sievelib.factory import FiltersSet
 import sievelib.commands
 import unittest
 import cStringIO
+import StringIO
+import os.path
+import codecs
 
 
 class MytestCommand(sievelib.commands.ActionCommand):
@@ -55,6 +59,20 @@ class AdditionalCommands(SieveTest):
         self.compilation_ok("""
         mytest :testtag 10 ["testrecp1@example.com"];
         """)
+
+class ValidEncodings(SieveTest):
+
+    def test_utf8_file(self):
+        utf8_sieve = os.path.join(os.path.dirname(__file__),'files', 'utf8_sieve.txt')
+        source_sieve = codecs.open(utf8_sieve,encoding='utf8').read()
+        self.parser.parse_file(utf8_sieve)
+        filtersset = FiltersSet("UTF8 test")
+        filtersset.from_parser_result(self.parser)
+        target = StringIO.StringIO()
+        filtersset.tosieve(target)
+        repr_ = target.getvalue()
+        target.close()
+        self.assertEqual(repr_, source_sieve)
 
 
 class ValidSyntaxes(SieveTest):

@@ -8,6 +8,7 @@ language used to filter emails.
 This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 
 """
+import codecs
 import re
 import sys
 
@@ -399,7 +400,7 @@ class Parser(object):
         :param name: the pathname of the file to parse
         :return: True on success (no error detected), False otherwise
         """
-        fp = open(name)
+        fp = codecs.open(name, encoding='utf8')
         content = fp.read()
         fp.close()
         return self.parse(content)

@@ -136,7 +136,7 @@ class Command(object):
                                 target.write(", ")
                         target.write(")")
                     else:
-                        target.write("[" + (", ".join(map(lambda v: '"%s"' % v.strip('"'), value))) + "]")
+                        target.write("[" + unicode((", ".join(map(lambda v: '"%s"' % v.strip('"'), value)))) + "]")
                     continue
                 if isinstance(value, Command):
                     value.tosieve(indentlevel, target=target)
