@@ -282,7 +282,7 @@ class Parser(object):
             return True
 
         if self.__argument(ttype, tvalue):
-            return self.__check_command_completion()
+            return self.__check_command_completion(testsemicolon=False)
 
         return False
 

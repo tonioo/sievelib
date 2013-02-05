@@ -28,6 +28,21 @@ class MytestCommand(sievelib.commands.ActionCommand):
     ]
 
 
+class Quota_notificationCommand(sievelib.commands.ActionCommand):
+    args_definition = [
+        {"name": "subject",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":subject"],
+         "extra_arg": {"type": "string"},
+         "required": False},
+        {"name": "recipient",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":recipient"],
+         "extra_arg": {"type": "stringlist"},
+         "required": True}
+    ]
 
 class SieveTest(unittest.TestCase):
     def setUp(self):
@@ -49,6 +64,15 @@ class SieveTest(unittest.TestCase):
         target.close()
         self.assertEqual(repr_, content.lstrip())
 
+    def sieve_is(self, content):
+        filtersset = FiltersSet("Testfilterset")
+        filtersset.from_parser_result(self.parser)
+        target = StringIO.StringIO()
+        filtersset.tosieve(target)
+        repr_ = target.getvalue()
+        target.close()
+        self.assertEqual(repr_, content)
+
 
 class AdditionalCommands(SieveTest):
 
@@ -60,19 +84,19 @@ class AdditionalCommands(SieveTest):
         mytest :testtag 10 ["testrecp1@example.com"];
         """)
 
+    def test_quota_notification(self):
+        sievelib.commands.add_commands(Quota_notificationCommand)
+        self.compilation_ok("""# Filter: Testrule\nquota_notification :subject "subject here" :recipient ["somerecipient@example.com"];""")
+        self.sieve_is("""# Filter: Testrule\nquota_notification :subject "subject here" :recipient ["somerecipient@example.com"];""")
+
+
 class ValidEncodings(SieveTest):
 
     def test_utf8_file(self):
         utf8_sieve = os.path.join(os.path.dirname(__file__),'files', 'utf8_sieve.txt')
         source_sieve = codecs.open(utf8_sieve,encoding='utf8').read()
         self.parser.parse_file(utf8_sieve)
-        filtersset = FiltersSet("UTF8 test")
-        filtersset.from_parser_result(self.parser)
-        target = StringIO.StringIO()
-        filtersset.tosieve(target)
-        repr_ = target.getvalue()
-        target.close()
-        self.assertEqual(repr_, source_sieve)
+        self.sieve_is(source_sieve)
 
 
 class ValidSyntaxes(SieveTest):
