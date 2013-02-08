@@ -14,13 +14,16 @@ import sys
 
 from commands import get_command_instance, UnknownCommand, BadArgument, BadValue
 
+
 class ParseError(Exception):
     """Generic parsing error"""
+
     def __init__(self, msg):
         self.msg = msg
 
     def __str__(self):
         return "parsing error: %s" % self.msg
+
 
 class Lexer(object):
     """
@@ -34,6 +37,7 @@ class Lexer(object):
     
       [("left_bracket", r'\['),]
     """
+
     def __init__(self, definitions):
         self.definitions = definitions
         parts = []
@@ -74,6 +78,7 @@ class Lexer(object):
             self.pos = m.end()
             yield (m.lastgroup, m.group(m.lastgroup))
 
+
 class Parser(object):
     """The grammatical analysis part.
 
@@ -96,7 +101,7 @@ class Parser(object):
         ("identifier", r'[a-zA-Z_][\w]*'),
         ("tag", r':[a-zA-Z_][\w]*'),
         ("number", r'[0-9]+[KMGkmg]?'),
-        ]
+    ]
 
     def __init__(self, debug=False):
         self.debug = debug
@@ -148,8 +153,8 @@ class Parser(object):
                     if len(self.__curcommand.parent.children) >= 2 else None
             if prevcmd is None or prevcmd.name not in self.__curcommand.must_follow:
                 raise ParseError("the %s command must follow an %s command" % \
-                                     (self.__curcommand.name,
-                                      " or ".join(self.__curcommand.must_follow)))
+                                 (self.__curcommand.name,
+                                  " or ".join(self.__curcommand.must_follow)))
 
         if not self.__curcommand.parent:
             #collect current amount of hash comments for later parsing into names and desciptions
@@ -315,12 +320,12 @@ class Parser(object):
             if command.get_type() == "test":
                 raise ParseError("%s may not appear as a first command" % command.name)
             if command.get_type() == "control" and command.accept_children \
-                    and command.has_arguments():
+                and command.has_arguments():
                 self.__set_expected("identifier")
             if self.__curcommand is not None:
                 if not self.__curcommand.addchild(command):
                     raise ParseError("%s unexpected after a %s" % \
-                                         (tvalue, self.__curcommand.name))
+                                     (tvalue, self.__curcommand.name))
             self.__curcommand = command
             self.__cstate = self.__arguments
 
@@ -370,22 +375,22 @@ class Parser(object):
                     if not ttype in self.__expected:
                         if self.lexer.pos < len(text):
                             msg = "%s found while %s expected near '%s'" \
-                                % (ttype, "|".join(self.__expected), text[self.lexer.pos])
+                                  % (ttype, "|".join(self.__expected), text[self.lexer.pos])
                         else:
                             msg = "%s found while %s expected at end of file" \
-                                % (ttype, "|".join(self.__expected))
+                                  % (ttype, "|".join(self.__expected))
                         raise ParseError(msg)
                     self.__expected = None
-                    
+
                 if not self.__command(ttype, tvalue):
                     msg = "unexpected token '%s' found near '%s'" \
-                        % (tvalue, text[self.lexer.pos])
+                          % (tvalue, text[self.lexer.pos])
                     raise ParseError(msg)
             if self.__opened_blocks:
                 self.__set_expected("right_cbracket")
             if self.__expected is not None:
                 raise ParseError("end of script reached while %s expected" % \
-                                     "|".join(self.__expected))
+                                 "|".join(self.__expected))
 
         except (ParseError, UnknownCommand, BadArgument, BadValue), e:
             self.error = "line %d: %s" % (self.lexer.curlineno(), str(e))
@@ -412,6 +417,7 @@ class Parser(object):
         """
         for r in self.result:
             r.dump(target=target)
+
 
 if __name__ == "__main__":
     from optparse import OptionParser

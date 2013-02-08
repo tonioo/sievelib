@@ -3,28 +3,29 @@
 """
 Unit tests for the SIEVE language parser.
 """
-from sievelib.parser import Parser
-from sievelib.factory import FiltersSet
-import sievelib.commands
 import unittest
 import cStringIO
 import StringIO
 import os.path
 import codecs
 
+from sievelib.parser import Parser
+from sievelib.factory import FiltersSet
+import sievelib.commands
+
 
 class MytestCommand(sievelib.commands.ActionCommand):
     args_definition = [
-        {"name" : "testtag",
-         "type" : ["tag"],
+        {"name": "testtag",
+         "type": ["tag"],
          "write_tag": True,
-         "values" : [":testtag"],
-         "extra_arg" : {"type" : "number",
-                        "required": False},
-         "required" : False},
-        {"name" : "recipients",
-         "type" : ["string", "stringlist"],
-         "required" : True}
+         "values": [":testtag"],
+         "extra_arg": {"type": "number",
+                       "required": False},
+         "required": False},
+        {"name": "recipients",
+         "type": ["string", "stringlist"],
+         "required": True}
     ]
 
 
@@ -43,6 +44,7 @@ class Quota_notificationCommand(sievelib.commands.ActionCommand):
          "extra_arg": {"type": "stringlist"},
          "required": True}
     ]
+
 
 class SieveTest(unittest.TestCase):
     def setUp(self):
@@ -75,7 +77,6 @@ class SieveTest(unittest.TestCase):
 
 
 class AdditionalCommands(SieveTest):
-
     def test_add_command(self):
         self.assertRaises(sievelib.commands.UnknownCommand, sievelib.commands.get_command_instance, 'mytest')
         sievelib.commands.add_commands(MytestCommand)
@@ -92,16 +93,14 @@ class AdditionalCommands(SieveTest):
 
 
 class ValidEncodings(SieveTest):
-
     def test_utf8_file(self):
-        utf8_sieve = os.path.join(os.path.dirname(__file__),'files', 'utf8_sieve.txt')
-        source_sieve = codecs.open(utf8_sieve,encoding='utf8').read()
+        utf8_sieve = os.path.join(os.path.dirname(__file__), 'files', 'utf8_sieve.txt')
+        source_sieve = codecs.open(utf8_sieve, encoding='utf8').read()
         self.parser.parse_file(utf8_sieve)
         self.sieve_is(source_sieve)
 
 
 class ValidSyntaxes(SieveTest):
-
     def test_hash_comment(self):
         self.compilation_ok("""
 if size :over 100k { # this is a comment
@@ -130,7 +129,7 @@ if (type: control)
         100K
     discard (type: action)
 """)
-        
+
     def test_string_with_bracket_comment(self):
         self.compilation_ok("""
 if header :contains "Cc" "/* comment */" {
@@ -459,8 +458,8 @@ if header :contains "subject" "viagra" {
 }
 """)
 
-class InvalidSyntaxes(SieveTest):
 
+class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
         self.compilation_ko("""
 /* this is a comment /* with a nested comment inside */
@@ -572,8 +571,8 @@ if (true) {
 }
 """)
 
-class LanguageRestrictions(SieveTest):
 
+class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
         self.compilation_ko("""
 macommande "Toto";
@@ -635,7 +634,8 @@ if header :contains "Subject" "MAKE MONEY FAST" {
 
     def test_test_outside_control(self):
         self.compilation_ko("true;")
-                            
+
+
 if __name__ == "__main__":
     unittest.main()
 

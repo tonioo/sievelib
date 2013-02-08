@@ -24,16 +24,20 @@ provides extra information such as:
 import sys
 from collections import Iterable
 
+
 class UnknownCommand(Exception):
     """Specific exception raised when an unknown command is encountered"""
+
     def __init__(self, name):
         self.name = name
 
     def __str__(self):
         return "unknown command %s" % self.name
 
+
 class BadArgument(Exception):
     """Specific exception raised when a bad argument is encountered"""
+
     def __init__(self, command, seen, expected):
         self.command = command
         self.seen = seen
@@ -41,35 +45,38 @@ class BadArgument(Exception):
 
     def __str__(self):
         return "bad argument %s for command %s (%s expected)" \
-            % (self.seen, self.command, self.expected)
+               % (self.seen, self.command, self.expected)
+
 
 class BadValue(Exception):
     """Specific exception raised when a bad argument value is encountered"""
+
     def __init__(self, argument, value):
         self.argument = argument
         self.value = value
 
     def __str__(self):
         return "bad value %s for argument %s" \
-            % (self.value, self.argument)
+               % (self.value, self.argument)
 
 
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
-comparator = {"name" : "comparator",
-              "type" : ["tag"],
-              "values" : [":comparator"],
-              "extra_arg" : {"type" : "string",
-                             "values" : ['"i;octet"', '"i;ascii-casemap"']},
-              "required" : False}
-address_part = {"name" : "address-part",
-                "values" : [":localpart", ":domain", ":all"],
-                "type" : ["tag"],
-                "required" : False}
-match_type = {"name" : "match-type",
-              "values" : [":is", ":contains", ":matches"],
-              "type" : ["tag"],
-              "required" : False}
+comparator = {"name": "comparator",
+              "type": ["tag"],
+              "values": [":comparator"],
+              "extra_arg": {"type": "string",
+                            "values": ['"i;octet"', '"i;ascii-casemap"']},
+              "required": False}
+address_part = {"name": "address-part",
+                "values": [":localpart", ":domain", ":all"],
+                "type": ["tag"],
+                "required": False}
+match_type = {"name": "match-type",
+              "values": [":is", ":contains", ":matches"],
+              "type": ["tag"],
+              "required": False}
+
 
 class Command(object):
     """Generic command representation.
@@ -154,11 +161,11 @@ class Command(object):
 
         if not self.accept_children:
             if self.get_type() != "test":
-                print >>target, ";"
+                print >> target, ";"
             return
         if self.get_type() != "control":
             return
-        print >>target, " {"
+        print >> target, " {"
         for ch in self.children:
             ch.tosieve(indentlevel + 4, target=target)
         self.__print("}", indentlevel, target=target)
@@ -168,7 +175,7 @@ class Command(object):
         if nocr:
             target.write(text)
         else:
-            print >>target, text
+            print >> target, text
 
     def __get_arg_type(self, arg):
         """Return the type corresponding to the given name.
@@ -254,7 +261,7 @@ class Command(object):
                 if arg["required"]:
                     self.required_args += 1
         return (not self.curarg or not "extra_arg" in self.curarg) \
-                           and (self.rargs_cnt == self.required_args)
+            and (self.rargs_cnt == self.required_args)
 
     def get_type(self):
         """Return the command's type"""
@@ -311,7 +318,7 @@ class Command(object):
         if self.curarg is not None and "extra_arg" in self.curarg:
             if atype == self.curarg["extra_arg"]["type"]:
                 if not self.curarg["extra_arg"].has_key("values") or \
-                        avalue in self.curarg["extra_arg"]["values"]:
+                                avalue in self.curarg["extra_arg"]["values"]:
                     if add:
                         self.arguments[self.curarg["name"]] = avalue
                     self.curarg = None
@@ -353,7 +360,7 @@ class Command(object):
             pos += 1
 
         if failed:
-            raise BadArgument(self.name, avalue, 
+            raise BadArgument(self.name, avalue,
                               self.args_definition[pos]["type"])
         return True
 
@@ -373,10 +380,12 @@ class Command(object):
             raise KeyError(name)
         return self.arguments[name]
 
+
 class ControlCommand(Command):
     """Indermediate class to represent "control" commands"""
     _type = "control"
-    
+
+
 class RequireCommand(ControlCommand):
     """The 'require' command
 
@@ -385,10 +394,10 @@ class RequireCommand(ControlCommand):
     unloaded extensions during the parsing)
     """
     args_definition = [
-        {"name" : "capabilities",
-         "type" : ["string", "stringlist"],
-         "required" : True}
-        ]
+        {"name": "capabilities",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
 
     loaded_extensions = []
 
@@ -402,224 +411,257 @@ class RequireCommand(ControlCommand):
             if not ext in RequireCommand.loaded_extensions:
                 RequireCommand.loaded_extensions += [ext]
 
+
 class StopCommand(ControlCommand):
     args_definition = []
+
 
 class IfCommand(ControlCommand):
     accept_children = True
 
     args_definition = [
-        {"name" : "test",
-         "type" : ["test"],
-         "required" : True}
-        ]
+        {"name": "test",
+         "type": ["test"],
+         "required": True}
+    ]
 
     def get_expected_first(self):
         return ["identifier"]
+
 
 class ElsifCommand(ControlCommand):
     accept_children = True
     must_follow = ["if", "elsif"]
     args_definition = [
-        {"name" : "test",
-         "type" : ["test"],
-         "required" : True}
-        ]
+        {"name": "test",
+         "type": ["test"],
+         "required": True}
+    ]
 
     def get_expected_first(self):
         return ["identifier"]
+
 
 class ElseCommand(ControlCommand):
     accept_children = True
     must_follow = ["if", "elsif"]
     args_definition = []
 
+
 class ActionCommand(Command):
     """Indermediate class to represent "action" commands"""
     _type = "action"
 
+
 class FileintoCommand(ActionCommand):
     is_extension = True
     args_definition = [
-        {"name" : "mailbox",
-         "type" : ["string"],
-         "required" : True}
-        ]
+        {"name": "mailbox",
+         "type": ["string"],
+         "required": True}
+    ]
+
 
 class RedirectCommand(ActionCommand):
     args_definition = [
-        {"name" : "address",
-         "type" : ["string"],
-         "required" : True}
-        ]
+        {"name": "address",
+         "type": ["string"],
+         "required": True}
+    ]
+
 
 class RejectCommand(ActionCommand):
     is_extension = True
     args_definition = [
-        {"name" : "text",
-         "type" : ["string"],
-         "required" : True}
-        ]
+        {"name": "text",
+         "type": ["string"],
+         "required": True}
+    ]
+
 
 class KeepCommand(ActionCommand):
     args_definition = []
 
+
 class DiscardCommand(ActionCommand):
     args_definition = []
+
 
 class TestCommand(Command):
     """Indermediate class to represent "test" commands"""
     _type = "test"
+
 
 class AddressCommand(TestCommand):
     args_definition = [
         comparator,
         address_part,
         match_type,
-        {"name" : "header-list",
-         "type" : ["string", "stringlist"],
-         "required" : True},
-        {"name" : "key-list",
-         "type" : ["string", "stringlist"],
-         "required" : True}
-        ]
+        {"name": "header-list",
+         "type": ["string", "stringlist"],
+         "required": True},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+
 
 class AllofCommand(TestCommand):
     accept_children = True
     variable_args_nb = True
 
     args_definition = [
-        {"name" : "tests",
-         "type" : ["testlist"],
-         "required" : True}
-        ]
+        {"name": "tests",
+         "type": ["testlist"],
+         "required": True}
+    ]
 
     def get_expected_first(self):
         return ["left_parenthesis"]
+
 
 class AnyofCommand(TestCommand):
     accept_children = True
     variable_args_nb = True
 
     args_definition = [
-        {"name" : "tests",
-         "type" : ["testlist"],
-         "required" : True}
-        ]
+        {"name": "tests",
+         "type": ["testlist"],
+         "required": True}
+    ]
 
     def get_expected_first(self):
         return ["left_parenthesis"]
+
 
 class EnvelopeCommand(TestCommand):
     args_definition = [
         comparator,
         address_part,
         match_type,
-        {"name" : "header-list",
-         "type" : ["string", "stringlist"],
-         "required" : True},
-        {"name" : "key-list",
-         "type" : ["string", "stringlist"],
-         "required" : True}
-        ]
+        {"name": "header-list",
+         "type": ["string", "stringlist"],
+         "required": True},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+
 
 class ExistsCommand(TestCommand):
     args_definition = [
-        {"name" : "header-names",
-         "type" : ["stringlist"],
-         "required" : True}
-        ]
+        {"name": "header-names",
+         "type": ["stringlist"],
+         "required": True}
+    ]
+
 
 class TrueCommand(TestCommand):
     args_definition = []
 
+
 class FalseCommand(TestCommand):
     args_definition = []
+
 
 class HeaderCommand(TestCommand):
     args_definition = [
         comparator,
         match_type,
-        {"name" : "header-names",
-         "type" : ["string", "stringlist"],
-         "required" : True},
-        {"name" : "key-list",
-         "type" : ["string", "stringlist"],
-         "required" : True}
-        ]
+        {"name": "header-names",
+         "type": ["string", "stringlist"],
+         "required": True},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+
 
 class NotCommand(TestCommand):
     accept_children = True
 
     args_definition = [
-        {"name" : "test",
-         "type" : ["test"],
-         "required" : True}
-        ]
+        {"name": "test",
+         "type": ["test"],
+         "required": True}
+    ]
 
     def get_expected_first(self):
         return ["identifier"]
 
+
 class SizeCommand(TestCommand):
     args_definition = [
-        {"name" : "comparator",
-         "type" : ["tag"],
-         "values" : [":over", ":under"],
-         "required" : True},
-        {"name" : "limit",
-         "type" : ["number"],
-         "required" : True},
-        ]
+        {"name": "comparator",
+         "type": ["tag"],
+         "values": [":over", ":under"],
+         "required": True},
+        {"name": "limit",
+         "type": ["number"],
+         "required": True},
+    ]
+
 
 class VacationCommand(ActionCommand):
     args_definition = [
-        {"name" : "subject",
-          "type" : ["tag"],
-          "write_tag": True,
-          "values" : [":subject"],
-          "extra_arg" : {"type" : "string"},
-          "required" : False},
-        {"name" : "days",
-          "type" : ["tag"],
-          "write_tag": True,
-          "values" : [":days"],
-          "extra_arg" : {"type" : "number"},
-          "required" : False},
-        {"name" : "from",
-          "type" : ["tag"],
-          "write_tag": True,
-          "values" : [":from"],
-          "extra_arg" : {"type" : "string"},
-          "required" : False},
-        {"name" : "addresses",
-          "type" : ["tag"],
-          "write_tag": True,
-          "values" : [":addresses"],
-          "extra_arg" : {"type" : "stringlist"},
-          "required" : False},
-        {"name" : "handle",
-          "type" : ["tag"],
-          "write_tag": True,
-          "values" : [":handle"],
-          "extra_arg" : {"type" : "string"},
-          "required" : False},
-        {"name" : "mime",
-          "type" : ["tag"],
-          "write_tag": True,
-          "values" : [":mime"],
-          "required" : False},
-        {"name" : "reason",
-         "type" : ["string"],
-         "required" : True},
-        ]
+        {"name": "subject",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":subject"],
+         "extra_arg": {"type": "string"},
+         "required": False},
+        {"name": "days",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":days"],
+         "extra_arg": {"type": "number"},
+         "required": False},
+        {"name": "from",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":from"],
+         "extra_arg": {"type": "string"},
+         "required": False},
+        {"name": "addresses",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":addresses"],
+         "extra_arg": {"type": "stringlist"},
+         "required": False},
+        {"name": "handle",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":handle"],
+         "extra_arg": {"type": "string"},
+         "required": False},
+        {"name": "mime",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":mime"],
+         "required": False},
+        {"name": "reason",
+         "type": ["string"],
+         "required": True},
+    ]
 
-def add_commands(cmds, name = None):
+
+def add_commands(cmds, name=None):
+    """
+    Adds one or more commands to the module namespace.
+    Commands must end in "Command" to be added.
+    Example (see tests/parser.py):
+    sievelib.commands.add_commands(MytestCommand)
+
+    :param cmds: a single Command Object or list of Command Objects
+    :param name: optional parameter under which to insert the Command
+    """
     if not isinstance(cmds, Iterable):
         cmds = [cmds]
 
     for command in cmds:
         if command.__name__.endswith("Command"):
             globals()[command.__name__] = command
+
 
 def get_command_instance(name, parent=None, checkexists=True):
     """Try to guess and create the appropriate command instance

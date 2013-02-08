@@ -11,7 +11,6 @@ a user to syntactically flawed scripts.
 Implementation based on <draft-martin-managesieve-12>.
 """
 
-import sys, os
 import socket
 import re
 import base64
@@ -21,14 +20,16 @@ from digest_md5 import DigestMD5
 
 CRLF = '\r\n'
 
-KNOWN_CAPABILITIES = ["IMPLEMENTATION", "SASL", "SIEVE", 
+KNOWN_CAPABILITIES = ["IMPLEMENTATION", "SASL", "SIEVE",
                       "STARTTLS", "NOTIFY", "LANGUAGE",
                       "RENAME"]
 
 SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN"]
 
+
 class Error(Exception):
     pass
+
 
 class Response(Exception):
     def __init__(self, code, data):
@@ -38,12 +39,14 @@ class Response(Exception):
     def __str__(self):
         return "%s %s" % (self.code, self.data)
 
+
 class Literal(Exception):
     def __init__(self, value):
         self.value = value
 
     def __str__(self):
         return "{%d}" % self.value
+
 
 def authentication_required(meth):
     """Simple class method decorator.
@@ -52,11 +55,14 @@ def authentication_required(meth):
 
     :param meth: the original called method
     """
+
     def check(cls, *args, **kwargs):
         if cls.authenticated:
             return meth(cls, *args, **kwargs)
         raise Error("Authentication required")
+
     return check
+
 
 class Client(object):
     read_size = 4096
@@ -136,7 +142,7 @@ class Client(object):
             try:
                 pos = self.__read_buffer.index(CRLF)
                 ret = self.__read_buffer[0:pos]
-                self.__read_buffer = self.__read_buffer[pos+len(CRLF):]
+                self.__read_buffer = self.__read_buffer[pos + len(CRLF):]
                 break
             except ValueError:
                 pass
@@ -195,7 +201,7 @@ class Client(object):
                 break
 
         return (code, data, resp)
-    
+
     def __prepare_args(self, args):
         """Format command arguments before sending them.
 
@@ -242,7 +248,7 @@ class Client(object):
         if withcontent:
             return (code, data, content)
         return (code, data)
-  
+
     def __get_capabilities(self):
         code, data, capabilities = self.__read_response()
         if code == "NO":
@@ -305,9 +311,9 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        extralines = ['"%s"' % base64.b64encode(login), 
+        extralines = ['"%s"' % base64.b64encode(login),
                       '"%s"' % base64.b64encode(password)]
-        code, data = self.__send_command("AUTHENTICATE", ["LOGIN"], 
+        code, data = self.__send_command("AUTHENTICATE", ["LOGIN"],
                                          extralines=extralines)
         if code == "OK":
             return True
@@ -321,10 +327,10 @@ class Client(object):
         :return: True on success, False otherwise.
         """
         code, data, challenge = \
-            self.__send_command("AUTHENTICATE", ["DIGEST-MD5"], 
+            self.__send_command("AUTHENTICATE", ["DIGEST-MD5"],
                                 withcontent=True, nblines=1)
         dmd5 = DigestMD5(challenge, "sieve/%s" % self.srvaddr)
-        
+
         code, data, challenge = \
             self.__send_command('"%s"' % dmd5.response(login, password),
                                 withcontent=True, nblines=1)
@@ -337,7 +343,7 @@ class Client(object):
         if code == "OK":
             return True
         return False
-        
+
     def __authenticate(self, login, password, authmech=None):
         """AUTHENTICATE command
 
@@ -371,7 +377,7 @@ class Client(object):
                 self.authenticated = True
                 return True
             return False
-        
+
         self.errmsg = "No suitable mechanism found"
         return False
 
@@ -458,7 +464,7 @@ class Client(object):
             self.sock.settimeout(Client.read_timeout)
         except socket.error, msg:
             raise Error("Connection to server failed: %s" % str(msg))
-        
+
         if not self.__get_capabilities():
             raise Error("Failed to read capabilities from server")
         if starttls and not self.__starttls():
@@ -634,6 +640,6 @@ class Client(object):
         """
         code, data = self.__send_command("SETACTIVE", [scriptname])
         if code == "OK":
-            return True        
+            return True
         return False
 

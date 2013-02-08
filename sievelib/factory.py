@@ -13,6 +13,7 @@ import sys
 import cStringIO
 from commands import *
 
+
 class FiltersSet(object):
     def __init__(self, name, filter_name_pretext="# Filter:", filter_desc_pretext="# Description:"):
         """Represents a set of one or more filters
@@ -147,7 +148,7 @@ class FiltersSet(object):
         :param matchtype: "anyof" or "allof"
         """
         ifcontrol = self.__create_filter(conditions, actions, matchtype)
-        self.filters += [{"name" : name, "content" : ifcontrol, "enabled" : True}]
+        self.filters += [{"name": name, "content": ifcontrol, "enabled": True}]
 
     def updatefilter(self, oldname, newname, conditions, actions, matchtype="anyof"):
         """Update a specific filter
@@ -320,17 +321,17 @@ class FiltersSet(object):
             cmd.tosieve(target=target)
             target.write("\n")
         for f in self.filters:
-            print >>target, self.filter_name_pretext + f["name"]
+            print >> target, self.filter_name_pretext + f["name"]
             if len(f["description"]) > 0:
-                print >>target, self.filter_desc_pretext + f["description"]
+                print >> target, self.filter_desc_pretext + f["description"]
             f["content"].tosieve(target=target)
-        
-    
+
+
 if __name__ == "__main__":
     fs = FiltersSet("test")
-    
-    fs.addfilter("rule1", 
-                 [("Sender", ":is", "toto@toto.com"),],
-                 [("fileinto", "Toto"),])
+
+    fs.addfilter("rule1",
+                 [("Sender", ":is", "toto@toto.com"), ],
+                 [("fileinto", "Toto"), ])
     fs.tosieve()
     
