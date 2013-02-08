@@ -253,7 +253,8 @@ class Command(object):
             for arg in self.args_definition:
                 if arg["required"]:
                     self.required_args += 1
-        return self.rargs_cnt == self.required_args
+        return (not self.curarg or not "extra_arg" in self.curarg) \
+                           and (self.rargs_cnt == self.required_args)
 
     def get_type(self):
         """Return the command's type"""
@@ -284,9 +285,9 @@ class Command(object):
 
         We make a distinction between required and optional
         arguments. Optional (or tagged) arguments can be provided
-        unordered but the required ones.
+        unordered but not the required ones.
 
-        A special handling is also for arguments that require an
+        A special handling is also done for arguments that require an
         argument (example: the :comparator argument expects a string
         argument).
 
@@ -307,7 +308,7 @@ class Command(object):
         if self.iscomplete():
             return False
 
-        if self.curarg is not None:
+        if self.curarg is not None and "extra_arg" in self.curarg:
             if atype == self.curarg["extra_arg"]["type"]:
                 if not self.curarg["extra_arg"].has_key("values") or \
                         avalue in self.curarg["extra_arg"]["values"]:
@@ -333,6 +334,7 @@ class Command(object):
                         not self.__is_valid_value_for_arg(curarg, avalue):
                     failed = True
                 else:
+                    self.curarg = curarg
                     self.rargs_cnt += 1
                     self.nextargpos = pos + 1
                     if add:

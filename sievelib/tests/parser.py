@@ -86,8 +86,9 @@ class AdditionalCommands(SieveTest):
 
     def test_quota_notification(self):
         sievelib.commands.add_commands(Quota_notificationCommand)
-        self.compilation_ok("""# Filter: Testrule\nquota_notification :subject "subject here" :recipient ["somerecipient@example.com"];""")
-        self.sieve_is("""# Filter: Testrule\nquota_notification :subject "subject here" :recipient ["somerecipient@example.com"];""")
+        quota_notification_sieve = """# Filter: Testrule\nquota_notification :subject "subject here" :recipient ["somerecipient@example.com"];\n"""
+        self.compilation_ok(quota_notification_sieve)
+        self.sieve_is(quota_notification_sieve)
 
 
 class ValidEncodings(SieveTest):
