@@ -608,7 +608,7 @@ class Client(object):
             return False
 
         (active_script, scripts) = self.listscripts()
-        if scripts == None or not oldname in scripts:
+        if scripts is None or not oldname in scripts:
             self.errmsg = "Old script does not exist"
             return False
         if newname in scripts:

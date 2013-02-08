@@ -645,7 +645,7 @@ class VacationCommand(ActionCommand):
     ]
 
 
-def add_commands(cmds, name=None):
+def add_commands(cmds):
     """
     Adds one or more commands to the module namespace.
     Commands must end in "Command" to be added.
@@ -653,7 +653,6 @@ def add_commands(cmds, name=None):
     sievelib.commands.add_commands(MytestCommand)
 
     :param cmds: a single Command Object or list of Command Objects
-    :param name: optional parameter under which to insert the Command
     """
     if not isinstance(cmds, Iterable):
         cmds = [cmds]
@@ -678,7 +677,7 @@ def get_command_instance(name, parent=None, checkexists=True):
     """
     cname = "%sCommand" % name.lower().capitalize()
     if not globals().has_key(cname) or \
-            (checkexists and globals()[cname].is_extension and \
+            (checkexists and globals()[cname].is_extension and
                  not name in RequireCommand.loaded_extensions):
         raise UnknownCommand(name)
     return globals()[cname](parent)

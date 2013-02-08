@@ -72,7 +72,6 @@ class Lexer(object):
 
             m = self.regexp.match(text, self.pos)
             if m is None:
-                lineno = self.curlineno()
                 raise ParseError("unknown token %s" % text[self.pos:])
 
             self.pos = m.end()
@@ -184,7 +183,7 @@ class Parser(object):
 
         ctype = self.__curcommand.get_type()
         if ctype == "action" or \
-                (ctype == "control" and \
+                (ctype == "control" and
                      not self.__curcommand.accept_children):
             if testsemicolon:
                 self.__set_expected("semicolon")

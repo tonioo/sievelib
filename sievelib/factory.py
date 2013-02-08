@@ -40,7 +40,7 @@ class FiltersSet(object):
         
         Simply checks if the filter is surrounded by a "if false" test.
 
-        :param name: the filter's name
+        :param fcontent: the filter's name
         """
         if not isinstance(fcontent, IfCommand):
             return False
@@ -172,23 +172,23 @@ class FiltersSet(object):
                 return True
         return False
 
-    def replacefilter(self, oldname, filter, newname=None, description=None):
-        """replace a specific filter
+    def replacefilter(self, oldname, sieve_filter, newname=None, description=None):
+        """replace a specific sieve_filter
 
-        Instead of removing and re-creating the filter, we update the
+        Instead of removing and re-creating the sieve_filter, we update the
         content in order to keep the original order between filters.
 
-        :param oldname: the filter's current name
-        :param newname: the filter's new name
-        :param filter: the filter object as get from FiltersSet.getfilter()
+        :param oldname: the sieve_filter's current name
+        :param newname: the sieve_filter's new name
+        :param sieve_filter: the sieve_filter object as get from FiltersSet.getfilter()
         """
-        if newname == None:
+        if newname is None:
             newname = oldname
         for f in self.filters:
             if f["name"] == oldname:
                 f["name"] = newname
-                f["content"] = filter
-                if description != None:
+                f["content"] = sieve_filter
+                if description is not None:
                     f['description'] = description
                 if not f["enabled"]:
                     return self.disablefilter(newname)
