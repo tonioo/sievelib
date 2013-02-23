@@ -45,7 +45,7 @@ commands. For example::
               "required": True}
       ]
 
-  sievelib.commands.add_commands(MytestCommand)
+  sievelib.commands.add_commands(MyCommand)
 
 Basic usage
 ^^^^^^^^^^^
