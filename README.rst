@@ -23,6 +23,30 @@ The following extensions are also supported:
 
 * Vacation (`RFC 5230 <http://tools.ietf.org/html/rfc5230>`_)
 
+Extending the parser
+^^^^^^^^^^^^^^^^^^^^
+
+It is possible to extend the parser by adding new supported
+commands. For example::
+
+  import sievelib
+
+  def MyCommand(sievelib.commands.ActionCommand):
+      args_definition = [
+          {"name": "testtag",
+              "type": ["tag"],
+              "write_tag": True,
+              "values": [":testtag"],
+              "extra_arg": {"type": "number",
+                            "required": False},
+              "required": False},
+          {"name": "recipients",
+              "type": ["string", "stringlist"],
+              "required": True}
+      ]
+
+  sievelib.commands.add_commands(MytestCommand)
+
 Basic usage
 ^^^^^^^^^^^
 
