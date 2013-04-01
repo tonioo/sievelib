@@ -126,7 +126,7 @@ class Command(object):
         self.__print(self.name, indentlevel, nocr=True, target=target)
         if self.has_arguments():
             for arg in self.args_definition:
-                if not self.arguments.has_key(arg["name"]):
+                if not arg["name"] in self.arguments:
                     continue
                 target.write(" ")
                 value = self.arguments[arg["name"]]

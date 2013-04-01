@@ -263,6 +263,7 @@ class FiltersSet(object):
         "if false { }" test.
 
         :param name: the filter's name
+        :return: True if filter was disabled, False otherwise
         """
         ifcontrol = get_command_instance("if")
         falsecmd = get_command_instance("false", ifcontrol)
