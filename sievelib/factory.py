@@ -15,7 +15,7 @@ from commands import *
 
 
 class FiltersSet(object):
-    def __init__(self, name, filter_name_pretext="# Filter:", filter_desc_pretext="# Description:"):
+    def __init__(self, name, filter_name_pretext="# Filter: ", filter_desc_pretext="# Description: "):
         """Represents a set of one or more filters
 
         :param name: the filterset's name
@@ -91,6 +91,16 @@ class FiltersSet(object):
         reqcmd.check_next_arg("stringlist", self.requires)
         return reqcmd
 
+    def __quote_if_necessary(self, value):
+        """Add double quotes to the given string if necessary
+
+        :param value: the string to check
+        :return: the string between quotes
+        """
+        if not value.startswith(('"', "'")):
+            return u'"%s"' % value
+        return value
+
     def __create_filter(self, conditions, actions, matchtype="anyof"):
         """Create a new filter
 
@@ -126,8 +136,8 @@ class FiltersSet(object):
             else:
                 cmd = get_command_instance("header", ifcontrol)
                 cmd.check_next_arg("tag", c[1])
-                cmd.check_next_arg("string", c[0])
-                cmd.check_next_arg("string", c[2])
+                cmd.check_next_arg("string", self.__quote_if_necessary(c[0]))
+                cmd.check_next_arg("string", self.__quote_if_necessary(c[2]))
             mtypeobj.check_next_arg("test", cmd)
         ifcontrol.check_next_arg("test", mtypeobj)
 
@@ -135,7 +145,7 @@ class FiltersSet(object):
             self.require(actdef[0])
             action = get_command_instance(actdef[0], ifcontrol, False)
             for arg in actdef[1:]:
-                action.check_next_arg("string", arg)
+                action.check_next_arg("string", self.__quote_if_necessary(arg))
             ifcontrol.addchild(action)
         return ifcontrol
 
@@ -302,8 +312,8 @@ class FiltersSet(object):
             print
 
         for f in self.filters:
-            print "Filter Name:%s" % f["name"]
-            print "Filter Description:%s" % f["description"]
+            print "Filter Name: %s" % f["name"]
+            print "Filter Description: %s" % f["description"]
             f["content"].dump()
 
     def tosieve(self, target=sys.stdout):
@@ -322,7 +332,7 @@ class FiltersSet(object):
             target.write("\n")
         for f in self.filters:
             print >> target, self.filter_name_pretext + f["name"]
-            if len(f["description"]) > 0:
+            if "description" in f and len(f["description"]):
                 print >> target, self.filter_desc_pretext + f["description"]
             f["content"].tosieve(target=target)
 
