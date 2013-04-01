@@ -80,6 +80,7 @@ Some high-level classes are provided with the ``factory`` module, they
 make the generation of Sieve rules easier::
 
   >>> from sievelib.factory import FilterSet
+  >>> fs = FilterSet("test")
   >>> fs.addfilter("rule1",
   ...              [("Sender", ":is", "toto@toto.com"),],
   ...              [("fileinto", "Toto"),])
@@ -92,7 +93,7 @@ make the generation of Sieve rules easier::
   }
   >>> 
 
-Additionnal documentation is available with source code.
+Additionnal documentation is available within source code.
 
 ManageSieve tools
 -----------------
