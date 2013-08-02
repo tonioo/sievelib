@@ -484,7 +484,11 @@ class KeepCommand(ActionCommand):
 
 
 class DiscardCommand(ActionCommand):
-    args_definition = []
+    args_definition = [
+	{"name": "name",
+	 "type": "string",
+	 "required": False}
+    ]
 
 
 class TestCommand(Command):
