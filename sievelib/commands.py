@@ -644,6 +644,40 @@ class VacationCommand(ActionCommand):
          "required": True},
     ]
 
+class SetCommand(sievelib.commands.ControlCommand):
+#     is_extension = True
+    args_definition = [
+            {"name": "startend", 
+             "type": ["string"], 
+             "required": True},
+            {"name": "date",
+             "type": ["string"],
+             "required": True}
+    ]
+    
+class CurrentdateCommand(sievelib.commands.ControlCommand):
+#     is_extension = True
+    accept_children = True
+    args_definition = [
+            {"name": "match-type",
+             "type": ["tag"],
+             "required": True},
+            {"name": "timezone",
+             "type": ["string"],
+             "required": True},
+            {"name": "match-value",
+             "type": ["tag"],
+             "required": True},
+            {"name": "comparison",
+             "type": ["string"],
+             "required": True},
+            {"name": "match-against",
+             "type": ["string"],
+             "required": True},
+            {"name": "match-against-field",
+             "type": ["string"],
+             "required": True}
+    ]
 
 def add_commands(cmds):
     """
