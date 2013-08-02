@@ -85,7 +85,7 @@ class Command(object):
      * A name
      * A type
      * A description of supported arguments
-     * Does it accept an unkwown quantity of arguments? (ex: anyof, allof)
+     * Does it accept an unknown quantity of arguments? (ex: anyof, allof)
      * Does it accept children? (ie. subcommands)
      * Is it an extension?
      * Must follow only certain commands
