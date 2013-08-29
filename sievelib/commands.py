@@ -676,7 +676,7 @@ def get_command_instance(name, parent=None, checkexists=True):
     :return: a new class instance
     """
     cname = "%sCommand" % name.lower().capitalize()
-    if not globals().has_key(cname) or \
+    if not cname in globals() or \
             (checkexists and globals()[cname].is_extension and
                  not name in RequireCommand.loaded_extensions):
         raise UnknownCommand(name)

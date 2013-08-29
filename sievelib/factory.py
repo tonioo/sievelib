@@ -37,7 +37,7 @@ class FiltersSet(object):
 
     def __isdisabled(self, fcontent):
         """Tells if a filter is disabled or not
-        
+
         Simply checks if the filter is surrounded by a "if false" test.
 
         :param fcontent: the filter's name
@@ -53,7 +53,7 @@ class FiltersSet(object):
         for f in parser.result:
             if isinstance(f, RequireCommand):
                 if type(f.arguments["capabilities"]) == list:
-                    map(self.require, f.arguments["capabilities"])
+                    [self.require(c) for c in f.arguments["capabilities"]]
                 else:
                     self.require(f.arguments["capabilities"])
                 continue
@@ -110,7 +110,7 @@ class FiltersSet(object):
          * one or more actions
 
         A condition must be given as a 3-uple of the form::
-        
+
           (test's name, operator, value)
 
         An action must be given as a 2-uple of the form::
@@ -142,8 +142,9 @@ class FiltersSet(object):
         ifcontrol.check_next_arg("test", mtypeobj)
 
         for actdef in actions:
-            self.require(actdef[0])
             action = get_command_instance(actdef[0], ifcontrol, False)
+            if action.is_extension:
+                self.require(actdef[0])
             for arg in actdef[1:]:
                 action.check_next_arg("string", self.__quote_if_necessary(arg))
             ifcontrol.addchild(action)
@@ -244,7 +245,7 @@ class FiltersSet(object):
             f["content"] = f["content"].children[0]
             f["enabled"] = True
             return True
-        return False # raise NotFound
+        return False  # raise NotFound
 
     def is_filter_disabled(self, name):
         """Tells if the filter is currently disabled or not
@@ -298,7 +299,7 @@ class FiltersSet(object):
                 self.filters.insert(cpt + 1, f)
                 return True
             cpt += 1
-        return False # raise not found
+        return False  # raise not found
 
     def dump(self):
         """Dump this object
@@ -345,4 +346,3 @@ if __name__ == "__main__":
                  [("Sender", ":is", "toto@toto.com"), ],
                  [("fileinto", "Toto"), ])
     fs.tosieve()
-    
