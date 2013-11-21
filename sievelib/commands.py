@@ -486,8 +486,8 @@ class KeepCommand(ActionCommand):
 class DiscardCommand(ActionCommand):
     args_definition = [
 	{"name": "name",
-	 "type": "string",
-	 "required": False}
+	 "type": ["string"],
+	 "required": True}
     ]
 
 
@@ -648,8 +648,12 @@ class VacationCommand(ActionCommand):
          "required": True},
     ]
 
-class SetCommand(sievelib.commands.ControlCommand):
-#     is_extension = True
+class SetCommand(ControlCommand):
+    """currentdate command, part of the variables extension
+
+    http://tools.ietf.org/html/rfc5229
+    """
+    is_extension = True
     args_definition = [
             {"name": "startend", 
              "type": ["string"], 
@@ -659,16 +663,20 @@ class SetCommand(sievelib.commands.ControlCommand):
              "required": True}
     ]
     
-class CurrentdateCommand(sievelib.commands.ControlCommand):
-#     is_extension = True
+class CurrentdateCommand(ControlCommand):
+    """currentdate command, part of the date extension
+
+    http://tools.ietf.org/html/rfc5260#section-5
+    """
+    is_extension = True
     accept_children = True
     args_definition = [
-            {"name": "match-type",
+            {"name": "zone",
              "type": ["tag"],
-             "required": True},
-            {"name": "timezone",
-             "type": ["string"],
-             "required": True},
+             "write_tag": True,
+             "values": [":zone"],
+             "extra_arg": {"type": "string"},
+             "required": False},
             {"name": "match-value",
              "type": ["tag"],
              "required": True},
@@ -713,9 +721,21 @@ def get_command_instance(name, parent=None, checkexists=True):
     :param parent: the eventual parent command
     :return: a new class instance
     """
+
+    # Mapping between extension names and command names
+    extension_map = {'date': set([
+                       'currentdate']), 
+                     'variables': set([
+                       'set'])}
+    extname = name
+    for extension in extension_map:
+        if name in extension_map[extension]:
+            extname = extension
+            break
+
     cname = "%sCommand" % name.lower().capitalize()
     if not globals().has_key(cname) or \
             (checkexists and globals()[cname].is_extension and
-                 not name in RequireCommand.loaded_extensions):
+                 not extname in RequireCommand.loaded_extensions):
         raise UnknownCommand(name)
     return globals()[cname](parent)
