@@ -486,6 +486,7 @@ class KeepCommand(ActionCommand):
 class DiscardCommand(ActionCommand):
     args_definition = []
 
+
 class TestCommand(Command):
     """Indermediate class to represent "test" commands"""
     _type = "test"
