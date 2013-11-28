@@ -68,7 +68,7 @@ class Client(object):
     read_size = 4096
     read_timeout = 5
 
-    def __init__(self, srvaddr, srvport=2000, debug=False):
+    def __init__(self, srvaddr, srvport=4190, debug=False):
         self.srvaddr = srvaddr
         self.srvport = srvport
         self.__debug = debug
