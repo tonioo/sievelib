@@ -643,3 +643,21 @@ class Client(object):
             return True
         return False
 
+    @authentication_required
+    def checkscript(self, content):
+        """Check whether a script is valid
+
+        See MANAGESIEVE specifications, section 2.12
+
+        :param name: script's content
+        :rtype: boolean
+        """
+        if type(content) is unicode:
+            content = content.encode("utf-8")
+
+        content = "{%d+}%s%s" % (len(content), CRLF, content)
+        code, data = \
+            self.__send_command("CHECKSCRIPT", [content])
+        if code == "OK":
+            return True
+        return False
