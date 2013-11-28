@@ -12,7 +12,9 @@ import codecs
 import re
 import sys
 
-from commands import get_command_instance, UnknownCommand, BadArgument, BadValue
+from sievelib.commands import (
+    get_command_instance, UnknownCommand, BadArgument, BadValue
+)
 
 
 class ParseError(Exception):
@@ -27,14 +29,14 @@ class ParseError(Exception):
 
 class Lexer(object):
     """
-    The lexical analysis part. 
+    The lexical analysis part.
 
     This class provides a simple way to define tokens (with patterns)
     to be detected.
 
     Patterns are provided into a list of 2-uple. Each 2-uple consists
     of a token name and an associated pattern, example:
-    
+
       [("left_bracket", r'\['),]
     """
 
@@ -151,12 +153,13 @@ class Parser(object):
                 prevcmd = self.__curcommand.parent.children[-2] \
                     if len(self.__curcommand.parent.children) >= 2 else None
             if prevcmd is None or prevcmd.name not in self.__curcommand.must_follow:
-                raise ParseError("the %s command must follow an %s command" % \
+                raise ParseError("the %s command must follow an %s command" %
                                  (self.__curcommand.name,
                                   " or ".join(self.__curcommand.must_follow)))
 
         if not self.__curcommand.parent:
-            #collect current amount of hash comments for later parsing into names and desciptions
+            # collect current amount of hash comments for later
+            # parsing into names and desciptions
             self.__curcommand.hash_comments = self.hash_comments
             self.hash_comments = []
             self.result += [self.__curcommand]
@@ -184,7 +187,7 @@ class Parser(object):
         ctype = self.__curcommand.get_type()
         if ctype == "action" or \
                 (ctype == "control" and
-                     not self.__curcommand.accept_children):
+                 not self.__curcommand.accept_children):
             if testsemicolon:
                 self.__set_expected("semicolon")
             return True
@@ -209,7 +212,7 @@ class Parser(object):
     def __stringlist(self, ttype, tvalue):
         """Specific method to parse the 'string-list' type
 
-        Syntax: 
+        Syntax:
             string-list = "[" string *("," string) "]" / string
                             ; if there is only a single string, the brackets
                             ; are optional
@@ -232,7 +235,7 @@ class Parser(object):
 
         This method acts as an entry point for 'argument' parsing.
 
-        Syntax: 
+        Syntax:
             string-list / number / tag
 
         :param ttype: current token type
@@ -261,7 +264,7 @@ class Parser(object):
 
         Syntax:
             *argument [ test / test-list ]
-        
+
         :param ttype: current token type
         :param tvalue: current token value
         :return: False if an error is encountered, True otherwise
@@ -350,7 +353,7 @@ class Parser(object):
     def parse(self, text):
         """The parser entry point.
 
-        Parse the provided text to check for its validity. 
+        Parse the provided text to check for its validity.
 
         On success, the parsing tree is available into the result
         attribute. It is a list of sievecommands.Command objects (see
@@ -388,7 +391,7 @@ class Parser(object):
             if self.__opened_blocks:
                 self.__set_expected("right_cbracket")
             if self.__expected is not None:
-                raise ParseError("end of script reached while %s expected" % \
+                raise ParseError("end of script reached while %s expected" %
                                  "|".join(self.__expected))
 
         except (ParseError, UnknownCommand, BadArgument, BadValue), e:
@@ -448,5 +451,3 @@ if __name__ == "__main__":
             continue
         print "ERROR"
         print p.error
-
-    

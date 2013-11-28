@@ -89,7 +89,7 @@ class Command(object):
      * Does it accept children? (ie. subcommands)
      * Is it an extension?
      * Must follow only certain commands
-    
+
     """
     _type = None
     variable_args_nb = False
@@ -105,7 +105,7 @@ class Command(object):
         self.nextargpos = 0
         self.required_args = -1
         self.rargs_cnt = 0
-        self.curarg = None # for arguments that expect an argument :p (ex: :comparator)
+        self.curarg = None  # for arguments that expect an argument :p (ex: :comparator)
 
         self.name = self.__class__.__name__.replace("Command", "")
         self.name = self.name.lower()
@@ -143,7 +143,7 @@ class Command(object):
                                 target.write(", ")
                         target.write(")")
                     else:
-                        target.write("[" + unicode((", ".join(map(lambda v: '"%s"' % v.strip('"'), value)))) + "]")
+                        target.write("[" + unicode((", ".join(['"%s"' % v.strip('"') for v in value]))) + "]")
                     continue
                 if isinstance(value, Command):
                     value.tosieve(indentlevel, target=target)
@@ -189,7 +189,7 @@ class Command(object):
 
     def complete_cb(self):
         """Completion callback
-        
+
         Called when a command is considered as complete by the parser.
         """
         pass
@@ -213,7 +213,7 @@ class Command(object):
         indentlevel += 4
         if self.has_arguments():
             for arg in self.args_definition:
-                if not self.arguments.has_key(arg["name"]):
+                if not arg["name"] in self.arguments:
                     continue
                 value = self.arguments[arg["name"]]
                 if type(value) == list:
@@ -266,7 +266,7 @@ class Command(object):
     def get_type(self):
         """Return the command's type"""
         if self._type is None:
-            raise NotImplemented
+            raise NotImplementedError
         return self._type
 
     def __is_valid_value_for_arg(self, arg, value):
@@ -280,7 +280,7 @@ class Command(object):
         :param value: the value to check
         :return: True on succes, False otherwise
         """
-        if not arg.has_key("values"):
+        if not "values" in arg:
             return True
         return value.lower() in arg["values"]
 
@@ -317,8 +317,8 @@ class Command(object):
 
         if self.curarg is not None and "extra_arg" in self.curarg:
             if atype == self.curarg["extra_arg"]["type"]:
-                if not self.curarg["extra_arg"].has_key("values") or \
-                                avalue in self.curarg["extra_arg"]["values"]:
+                if not "values" in self.curarg["extra_arg"] \
+                   or avalue in self.curarg["extra_arg"]["values"]:
                     if add:
                         self.arguments[self.curarg["name"]] = avalue
                     self.curarg = None
@@ -334,7 +334,7 @@ class Command(object):
                     if atype != "test":
                         failed = True
                     elif add:
-                        if not self.arguments.has_key(curarg["name"]):
+                        if not curarg["name"] in self.arguments:
                             self.arguments[curarg["name"]] = []
                         self.arguments[curarg["name"]] += [avalue]
                 elif atype not in curarg["type"] or \
@@ -350,7 +350,7 @@ class Command(object):
 
             if atype in curarg["type"]:
                 if self.__is_valid_value_for_arg(curarg, avalue):
-                    if curarg.has_key("extra_arg"):
+                    if "extra_arg" in curarg:
                         self.curarg = curarg
                         break
                     if add:
@@ -376,7 +376,7 @@ class Command(object):
                 break
         if not found:
             raise KeyError(name)
-        if not self.arguments.has_key(name):
+        if not name in self.arguments:
             raise KeyError(name)
         return self.arguments[name]
 
