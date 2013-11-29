@@ -636,6 +636,51 @@ if header :contains "Subject" "MAKE MONEY FAST" {
         self.compilation_ko("true;")
 
 
+class DateCommands(SieveTest):
+    def test_currentdate_command(self):
+        self.compilation_ok("""require ["date", "relational"];
+
+if allof ( currentdate :value "ge" "date" "2013-10-23" , currentdate :value "le" "date" "2014-10-12" ) 
+{
+    discard;
+}
+""")
+
+    def test_currentdate_command_timezone(self):
+        self.compilation_ok("""require ["date", "relational"];
+
+if allof ( currentdate :zone "+0100" :value "ge" "date" "2013-10-23" , currentdate :value "le" "date" "2014-10-12" ) 
+{
+    discard;
+}
+""")
+
+    def test_currentdate_norel(self):
+        self.compilation_ok("""require ["date"];
+
+if allof ( 
+  currentdate :zone "+0100" :is "date" "2013-10-23"  
+) 
+{
+    discard;
+}""")
+
+
+class VariablesCommands(SieveTest):
+    def test_set_command(self):
+        self.compilation_ok("""require ["variables"];
+
+set "matchsub" "testsubject";
+        
+if allof (
+  header :contains ["Subject"] "${header}"
+)
+{
+  discard;
+}
+""")
+
+
 if __name__ == "__main__":
     unittest.main()
 
