@@ -1,6 +1,8 @@
 sievelib
 ========
 
+|latest-version| |downloads|
+
 Client-side Sieve and Managesieve library written in Python.
 
 * Sieve : An Email Filtering Language
