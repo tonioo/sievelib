@@ -644,6 +644,48 @@ class VacationCommand(ActionCommand):
          "required": True},
     ]
 
+class SetCommand(ControlCommand):
+    """currentdate command, part of the variables extension
+
+    http://tools.ietf.org/html/rfc5229
+    """
+    is_extension = True
+    args_definition = [
+            {"name": "startend", 
+             "type": ["string"], 
+             "required": True},
+            {"name": "date",
+             "type": ["string"],
+             "required": True}
+    ]
+    
+class CurrentdateCommand(ControlCommand):
+    """currentdate command, part of the date extension
+
+    http://tools.ietf.org/html/rfc5260#section-5
+    """
+    is_extension = True
+    accept_children = True
+    args_definition = [
+            {"name": "zone",
+             "type": ["tag"],
+             "write_tag": True,
+             "values": [":zone"],
+             "extra_arg": {"type": "string"},
+             "required": False},
+            {"name": "match-value",
+             "type": ["tag"],
+             "required": True},
+            {"name": "comparison",
+             "type": ["string"],
+             "required": True},
+            {"name": "match-against",
+             "type": ["string"],
+             "required": True},
+            {"name": "match-against-field",
+             "type": ["string"],
+             "required": True}
+    ]
 
 def add_commands(cmds):
     """
@@ -675,9 +717,21 @@ def get_command_instance(name, parent=None, checkexists=True):
     :param parent: the eventual parent command
     :return: a new class instance
     """
+
+    # Mapping between extension names and command names
+    extension_map = {'date': set([
+                       'currentdate']), 
+                     'variables': set([
+                       'set'])}
+    extname = name
+    for extension in extension_map:
+        if name in extension_map[extension]:
+            extname = extension
+            break
+
     cname = "%sCommand" % name.lower().capitalize()
     if not cname in globals() or \
             (checkexists and globals()[cname].is_extension and
-                 not name in RequireCommand.loaded_extensions):
+                 not extname in RequireCommand.loaded_extensions):
         raise UnknownCommand(name)
     return globals()[cname](parent)
