@@ -133,7 +133,7 @@ Additionnal documentation is available with source code.
 
 .. |latest-version| image:: https://pypip.in/v/sievelib/badge.png
    :alt: Latest version on Pypi
-   :target: https://crate.io/packages/modoboa/
+   :target: https://crate.io/packages/sievelib/
 .. |downloads| image:: https://pypip.in/d/sievelib/badge.png
    :alt: Downloads from Pypi
-   :target: https://crate.io/packages/modoboa/
+   :target: https://crate.io/packages/sievelib/
