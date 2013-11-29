@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name = "sievelib",
     packages = ["sievelib"],
-    version = "0.7",
+    version = "0.8",
     description = "Client-side SIEVE library",
     author = "Antoine Nguyen",
     author_email = "tonio@ngyn.org",
@@ -19,7 +19,7 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Communications :: Email :: Filters"
-        ],
+    ],
     
     long_description = open("README.rst").read()
 )
