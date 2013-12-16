@@ -11,7 +11,9 @@ are supported.
 """
 import sys
 import cStringIO
-from commands import *
+from sievelib.commands import (
+    get_command_instance, IfCommand, RequireCommand, FalseCommand
+)
 
 
 class FiltersSet(object):
@@ -101,6 +103,23 @@ class FiltersSet(object):
             return u'"%s"' % value
         return value
 
+    def __build_condition(self, condition, parent, tag=None):
+        """Translate a condition to a valid sievelib Command.
+
+        :param list condition: condition's definition
+        :param ``Command`` parent: the parent
+        :param str tag: tag to use instead of the one included into :keyword:`condition`
+        :rtype: Command
+        :return: the generated command
+        """
+        if tag is None:
+            tag = condition[1]
+        cmd = get_command_instance("header", parent)
+        cmd.check_next_arg("tag", tag)
+        cmd.check_next_arg("string", self.__quote_if_necessary(condition[0]))
+        cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
+        return cmd
+
     def __create_filter(self, conditions, actions, matchtype="anyof"):
         """Create a new filter
 
@@ -127,17 +146,36 @@ class FiltersSet(object):
         ifcontrol = get_command_instance("if")
         mtypeobj = get_command_instance(matchtype, ifcontrol)
         for c in conditions:
-            if c[0] in ("true", "false"):
+            if c[0].startswith("not"):
+                negate = True
+                cname = c[0].replace("not", "", 1)
+            else:
+                negate = False
+                cname = c[0]
+            if cname in ("true", "false"):
                 cmd = get_command_instance(c[0], ifcontrol)
-            elif c[0] == "size":
+            elif cname == "size":
                 cmd = get_command_instance("size", ifcontrol)
                 cmd.check_next_arg("tag", c[1])
                 cmd.check_next_arg("number", c[2])
+            elif cname == "exists":
+                cmd = get_command_instance("exists", ifcontrol)
+                cmd.check_next_arg(
+                    "stringlist",
+                    "[%s]" % (",".join('"%s"' % val for val in c[1:]))
+                )
             else:
-                cmd = get_command_instance("header", ifcontrol)
-                cmd.check_next_arg("tag", c[1])
-                cmd.check_next_arg("string", self.__quote_if_necessary(c[0]))
-                cmd.check_next_arg("string", self.__quote_if_necessary(c[2]))
+                if c[1].startswith(':not'):
+                    cmd = self.__build_condition(c, ifcontrol, c[1].replace("not", "", 1))
+                    not_cmd = get_command_instance("not", ifcontrol)
+                    not_cmd.check_next_arg("test", cmd)
+                    cmd = not_cmd
+                else:
+                    cmd = self.__build_condition(c, ifcontrol)
+            if negate:
+                not_cmd = get_command_instance("not", ifcontrol)
+                not_cmd.check_next_arg("test", cmd)
+                cmd = not_cmd
             mtypeobj.check_next_arg("test", cmd)
         ifcontrol.check_next_arg("test", mtypeobj)
 
