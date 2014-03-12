@@ -1,7 +1,7 @@
 sievelib
 ========
 
-|latest-version| |downloads|
+|travis| |latest-version| |downloads|
 
 Client-side Sieve and Managesieve library written in Python.
 
@@ -137,3 +137,5 @@ Additionnal documentation is available with source code.
 .. |downloads| image:: https://pypip.in/d/sievelib/badge.png
    :alt: Downloads from Pypi
    :target: https://crate.io/packages/sievelib/
+.. |travis| image:: https://travis-ci.org/tonioo/sievelib.png?branch=master
+   :target: https://travis-ci.org/tonioo/sievelib
