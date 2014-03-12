@@ -8,7 +8,7 @@ setup(
     description = "Client-side SIEVE library",
     author = "Antoine Nguyen",
     author_email = "tonio@ngyn.org",
-    url = "http://bitbucket.org/tonioo/sievelib",
+    url = "https://github.com/tonioo/sievelib",
     license = "MIT",
     keywords = ["sieve", "managesieve", "parser", "client"],
     classifiers = [
