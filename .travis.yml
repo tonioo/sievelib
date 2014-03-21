@@ -1,10 +1,11 @@
 language: python
 python:
   - "2.7"
+  - "3.3"
+  - "3.4"
 
 install:
+  - pip install nose --use-mirrors
   - python setup.py -q install
 
-script:
-  - python -m unittest sievelib.tests
-
+script: nosetests

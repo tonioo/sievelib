@@ -8,6 +8,8 @@ language used to filter emails.
 This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 
 """
+from __future__ import print_function
+
 import codecs
 import re
 import sys
@@ -112,7 +114,7 @@ class Parser(object):
         if not self.debug:
             return
         for m in msgs:
-            print m
+            print(m)
 
     def __reset_parser(self):
         """Reset parser's internal variables
@@ -394,7 +396,7 @@ class Parser(object):
                 raise ParseError("end of script reached while %s expected" %
                                  "|".join(self.__expected))
 
-        except (ParseError, UnknownCommand, BadArgument, BadValue), e:
+        except (ParseError, UnknownCommand, BadArgument, BadValue) as e:
             self.error = "line %d: %s" % (self.lexer.curlineno(), str(e))
             return False
         return True
@@ -435,19 +437,19 @@ if __name__ == "__main__":
     options, args = op.parse_args()
 
     if not len(args):
-        print "Nothing to parse, exiting."
+        print("Nothing to parse, exiting.")
         sys.exit(0)
 
     for a in args:
         p = Parser(debug=options.debug)
-        print "Parsing file %s... " % a,
+        print("Parsing file %s... " % a, end=' ')
         if p.parse_file(a):
-            print "OK"
+            print("OK")
             if options.verbose:
                 p.dump()
             if options.tosieve:
                 for r in p.result:
                     r.tosieve()
             continue
-        print "ERROR"
-        print p.error
+        print("ERROR")
+        print(p.error)

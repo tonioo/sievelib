@@ -21,6 +21,8 @@ provides extra information such as:
  * etc.
 
 """
+from __future__ import unicode_literals
+
 import sys
 from collections import Iterable
 
@@ -143,14 +145,11 @@ class Command(object):
                                 target.write(", ")
                         target.write(")")
                     else:
-                        target.write("[" + unicode((", ".join(['"%s"' % v.strip('"') for v in value]))) + "]")
+                        target.write("[" + ((", ".join(['"%s"' % v.strip('"') for v in value]))) + "]")
                     continue
                 if isinstance(value, Command):
                     value.tosieve(indentlevel, target=target)
                     continue
-
-                if type(value) is unicode:
-                    value = value.encode("utf-8")
 
                 if "string" in arg["type"]:
                     target.write(value)
@@ -161,11 +160,11 @@ class Command(object):
 
         if not self.accept_children:
             if self.get_type() != "test":
-                print >> target, ";"
+                target.write(";\n")
             return
         if self.get_type() != "control":
             return
-        print >> target, " {"
+        target.write(" {\n")
         for ch in self.children:
             ch.tosieve(indentlevel + 4, target=target)
         self.__print("}", indentlevel, target=target)
@@ -175,7 +174,7 @@ class Command(object):
         if nocr:
             target.write(text)
         else:
-            print >> target, text
+            target.write(text + "\n")
 
     def __get_arg_type(self, arg):
         """Return the type corresponding to the given name.

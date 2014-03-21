@@ -4,10 +4,9 @@
 Unit tests for the SIEVE language parser.
 """
 import unittest
-import cStringIO
-import StringIO
 import os.path
 import codecs
+import six
 
 from sievelib.parser import Parser
 from sievelib.factory import FiltersSet
@@ -60,7 +59,7 @@ class SieveTest(unittest.TestCase):
         self.__checkCompilation(script, False)
 
     def representation_is(self, content):
-        target = cStringIO.StringIO()
+        target = six.StringIO()
         self.parser.dump(target)
         repr_ = target.getvalue()
         target.close()
@@ -69,7 +68,7 @@ class SieveTest(unittest.TestCase):
     def sieve_is(self, content):
         filtersset = FiltersSet("Testfilterset")
         filtersset.from_parser_result(self.parser)
-        target = StringIO.StringIO()
+        target = six.StringIO()
         filtersset.tosieve(target)
         repr_ = target.getvalue()
         target.close()
@@ -78,7 +77,10 @@ class SieveTest(unittest.TestCase):
 
 class AdditionalCommands(SieveTest):
     def test_add_command(self):
-        self.assertRaises(sievelib.commands.UnknownCommand, sievelib.commands.get_command_instance, 'mytest')
+        self.assertRaises(
+            sievelib.commands.UnknownCommand,
+            sievelib.commands.get_command_instance, 'mytest'
+        )
         sievelib.commands.add_commands(MytestCommand)
         sievelib.commands.get_command_instance('mytest')
         self.compilation_ok("""
@@ -94,8 +96,11 @@ class AdditionalCommands(SieveTest):
 
 class ValidEncodings(SieveTest):
     def test_utf8_file(self):
-        utf8_sieve = os.path.join(os.path.dirname(__file__), 'files', 'utf8_sieve.txt')
-        source_sieve = codecs.open(utf8_sieve, encoding='utf8').read()
+        utf8_sieve = os.path.join(
+            os.path.dirname(__file__), 'files', 'utf8_sieve.txt'
+        )
+        with codecs.open(utf8_sieve, encoding='utf8') as fobj:
+            source_sieve = fobj.read()
         self.parser.parse_file(utf8_sieve)
         self.sieve_is(source_sieve)
 

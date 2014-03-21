@@ -9,8 +9,10 @@ without having to write or to know the syntax.
 Only commands (control/test/action) defined in the ``commands`` module
 are supported.
 """
+from __future__ import print_function, unicode_literals
+
 import sys
-import cStringIO
+import six
 from sievelib.commands import (
     get_command_instance, IfCommand, RequireCommand, FalseCommand
 )
@@ -31,7 +33,7 @@ class FiltersSet(object):
         self.filters = []
 
     def __str__(self):
-        target = cStringIO.StringIO()
+        target = six.StringIO()
         self.tosieve(target)
         ret = target.getvalue()
         target.close()
@@ -100,7 +102,7 @@ class FiltersSet(object):
         :return: the string between quotes
         """
         if not value.startswith(('"', "'")):
-            return u'"%s"' % value
+            return '"%s"' % value
         return value
 
     def __build_condition(self, condition, parent, tag=None):
@@ -344,16 +346,16 @@ class FiltersSet(object):
 
         Available for debugging purposes
         """
-        print "Dumping filters set %s\n" % self.name
+        print("Dumping filters set %s\n" % self.name)
         cmd = self.__gen_require_command()
         if cmd:
-            print "Dumping requirements"
+            print("Dumping requirements")
             cmd.dump()
             print
 
         for f in self.filters:
-            print "Filter Name: %s" % f["name"]
-            print "Filter Description: %s" % f["description"]
+            print("Filter Name: %s" % f["name"])
+            print("Filter Description: %s" % f["description"])
             f["content"].dump()
 
     def tosieve(self, target=sys.stdout):
@@ -371,9 +373,11 @@ class FiltersSet(object):
             cmd.tosieve(target=target)
             target.write("\n")
         for f in self.filters:
-            print >> target, self.filter_name_pretext + f["name"]
+            target.write(self.filter_name_pretext + f["name"] + "\n")
             if "description" in f and len(f["description"]):
-                print >> target, self.filter_desc_pretext + f["description"]
+                target.write(
+                    self.filter_desc_pretext + f["description"] + "\n"
+                )
             f["content"].tosieve(target=target)
 
 

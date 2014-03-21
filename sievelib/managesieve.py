@@ -10,6 +10,7 @@ a user to syntactically flawed scripts.
 
 Implementation based on <draft-martin-managesieve-12>.
 """
+from __future__ import print_function
 
 import socket
 import re
@@ -78,9 +79,9 @@ class Client(object):
         self.errcode = None
 
         self.__capabilities = {}
-        self.__respcode_expr = re.compile("(OK|NO|BYE)\s*(.+)?")
-        self.__error_expr = re.compile('(\(\w+\))?\s*(".+")')
-        self.__size_expr = re.compile("\{(\d+)\+?\}")
+        self.__respcode_expr = re.compile(r"(OK|NO|BYE)\s*(.+)?")
+        self.__error_expr = re.compile(r'(\(\w+\))?\s*(".+")')
+        self.__size_expr = re.compile(r"\{(\d+)\+?\}")
         self.__active_expr = re.compile("ACTIVE", re.IGNORECASE)
 
     def __del__(self):
@@ -91,7 +92,7 @@ class Client(object):
     def __dprint(self, message):
         if not self.__debug:
             return
-        print "DEBUG: %s" % message
+        print("DEBUG: %s" % message)
 
     def __read_block(self, size):
         """Read a block of 'size' bytes from the server.
@@ -118,7 +119,7 @@ class Client(object):
             return buf
         try:
             buf += self.sock.recv(size)
-        except (socket.timeout, ssl.SSLError), e:
+        except (socket.timeout, ssl.SSLError) as e:
             raise Error("Failed to read %d bytes from the server" % size)
         return buf
 
@@ -186,11 +187,11 @@ class Client(object):
         while True:
             try:
                 line = self.__read_line()
-            except Response, inst:
+            except Response as inst:
                 code = inst.code
                 data = inst.data
                 break
-            except Literal, inst:
+            except Literal as inst:
                 resp += self.__read_block(inst.value)
                 continue
             if not len(line):
@@ -397,7 +398,7 @@ class Client(object):
             return False
         try:
             nsock = ssl.wrap_socket(self.sock, keyfile, certfile)
-        except ssl.SSLError, e:
+        except ssl.SSLError as e:
             raise Error("SSL error: %s" % str(e))
         self.sock = nsock
         self.__capabilities = {}
@@ -462,7 +463,7 @@ class Client(object):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((self.srvaddr, self.srvport))
             self.sock.settimeout(Client.read_timeout)
-        except socket.error, msg:
+        except socket.error as msg:
             raise Error("Connection to server failed: %s" % str(msg))
 
         if not self.__get_capabilities():
@@ -525,7 +526,7 @@ class Client(object):
         for l in listing.splitlines():
             if self.__size_expr.match(l):
                 continue
-            m = re.match('"([^"]+)"\s*(.+)', l)
+            m = re.match(r'"([^"]+)"\s*(.+)', l)
             if m is None:
                 ret += [l.strip('"')]
             else:
