@@ -17,6 +17,8 @@ import re
 import base64
 import ssl
 
+import six
+
 from digest_md5 import DigestMD5
 
 CRLF = '\r\n'
@@ -294,11 +296,15 @@ class Client(object):
 
     def _plain_authentication(self, login, password):
         """SASL PLAIN authentication
-        
+
         :param login: username
         :param password: clear password
         :return: True on success, False otherwise.
         """
+        if isinstance(login, six.text_type):
+            login = login.encode("utf-8")
+        if isinstance(login, six.text_type):
+            password = password.encode("utf-8")
         params = base64.b64encode('\0' + '\0'.join([login, password]))
         code, data = self.__send_command("AUTHENTICATE", ["PLAIN", params])
         if code == "OK":
