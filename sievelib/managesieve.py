@@ -243,9 +243,9 @@ class Client(object):
         if len(args):
             tosend += " " + " ".join(self.__prepare_args(args))
         self.__dprint("Command: %s" % tosend)
-        self.sock.send("%s%s" % (tosend, CRLF))
+        self.sock.sendall("%s%s" % (tosend, CRLF))
         for l in extralines:
-            self.sock.send("%s%s" % (l, CRLF))
+            self.sock.sendall("%s%s" % (l, CRLF))
         code, data, content = self.__read_response(nblines)
 
         if withcontent:
