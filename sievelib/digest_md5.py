@@ -19,7 +19,7 @@ class DigestMD5(object):
         self.__challenge = challenge
 
         self.__params = {}
-        pexpr = re.compile('(\w+)="(.+)"')
+        pexpr = re.compile(r'(\w+)="(.+)"')
         for elt in base64.b64decode(challenge).split(","):
             m = pexpr.match(elt)
             if m is None:
@@ -39,8 +39,10 @@ class DigestMD5(object):
         return binascii.hexlify(hashlib.md5(value).digest())
 
     def __make_response(self, username, password, check=False):
-        a1 = "%s:%s:%s" % (self.__digest("%s:%s:%s" % (username, self.realm, password)),
-                           self.__params["nonce"], self.cnonce)
+        a1 = "%s:%s:%s" % (
+            self.__digest("%s:%s:%s" % (username, self.realm, password)),
+            self.__params["nonce"], self.cnonce
+        )
         if check:
             a2 = ":%s" % self.__digesturi
         else:
@@ -51,15 +53,21 @@ class DigestMD5(object):
 
         return self.__hexdigest(resp)
 
-    def response(self, username, password):
-        self.realm = self.__params["realm"] if self.__params.has_key("realm") else ""
+    def response(self, username, password, authz_id=''):
+        self.realm = self.__params["realm"] \
+            if self.__params.has_key("realm") else ""
         self.cnonce = self.__make_cnonce()
         respvalue = self.__make_response(username, password)
 
         dgres = 'username="%s",%snonce="%s",cnonce="%s",nc=00000001,qop=auth,' \
                 'digest-uri="%s",response=%s' \
-                % (username, ('realm="%s",' % self.realm) if len(self.realm) else "",
-                   self.__params["nonce"], self.cnonce, self.__digesturi, respvalue)
+            % (username,
+               ('realm="%s",' % self.realm) if len(self.realm) else "",
+               self.__params["nonce"], self.cnonce, self.__digesturi, respvalue)
+        if authz_id:
+            if type(authz_id) is unicode:
+                authz_id = authz_id.encode("utf-8")
+            dgres += ',authzid="%s"' % authz_id
 
         return base64.b64encode(dgres)
 
@@ -67,4 +75,3 @@ class DigestMD5(object):
         challenge = base64.b64decode(value.strip('"'))
         return challenge == \
                ("rspauth=%s" % self.__make_response(username, password, True))
-        
