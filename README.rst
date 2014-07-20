@@ -142,7 +142,7 @@ application (there isn't any shell provided)::
   True
   >>>
 
-Additionnal documentation is available with source code.
+Additional documentation is available with source code.
 
 .. |latest-version| image:: https://pypip.in/v/sievelib/badge.png
    :alt: Latest version on Pypi
