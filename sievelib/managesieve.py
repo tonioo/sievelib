@@ -19,7 +19,7 @@ import ssl
 
 import six
 
-from digest_md5 import DigestMD5
+from .digest_md5 import DigestMD5
 
 CRLF = '\r\n'
 
@@ -301,7 +301,7 @@ class Client(object):
             self.errcode = ""
         self.errmsg = m.group(2).strip('"')
 
-    def _plain_authentication(self, login, password):
+    def _plain_authentication(self, login, password, authz_id=""):
         """SASL PLAIN authentication
 
         :param login: username
@@ -312,13 +312,13 @@ class Client(object):
             login = login.encode("utf-8")
         if isinstance(login, six.text_type):
             password = password.encode("utf-8")
-        params = base64.b64encode('\0' + '\0'.join([login, password]))
+        params = base64.b64encode('\0'.join([authz_id, login, password]))
         code, data = self.__send_command("AUTHENTICATE", ["PLAIN", params])
         if code == "OK":
             return True
         return False
 
-    def _login_authentication(self, login, password):
+    def _login_authentication(self, login, password, authz_id=""):
         """SASL LOGIN authentication
 
         :param login: username
@@ -333,7 +333,7 @@ class Client(object):
             return True
         return False
 
-    def _digest_md5_authentication(self, login, password):
+    def _digest_md5_authentication(self, login, password, authz_id=""):
         """SASL DIGEST-MD5 authentication
 
         :param login: username
@@ -345,10 +345,11 @@ class Client(object):
                                 withcontent=True, nblines=1)
         dmd5 = DigestMD5(challenge, "sieve/%s" % self.srvaddr)
 
-        code, data, challenge = \
-            self.__send_command('"%s"' % dmd5.response(login, password),
-                                withcontent=True, nblines=1)
-        if not len(challenge):
+        code, data, challenge = self.__send_command(
+            '"%s"' % dmd5.response(login, password, authz_id),
+            withcontent=True, nblines=1
+        )
+        if not challenge:
             return False
         if not dmd5.check_last_challenge(login, password, challenge):
             self.errmsg = "Bad challenge received from server"
@@ -358,7 +359,7 @@ class Client(object):
             return True
         return False
 
-    def __authenticate(self, login, password, authmech=None):
+    def __authenticate(self, login, password, authz_id="", authmech=None):
         """AUTHENTICATE command
 
         Actually, it is just a wrapper to the real commands (one by
@@ -370,6 +371,7 @@ class Client(object):
 
         :param login: username
         :param password: clear password
+        :param authz_id: authorization ID
         :param authmech: prefered authentication mechanism
         :return: True on success, False otherwise
         """
@@ -385,10 +387,9 @@ class Client(object):
         for mech in mech_list:
             if mech not in srv_mechanisms:
                 continue
-            mech = mech.lower()
-            mech = re.sub("-", "_", mech)
-            if getattr(self, "_%s_authentication" % mech.lower())(
-                    login, password):
+            mech = mech.lower().replace("-", "_")
+            auth_method = getattr(self, "_%s_authentication" % mech)
+            if auth_method(login, password, authz_id):
                 self.authenticated = True
                 return True
             return False
@@ -461,7 +462,8 @@ class Client(object):
             self.__capabilities["SIEVE"] = self.__capabilities["SIEVE"].split()
         return self.__capabilities["SIEVE"]
 
-    def connect(self, login, password, starttls=False, authmech=None):
+    def connect(
+            self, login, password, authz_id="", starttls=False, authmech=None):
         """Establish a connection with the server.
 
         This function must be used. It read the server capabilities
@@ -484,7 +486,7 @@ class Client(object):
             raise Error("Failed to read capabilities from server")
         if starttls and not self.__starttls():
             return False
-        if self.__authenticate(login, password, authmech):
+        if self.__authenticate(login, password, authz_id, authmech):
             return True
         return False
 
