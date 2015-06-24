@@ -264,7 +264,7 @@ class Client(object):
         if code == "NO":
             return False
 
-        for l in capabilities.splitlines()[0:-1]:
+        for l in capabilities.splitlines():
             parts = l.split(None, 1)
             cname = parts[0].strip('"')
             if cname not in KNOWN_CAPABILITIES:
