@@ -10,6 +10,19 @@ Client-side Sieve and Managesieve library written in Python.
 * ManageSieve : A Protocol for Remotely Managing Sieve Scripts
   (`RFC 5804 <http://tools.ietf.org/html/rfc5804>`_)
 
+Installation
+------------
+
+To install ``sievelib`` from PyPI::
+
+  pip install sievelib
+
+To install sievelib from git::
+
+  git clone git@github.com:tonioo/sievelib.git
+  cd sievelib
+  python ./setup.py install
+
 Sieve tools
 -----------
 
@@ -129,7 +142,7 @@ application (there isn't any shell provided)::
   True
   >>>
 
-Additionnal documentation is available with source code.
+Additional documentation is available with source code.
 
 .. |latest-version| image:: https://pypip.in/v/sievelib/badge.png
    :alt: Latest version on Pypi
