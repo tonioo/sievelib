@@ -301,7 +301,7 @@ class Client(object):
             self.errcode = ""
         self.errmsg = m.group(2).strip('"')
 
-    def _plain_authentication(self, login, password, authz_id=''):
+    def _plain_authentication(self, login, password, authz_id=""):
         """SASL PLAIN authentication
 
         :param login: username
@@ -318,7 +318,7 @@ class Client(object):
             return True
         return False
 
-    def _login_authentication(self, login, password, authz_id=''):
+    def _login_authentication(self, login, password, authz_id=""):
         """SASL LOGIN authentication
 
         :param login: username
@@ -333,7 +333,7 @@ class Client(object):
             return True
         return False
 
-    def _digest_md5_authentication(self, login, password, authz_id=''):
+    def _digest_md5_authentication(self, login, password, authz_id=""):
         """SASL DIGEST-MD5 authentication
 
         :param login: username
@@ -359,7 +359,7 @@ class Client(object):
             return True
         return False
 
-    def __authenticate(self, login, password, authz_id='', authmech=None):
+    def __authenticate(self, login, password, authz_id="", authmech=None):
         """AUTHENTICATE command
 
         Actually, it is just a wrapper to the real commands (one by
@@ -462,7 +462,8 @@ class Client(object):
             self.__capabilities["SIEVE"] = self.__capabilities["SIEVE"].split()
         return self.__capabilities["SIEVE"]
 
-    def connect(self, login, password, authz_id='', starttls=False, authmech=None):
+    def connect(
+            self, login, password, authz_id="", starttls=False, authmech=None):
         """Establish a connection with the server.
 
         This function must be used. It read the server capabilities
