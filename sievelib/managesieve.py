@@ -113,7 +113,10 @@ class Client(object):
         """
         buf = ""
         if len(self.__read_buffer):
-            limit = size if size <= len(self.__read_buffer) else len(self.__read_buffer)
+            limit = (
+                size if size <= len(self.__read_buffer) else
+                len(self.__read_buffer)
+            )
             buf = self.__read_buffer[:limit]
             self.__read_buffer = self.__read_buffer[limit:]
             size -= limit
@@ -121,7 +124,7 @@ class Client(object):
             return buf
         try:
             buf += self.sock.recv(size)
-        except (socket.timeout, ssl.SSLError) as e:
+        except (socket.timeout, ssl.SSLError):
             raise Error("Failed to read %d bytes from the server" % size)
         return buf
 
@@ -136,7 +139,7 @@ class Client(object):
         Client.read_timeout seconds. If no data can be
         retrieved, it is considered as a fatal error and an 'Error'
         exception is raised.
-        
+
         :rtype: string
         :return: the read line
         """
@@ -222,22 +225,26 @@ class Client(object):
             ret += ["%s" % str(a)]
         return ret
 
-    def __send_command(self, name, args=[], withcontent=False, extralines=[], nblines=-1):
+    def __send_command(
+            self, name, args=[], withcontent=False, extralines=[], nblines=-1):
         """Send a command to the server.
 
         If args is not empty, we concatenate the given command with
         the content of this list. If extralines is not empty, they are
-        sent one by one to the server. (CLRF are automatically appended to them)
+        sent one by one to the server. (CLRF are automatically
+        appended to them)
 
         We wait for a response just after the command has been sent.
 
         :param name: the command to sent
         :param args: a list of arguments for this command
-        :param withcontent: tells the function to return the server's response or not
+        :param withcontent: tells the function to return the server's response
+                            or not
         :param extralines: a list of extra lines to sent after the command
         :param nblines: the number of response lines to read (all by default)
 
         :returns: a tuple of the form (code, data[, response])
+
         """
         tosend = name
         if len(args):
@@ -260,7 +267,7 @@ class Client(object):
         for l in capabilities.splitlines()[0:-1]:
             parts = l.split(None, 1)
             cname = parts[0].strip('"')
-            if not cname in KNOWN_CAPABILITIES:
+            if cname not in KNOWN_CAPABILITIES:
                 continue
             self.__capabilities[cname] = \
                 parts[1].strip('"') if len(parts) > 1 else None
@@ -366,7 +373,7 @@ class Client(object):
         :param authmech: prefered authentication mechanism
         :return: True on success, False otherwise
         """
-        if not self.__capabilities.has_key("SASL"):
+        if "SASL" not in self.__capabilities:
             raise Error("SASL not supported by the server")
         srv_mechanisms = self.get_sasl_mechanisms()
 
@@ -376,11 +383,12 @@ class Client(object):
             mech_list = [authmech]
 
         for mech in mech_list:
-            if not mech in srv_mechanisms:
+            if mech not in srv_mechanisms:
                 continue
             mech = mech.lower()
             mech = re.sub("-", "_", mech)
-            if getattr(self, "_%s_authentication" % mech.lower())(login, password):
+            if getattr(self, "_%s_authentication" % mech.lower())(
+                    login, password):
                 self.authenticated = True
                 return True
             return False
@@ -392,7 +400,7 @@ class Client(object):
         """STARTTLS command
 
         See MANAGESIEVE specifications, section 2.2.
-        
+
         :param keyfile: an eventual private key to use
         :param certfile: an eventual certificate to use
         :rtype: boolean
@@ -439,14 +447,14 @@ class Client(object):
 
         :rtype: boolean
         """
-        return self.__capabilities.has_key("STARTTLS")
+        return "STARTTLS" in self.__capabilities
 
     def get_sieve_capabilities(self):
         """Returns the SIEVE extensions supported by the server.
 
         They're read from server capabilities. (see the CAPABILITY
         command)
-        
+
         :rtype: string
         """
         if type(self.__capabilities["SIEVE"]) == str:
@@ -504,7 +512,7 @@ class Client(object):
     @authentication_required
     def havespace(self, scriptname, scriptsize):
         """Ask for available space.
-        
+
         See MANAGESIEVE specifications, section 2.5
 
         :param scriptname: script's name
@@ -524,7 +532,8 @@ class Client(object):
 
         :returns: a 2-uple (active script, [script1, ...])
         """
-        code, data, listing = self.__send_command("LISTSCRIPTS", withcontent=True)
+        code, data, listing = self.__send_command(
+            "LISTSCRIPTS", withcontent=True)
         if code == "NO":
             return None
         ret = []
@@ -553,7 +562,8 @@ class Client(object):
         :rtype: string
         :returns: the script's content on succes, None otherwise
         """
-        code, data, content = self.__send_command("GETSCRIPT", [name], withcontent=True)
+        code, data, content = self.__send_command(
+            "GETSCRIPT", [name], withcontent=True)
         if code == "OK":
             lines = content.splitlines()
             if self.__size_expr.match(lines[0]) is not None:
@@ -608,14 +618,15 @@ class Client(object):
         :param newname: new script's name
         :rtype: boolean
         """
-        if self.__capabilities.has_key("RENAMESCRIPT"):
-            code, data = self.__send_command("RENAMESCRIPT", [oldname, newname])
+        if "RENAMESCRIPT" in self.__capabilities:
+            code, data = self.__send_command(
+                "RENAMESCRIPT", [oldname, newname])
             if code == "OK":
                 return True
             return False
 
         (active_script, scripts) = self.listscripts()
-        if scripts is None or not oldname in scripts:
+        if scripts is None or oldname not in scripts:
             self.errmsg = "Old script does not exist"
             return False
         if newname in scripts:
