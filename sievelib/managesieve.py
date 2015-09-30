@@ -82,7 +82,7 @@ class Client(object):
 
         self.__capabilities = {}
         self.__respcode_expr = re.compile(r"(OK|NO|BYE)\s*(.+)?")
-        self.__error_expr = re.compile(r'(\(\w+\))?\s*(".+")')
+        self.__error_expr = re.compile(r'(\([\w/-]+\))?\s*(".+")')
         self.__size_expr = re.compile(r"\{(\d+)\+?\}")
         self.__active_expr = re.compile("ACTIVE", re.IGNORECASE)
 
