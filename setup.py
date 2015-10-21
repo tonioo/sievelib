@@ -54,7 +54,7 @@ setup(
     name="sievelib",
     packages=find_packages(),
     include_package_data=True,
-    version="0.9.1",
+    version="0.9.2",
     description="Client-side SIEVE library",
     author="Antoine Nguyen",
     author_email="tonio@ngyn.org",
