@@ -76,6 +76,8 @@ class FiltersSet(object):
             name = "Unnamed rule %d" % cpt
             description = ""
             for comment in f.hash_comments:
+                if isinstance(comment, six.binary_type):
+                    comment = comment.decode("utf-8")
                 if comment.startswith(self.filter_name_pretext):
                     name = comment.replace(self.filter_name_pretext, "")
                 if comment.startswith(self.filter_desc_pretext):
