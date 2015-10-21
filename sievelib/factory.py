@@ -32,8 +32,10 @@ class FiltersSet(object):
         """Represents a set of one or more filters
 
         :param name: the filterset's name
-        :param filter_name_pretext: the text that is used to mark a filters name (as comment preceding the filter)
-        :param filter_desc_pretext: the text that is used to mark a filters description
+        :param filter_name_pretext: the text that is used to mark a filter name
+                                    (as comment preceding the filter)
+        :param filter_desc_pretext: the text that is used to mark a filter
+                                     description
         """
         self.name = name
         self.filter_name_pretext = filter_name_pretext
@@ -177,7 +179,8 @@ class FiltersSet(object):
                 )
             else:
                 if c[1].startswith(':not'):
-                    cmd = self.__build_condition(c, ifcontrol, c[1].replace("not", "", 1))
+                    cmd = self.__build_condition(
+                        c, ifcontrol, c[1].replace("not", "", 1))
                     not_cmd = get_command_instance("not", ifcontrol)
                     not_cmd.check_next_arg("test", cmd)
                     cmd = not_cmd
@@ -207,10 +210,13 @@ class FiltersSet(object):
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
+        if isinstance(name, six.binary_type):
+            name = name.decode("utf-8")
         ifcontrol = self.__create_filter(conditions, actions, matchtype)
         self.filters += [{"name": name, "content": ifcontrol, "enabled": True}]
 
-    def updatefilter(self, oldname, newname, conditions, actions, matchtype="anyof"):
+    def updatefilter(
+            self, oldname, newname, conditions, actions, matchtype="anyof"):
         """Update a specific filter
 
         Instead of removing and re-creating the filter, we update the
@@ -382,7 +388,7 @@ class FiltersSet(object):
             cmd.tosieve(target=target)
             target.write(u"\n")
         for f in self.filters:
-            target.write(u"{}{}\n".format(self.filter_name_pretext, f["name"]))
+            target.write("{}{}\n".format(self.filter_name_pretext, f["name"]))
             if "description" in f and f["description"]:
                 target.write(u"{}{}\n".format(
                     self.filter_desc_pretext, f["description"]))

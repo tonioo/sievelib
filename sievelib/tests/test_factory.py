@@ -126,10 +126,10 @@ if false {
         self.assertEqual(self.fs.is_filter_disabled("rule1"), True)
 
     def test_add_filter_unicode(self):
-        """A a filter containing unicode data."""
-        output = six.StringIO()
+        """Add a filter containing unicode data."""
+        name = u"Test\xe9".encode("utf-8")
         self.fs.addfilter(
-            "Testé",
+            name,
             [('Sender', ":is", 'toto@toto.com'), ],
             [("fileinto", 'Toto'), ])
         self.assertIsNot(self.fs.getfilter("Testé"), None)
@@ -140,7 +140,6 @@ if anyof (header :is "Sender" "toto@toto.com") {
     fileinto "Toto";
 }
 """)
-        output.close()
 
 
 if __name__ == "__main__":
