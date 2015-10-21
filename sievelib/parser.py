@@ -14,11 +14,14 @@ import codecs
 import re
 import sys
 
+from future.utils import python_2_unicode_compatible
+
 from sievelib.commands import (
     get_command_instance, UnknownCommand, BadArgument, BadValue
 )
 
 
+@python_2_unicode_compatible
 class ParseError(Exception):
     """Generic parsing error"""
 

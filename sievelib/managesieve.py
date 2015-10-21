@@ -12,11 +12,12 @@ Implementation based on <draft-martin-managesieve-12>.
 """
 from __future__ import print_function
 
-import socket
-import re
 import base64
+import re
+import socket
 import ssl
 
+from future.utils import python_2_unicode_compatible
 import six
 
 from .digest_md5 import DigestMD5
@@ -34,6 +35,7 @@ class Error(Exception):
     pass
 
 
+@python_2_unicode_compatible
 class Response(Exception):
     def __init__(self, code, data):
         self.code = code
@@ -43,6 +45,7 @@ class Response(Exception):
         return "%s %s" % (self.code, self.data)
 
 
+@python_2_unicode_compatible
 class Literal(Exception):
     def __init__(self, value):
         self.value = value

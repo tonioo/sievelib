@@ -23,10 +23,13 @@ provides extra information such as:
 """
 from __future__ import unicode_literals
 
-import sys
 from collections import Iterable
+import sys
+
+from future.utils import python_2_unicode_compatible
 
 
+@python_2_unicode_compatible
 class UnknownCommand(Exception):
     """Specific exception raised when an unknown command is encountered"""
 
@@ -37,6 +40,7 @@ class UnknownCommand(Exception):
         return "unknown command %s" % self.name
 
 
+@python_2_unicode_compatible
 class BadArgument(Exception):
     """Specific exception raised when a bad argument is encountered"""
 
@@ -50,6 +54,7 @@ class BadArgument(Exception):
                % (self.seen, self.command, self.expected)
 
 
+@python_2_unicode_compatible
 class BadValue(Exception):
     """Specific exception raised when a bad argument value is encountered"""
 

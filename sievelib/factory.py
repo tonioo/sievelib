@@ -9,17 +9,26 @@ without having to write or to know the syntax.
 Only commands (control/test/action) defined in the ``commands`` module
 are supported.
 """
+
 from __future__ import print_function, unicode_literals
 
 import sys
+
+from future.utils import python_2_unicode_compatible
 import six
+
 from sievelib.commands import (
     get_command_instance, IfCommand, RequireCommand, FalseCommand
 )
 
 
+@python_2_unicode_compatible
 class FiltersSet(object):
-    def __init__(self, name, filter_name_pretext="# Filter: ", filter_desc_pretext="# Description: "):
+
+    """A set of filters."""
+
+    def __init__(self, name, filter_name_pretext=u"# Filter: ",
+                 filter_desc_pretext=u"# Description: "):
         """Represents a set of one or more filters
 
         :param name: the filterset's name
@@ -81,7 +90,7 @@ class FiltersSet(object):
         :param name: the extension's name
         """
         name = name.strip('"')
-        if not name in self.requires:
+        if name not in self.requires:
             self.requires += [name]
 
     def __gen_require_command(self):
@@ -371,13 +380,12 @@ class FiltersSet(object):
         cmd = self.__gen_require_command()
         if cmd:
             cmd.tosieve(target=target)
-            target.write("\n")
+            target.write(u"\n")
         for f in self.filters:
-            target.write(self.filter_name_pretext + f["name"] + "\n")
-            if "description" in f and len(f["description"]):
-                target.write(
-                    self.filter_desc_pretext + f["description"] + "\n"
-                )
+            target.write(u"{}{}\n".format(self.filter_name_pretext, f["name"]))
+            if "description" in f and f["description"]:
+                target.write(u"{}{}\n".format(
+                    self.filter_desc_pretext, f["description"]))
             f["content"].tosieve(target=target)
 
 
