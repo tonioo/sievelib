@@ -204,6 +204,12 @@ class FiltersSet(object):
             ifcontrol.addchild(action)
         return ifcontrol
 
+    def _unicode_filter_name(self, name):
+        """Convert name to unicode if necessary."""
+        return (
+            name.decode("utf-8") if isinstance(name, six.binary_type) else name
+        )
+
     def addfilter(self, name, conditions, actions, matchtype="anyof"):
         """Add a new filter to this filters set
 
@@ -212,10 +218,11 @@ class FiltersSet(object):
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
-        if isinstance(name, six.binary_type):
-            name = name.decode("utf-8")
         ifcontrol = self.__create_filter(conditions, actions, matchtype)
-        self.filters += [{"name": name, "content": ifcontrol, "enabled": True}]
+        self.filters += [{
+            "name": self._unicode_filter_name(name), "content": ifcontrol,
+            "enabled": True}
+        ]
 
     def updatefilter(
             self, oldname, newname, conditions, actions, matchtype="anyof"):
@@ -230,6 +237,8 @@ class FiltersSet(object):
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
+        oldname = self._unicode_filter_name(oldname)
+        newname = self._unicode_filter_name(newname)
         for f in self.filters:
             if f["name"] == oldname:
                 f["name"] = newname
@@ -240,7 +249,8 @@ class FiltersSet(object):
                 return True
         return False
 
-    def replacefilter(self, oldname, sieve_filter, newname=None, description=None):
+    def replacefilter(
+            self, oldname, sieve_filter, newname=None, description=None):
         """replace a specific sieve_filter
 
         Instead of removing and re-creating the sieve_filter, we update the
@@ -248,8 +258,11 @@ class FiltersSet(object):
 
         :param oldname: the sieve_filter's current name
         :param newname: the sieve_filter's new name
-        :param sieve_filter: the sieve_filter object as get from FiltersSet.getfilter()
+        :param sieve_filter: the sieve_filter object as get from
+                             FiltersSet.getfilter()
         """
+        oldname = self._unicode_filter_name(oldname)
+        newname = self._unicode_filter_name(newname)
         if newname is None:
             newname = oldname
         for f in self.filters:
@@ -269,6 +282,7 @@ class FiltersSet(object):
         :param name: the filter's name
         :return: the Command object if found, None otherwise
         """
+        name = self._unicode_filter_name(name)
         for f in self.filters:
             if f["name"] == name:
                 if not f["enabled"]:
@@ -281,6 +295,7 @@ class FiltersSet(object):
 
         :param name: the filter's name
         """
+        name = self._unicode_filter_name(name)
         for f in self.filters:
             if f["name"] == name:
                 self.filters.remove(f)
@@ -294,6 +309,7 @@ class FiltersSet(object):
 
         :param name: the filter's name
         """
+        name = self._unicode_filter_name(name)
         for f in self.filters:
             if f["name"] != name:
                 continue
@@ -309,6 +325,7 @@ class FiltersSet(object):
 
         :param name: the filter's name
         """
+        name = self._unicode_filter_name(name)
         for f in self.filters:
             if f["name"] == name:
                 return self.__isdisabled(f["content"])
@@ -323,6 +340,7 @@ class FiltersSet(object):
         :param name: the filter's name
         :return: True if filter was disabled, False otherwise
         """
+        name = self._unicode_filter_name(name)
         ifcontrol = get_command_instance("if")
         falsecmd = get_command_instance("false", ifcontrol)
         ifcontrol.check_next_arg("test", falsecmd)
@@ -341,6 +359,7 @@ class FiltersSet(object):
         :param name: the filter's name
         :param direction: string "up" or "down"
         """
+        name = self._unicode_filter_name(name)
         cpt = 0
         for f in self.filters:
             if f["name"] == name:
