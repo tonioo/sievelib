@@ -376,7 +376,7 @@ class Parser(object):
                 if ttype == "bracket_comment":
                     continue
                 if self.__expected is not None:
-                    if not ttype in self.__expected:
+                    if ttype not in self.__expected:
                         if self.lexer.pos < len(text):
                             msg = "%s found while %s expected near '%s'" \
                                   % (ttype, "|".join(self.__expected), text[self.lexer.pos])

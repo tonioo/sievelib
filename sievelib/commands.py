@@ -259,7 +259,7 @@ class Command(object):
             for arg in self.args_definition:
                 if arg["required"]:
                     self.required_args += 1
-        return (not self.curarg or not "extra_arg" in self.curarg) \
+        return (not self.curarg or "extra_arg" not in self.curarg) \
             and (self.rargs_cnt == self.required_args)
 
     def get_type(self):
@@ -279,7 +279,7 @@ class Command(object):
         :param value: the value to check
         :return: True on succes, False otherwise
         """
-        if not "values" in arg:
+        if "values" not in arg:
             return True
         return value.lower() in arg["values"]
 
@@ -316,7 +316,7 @@ class Command(object):
 
         if self.curarg is not None and "extra_arg" in self.curarg:
             if atype == self.curarg["extra_arg"]["type"]:
-                if not "values" in self.curarg["extra_arg"] \
+                if "values" not in self.curarg["extra_arg"] \
                    or avalue in self.curarg["extra_arg"]["values"]:
                     if add:
                         self.arguments[self.curarg["name"]] = avalue
@@ -375,7 +375,7 @@ class Command(object):
                 break
         if not found:
             raise KeyError(name)
-        if not name in self.arguments:
+        if name not in self.arguments:
             raise KeyError(name)
         return self.arguments[name]
 
@@ -407,7 +407,7 @@ class RequireCommand(ControlCommand):
             exts = self.arguments["capabilities"]
         for ext in exts:
             ext = ext.strip('"')
-            if not ext in RequireCommand.loaded_extensions:
+            if ext not in RequireCommand.loaded_extensions:
                 RequireCommand.loaded_extensions += [ext]
 
 
@@ -643,48 +643,55 @@ class VacationCommand(ActionCommand):
          "required": True},
     ]
 
+
 class SetCommand(ControlCommand):
+
     """currentdate command, part of the variables extension
 
     http://tools.ietf.org/html/rfc5229
     """
+
     is_extension = True
     args_definition = [
-            {"name": "startend", 
-             "type": ["string"], 
-             "required": True},
-            {"name": "date",
-             "type": ["string"],
-             "required": True}
+        {"name": "startend",
+         "type": ["string"],
+         "required": True},
+        {"name": "date",
+         "type": ["string"],
+         "required": True}
     ]
-    
+
+
 class CurrentdateCommand(ControlCommand):
+
     """currentdate command, part of the date extension
 
     http://tools.ietf.org/html/rfc5260#section-5
     """
+
     is_extension = True
     accept_children = True
     args_definition = [
-            {"name": "zone",
-             "type": ["tag"],
-             "write_tag": True,
-             "values": [":zone"],
-             "extra_arg": {"type": "string"},
-             "required": False},
-            {"name": "match-value",
-             "type": ["tag"],
-             "required": True},
-            {"name": "comparison",
-             "type": ["string"],
-             "required": True},
-            {"name": "match-against",
-             "type": ["string"],
-             "required": True},
-            {"name": "match-against-field",
-             "type": ["string"],
-             "required": True}
+        {"name": "zone",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":zone"],
+         "extra_arg": {"type": "string"},
+         "required": False},
+        {"name": "match-value",
+         "type": ["tag"],
+         "required": True},
+        {"name": "comparison",
+         "type": ["string"],
+         "required": True},
+        {"name": "match-against",
+         "type": ["string"],
+         "required": True},
+        {"name": "match-against-field",
+         "type": ["string"],
+         "required": True}
     ]
+
 
 def add_commands(cmds):
     """
@@ -718,10 +725,10 @@ def get_command_instance(name, parent=None, checkexists=True):
     """
 
     # Mapping between extension names and command names
-    extension_map = {'date': set([
-                       'currentdate']), 
-                     'variables': set([
-                       'set'])}
+    extension_map = {
+        'date': set(['currentdate']),
+        'variables': set(['set'])
+    }
     extname = name
     for extension in extension_map:
         if name in extension_map[extension]:
@@ -729,8 +736,8 @@ def get_command_instance(name, parent=None, checkexists=True):
             break
 
     cname = "%sCommand" % name.lower().capitalize()
-    if not cname in globals() or \
+    if cname not in globals() or \
             (checkexists and globals()[cname].is_extension and
-                 not extname in RequireCommand.loaded_extensions):
+             extname not in RequireCommand.loaded_extensions):
         raise UnknownCommand(name)
     return globals()[cname](parent)
