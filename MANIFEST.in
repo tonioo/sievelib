@@ -1,1 +1,2 @@
 include README.rst COPYING requirements.txt
+include sievelib/tests/files/utf8_sieve.txt
