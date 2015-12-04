@@ -82,7 +82,7 @@ class FiltersSet(object):
                     name = comment.replace(self.filter_name_pretext, "")
                 if comment.startswith(self.filter_desc_pretext):
                     description = comment.replace(self.filter_desc_pretext, "")
-            self.filters += [{"name": name,
+            self.filters += [{"name": self._unicode_filter_name(name),
                               "description": description,
                               "content": f,
                               "enabled": not self.__isdisabled(f)}]
