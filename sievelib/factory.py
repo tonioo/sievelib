@@ -409,9 +409,10 @@ class FiltersSet(object):
             cmd.tosieve(target=target)
             target.write(u"\n")
         for f in self.filters:
-            target.write("{}{}\n".format(self.filter_name_pretext, f["name"]))
+            target.write("{0}{1}\n".format(self.filter_name_pretext,
+                                           f["name"]))
             if "description" in f and f["description"]:
-                target.write(u"{}{}\n".format(
+                target.write(u"{0}{1}\n".format(
                     self.filter_desc_pretext, f["description"]))
             f["content"].tosieve(target=target)
 
