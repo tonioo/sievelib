@@ -144,9 +144,8 @@ application (there isn't any shell provided)::
 
 Additional documentation is available with source code.
 
-.. |latest-version| image:: https://pypip.in/v/sievelib/badge.png
-   :alt: Latest version on Pypi
-   :target: https://crate.io/packages/sievelib/
+.. |latest-version| image:: https://badge.fury.io/py/sievelib.svg
+   :target: https://badge.fury.io/py/sievelib
 .. |travis| image:: https://travis-ci.org/tonioo/sievelib.png?branch=master
    :target: https://travis-ci.org/tonioo/sievelib
 .. |codecov| image:: http://codecov.io/github/tonioo/sievelib/coverage.svg?branch=master
