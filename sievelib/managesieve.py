@@ -126,7 +126,7 @@ class Client(object):
         if not size:
             return buf
         try:
-            buf += self.sock.recv(size)
+            buf += self.sock.recv(size).decode()
         except (socket.timeout, ssl.SSLError):
             raise Error("Failed to read %d bytes from the server" % size)
         return buf
@@ -222,8 +222,8 @@ class Client(object):
         """
         ret = []
         for a in args:
-            if type(a) in [str, unicode] and self.__size_expr.match(a) is None:
-                ret += ['"%s"' % a.encode('utf-8')]
+            if type(a) in [str] and self.__size_expr.match(a) is None:
+                ret += ['"%s"' % a]
                 continue
             ret += ["%s" % str(a)]
         return ret
@@ -253,9 +253,9 @@ class Client(object):
         if len(args):
             tosend += " " + " ".join(self.__prepare_args(args))
         self.__dprint("Command: %s" % tosend)
-        self.sock.sendall("%s%s" % (tosend, CRLF))
+        self.sock.sendall(("%s%s" % (tosend, CRLF)).encode('utf-8'))
         for l in extralines:
-            self.sock.sendall("%s%s" % (l, CRLF))
+            self.sock.sendall(("%s%s" % (l, CRLF)).encode('utf-8'))
         code, data, content = self.__read_response(nblines)
 
         if withcontent:
@@ -311,11 +311,7 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        if isinstance(login, six.text_type):
-            login = login.encode("utf-8")
-        if isinstance(login, six.text_type):
-            password = password.encode("utf-8")
-        params = base64.b64encode('\0'.join([authz_id, login, password]))
+        params = base64.b64encode('\0'.join([authz_id, login, password]).encode()).decode()
         code, data = self.__send_command("AUTHENTICATE", ["PLAIN", params])
         if code == "OK":
             return True
@@ -328,8 +324,8 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        extralines = ['"%s"' % base64.b64encode(login),
-                      '"%s"' % base64.b64encode(password)]
+        extralines = ['"%s"' % base64.b64encode(login.encode()).decode(),
+                      '"%s"' % base64.b64encode(password.encode()).decode()]
         code, data = self.__send_command("AUTHENTICATE", ["LOGIN"],
                                          extralines=extralines)
         if code == "OK":
@@ -585,10 +581,8 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
-        if type(content) is unicode:
-            content = content.encode("utf-8")
 
-        content = "{%d+}%s%s" % (len(content), CRLF, content)
+        content = "{%d+}%s%s" % (len(content.encode()), CRLF, content)
         code, data = \
             self.__send_command("PUTSCRIPT", [name, content])
         if code == "OK":
@@ -674,10 +668,8 @@ class Client(object):
         :param name: script's content
         :rtype: boolean
         """
-        if type(content) is unicode:
-            content = content.encode("utf-8")
 
-        content = "{%d+}%s%s" % (len(content), CRLF, content)
+        content = "{%d+}%s%s" % (len(content.encode()), CRLF, content)
         code, data = \
             self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":
