@@ -479,8 +479,7 @@ class Client(object):
         :rtype: boolean
         """
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((self.srvaddr, self.srvport))
+            self.sock = socket.create_connection((self.srvaddr, self.srvport))
             self.sock.settimeout(Client.read_timeout)
         except socket.error as msg:
             raise Error("Connection to server failed: %s" % str(msg))
