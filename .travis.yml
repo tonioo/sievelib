@@ -1,10 +1,11 @@
 language: python
+cache: pip
 python:
   - "2.7"
   - "3.4"
 
 install:
-  - pip install nose --use-mirrors
+  - pip install nose
   - python setup.py -q install
 
 script: nosetests
