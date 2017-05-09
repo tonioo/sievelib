@@ -47,7 +47,7 @@ commands. For example::
 
   import sievelib
 
-  def MyCommand(sievelib.commands.ActionCommand):
+  class MyCommand(sievelib.commands.ActionCommand):
       args_definition = [
           {"name": "testtag",
               "type": ["tag"],
