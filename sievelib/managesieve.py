@@ -156,7 +156,7 @@ class Client(object):
             except ValueError:
                 pass
             try:
-                nval = self.sock.recv(self.read_size)
+                nval = self.sock.recv(self.read_size).decode()
                 if not len(nval):
                     break
                 self.__read_buffer += nval
@@ -225,6 +225,9 @@ class Client(object):
             if type(a) in [str] and self.__size_expr.match(a) is None:
                 ret += ['"%s"' % a]
                 continue
+            if isinstance(a, six.text_type):
+                ret += ['"%s"' % a.decode()]
+                continue
             ret += ["%s" % str(a)]
         return ret
 
@@ -253,9 +256,9 @@ class Client(object):
         if len(args):
             tosend += " " + " ".join(self.__prepare_args(args))
         self.__dprint("Command: %s" % tosend)
-        self.sock.sendall(("%s%s" % (tosend, CRLF)).encode('utf-8'))
+        self.sock.sendall(("%s%s" % (tosend, CRLF)).encode())
         for l in extralines:
-            self.sock.sendall(("%s%s" % (l, CRLF)).encode('utf-8'))
+            self.sock.sendall(("%s%s" % (l, CRLF)).encode())
         code, data, content = self.__read_response(nblines)
 
         if withcontent:
@@ -311,7 +314,8 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        params = base64.b64encode('\0'.join([authz_id, login, password]).encode()).decode()
+        sasl_string = '\0'.join([authz_id, login, password])
+        params = base64.b64encode(sasl_string.encode()).decode()
         code, data = self.__send_command("AUTHENTICATE", ["PLAIN", params])
         if code == "OK":
             return True
@@ -388,6 +392,7 @@ class Client(object):
                 continue
             mech = mech.lower().replace("-", "_")
             auth_method = getattr(self, "_%s_authentication" % mech)
+
             if auth_method(login, password, authz_id):
                 self.authenticated = True
                 return True
