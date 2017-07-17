@@ -255,8 +255,6 @@ class Client(object):
         if len(args):
             tosend += " " + " ".join(self.__prepare_args(args))
         self.__dprint("Command: %s" % tosend)
-        import ipdb
-        ipdb.set_trace()
         self.sock.sendall("%s%s" % (tosend, CRLF))
         for l in extralines:
             self.sock.sendall("%s%s" % (l, CRLF))
@@ -382,8 +380,6 @@ class Client(object):
         :param authmech: prefered authentication mechanism
         :return: True on success, False otherwise
         """
-        import ipdb
-        ipdb.set_trace()
         if "SASL" not in self.__capabilities:
             raise Error("SASL not supported by the server")
         srv_mechanisms = self.get_sasl_mechanisms()
