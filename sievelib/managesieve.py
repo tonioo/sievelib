@@ -19,6 +19,7 @@ import ssl
 
 from future.utils import python_2_unicode_compatible
 import six
+import time
 
 from .digest_md5 import DigestMD5
 
@@ -192,7 +193,8 @@ class Client(object):
         """
         resp, code, data = ("", None, None)
         cpt = 0
-        while True:
+        begin = time.time()
+        while time.time() - begin < Client.read_timeout:
             try:
                 line = self.__read_line()
             except Response as inst:
@@ -253,6 +255,8 @@ class Client(object):
         if len(args):
             tosend += " " + " ".join(self.__prepare_args(args))
         self.__dprint("Command: %s" % tosend)
+        import ipdb
+        ipdb.set_trace()
         self.sock.sendall("%s%s" % (tosend, CRLF))
         for l in extralines:
             self.sock.sendall("%s%s" % (l, CRLF))
@@ -378,6 +382,8 @@ class Client(object):
         :param authmech: prefered authentication mechanism
         :return: True on success, False otherwise
         """
+        import ipdb
+        ipdb.set_trace()
         if "SASL" not in self.__capabilities:
             raise Error("SASL not supported by the server")
         srv_mechanisms = self.get_sasl_mechanisms()
