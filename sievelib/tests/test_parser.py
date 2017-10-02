@@ -83,7 +83,7 @@ class AdditionalCommands(SieveTest):
         )
         sievelib.commands.add_commands(MytestCommand)
         sievelib.commands.get_command_instance('mytest')
-        self.compilation_ok("""
+        self.compilation_ok(b"""
         mytest :testtag 10 ["testrecp1@example.com"];
         """)
 
@@ -107,7 +107,7 @@ class ValidEncodings(SieveTest):
 
 class ValidSyntaxes(SieveTest):
     def test_hash_comment(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if size :over 100k { # this is a comment
     discard;
 }
@@ -121,7 +121,7 @@ if (type: control)
 """)
 
     def test_bracket_comment(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if size :over 100K { /* this is a comment
     this is still a comment */ discard /* this is a comment
     */ ;
@@ -136,7 +136,7 @@ if (type: control)
 """)
 
     def test_string_with_bracket_comment(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if header :contains "Cc" "/* comment */" {
     discard;
 }
@@ -151,7 +151,7 @@ if (type: control)
 """)
 
     def test_multiline_string(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 require "reject";
 
 if allof (false, address :is ["From", "Sender"] ["blka@bla.com"]) {
@@ -200,7 +200,7 @@ Your email has been canceled too
 """)
 
     def test_nested_blocks(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if header :contains "Sender" "example.com" {
   if header :contains "Sender" "me@" {
     discard;
@@ -230,7 +230,7 @@ if (type: control)
 """)
 
     def test_true_test(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if true {
 
 }
@@ -241,7 +241,7 @@ if (type: control)
 """)
 
     def test_rfc5228_extended(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 #
 # Example Sieve Filter
 # Declare any optional features or extension used by the script
@@ -319,7 +319,7 @@ else (type: control)
 """)
 
     def test_explicit_comparator(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if header :contains :comparator "i;octet" "Subject" "MAKE MONEY FAST" {
   discard;
 }
@@ -335,7 +335,7 @@ if (type: control)
 """)
 
     def test_non_ordered_args(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if address :all :is "from" "tim@example.com" {
     discard;
 }
@@ -351,7 +351,7 @@ if (type: control)
 """)
 
     def test_multiple_not(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if not not not not true {
     stop;
 }
@@ -367,13 +367,13 @@ if (type: control)
 """)
 
     def test_just_one_command(self):
-        self.compilation_ok("keep;")
+        self.compilation_ok(b"keep;")
         self.representation_is("""
 keep (type: action)
 """)
 
     def test_singletest_testlist(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if anyof (true) {
     discard;
 }
@@ -386,7 +386,7 @@ if (type: control)
 """)
 
     def test_truefalse_testlist(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 if anyof(true, false) {
     discard;
 }
@@ -400,7 +400,7 @@ if (type: control)
 """)
 
     def test_vacationext_basic(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 require "vacation";
 if header :contains "subject" "cyrus" {
     vacation "I'm out -- send mail to cyrus-bugs";
@@ -410,7 +410,7 @@ if header :contains "subject" "cyrus" {
 """)
 
     def test_vacationext_medium(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 require "vacation";
 if header :contains "subject" "lunch" {
     vacation :handle "ran-away" "I'm out and can't meet for lunch";
@@ -420,7 +420,7 @@ if header :contains "subject" "lunch" {
 """)
 
     def test_vacationext_with_limit(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 require "vacation";
 vacation :days 23 :addresses ["tjs@example.edu",
                               "ts4z@landru.example.edu"]
@@ -429,7 +429,7 @@ vacation :days 23 :addresses ["tjs@example.edu",
 """)
 
     def test_vacationext_with_multiline(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 require "vacation";
 vacation :mime text:
 Content-Type: multipart/alternative; boundary=foo
@@ -455,7 +455,7 @@ Mmmm, <A HREF="ocean.gif">surf</A>...
 """)
 
     def test_reject_extension(self):
-        self.compilation_ok("""
+        self.compilation_ok(b"""
 require "reject";
 
 if header :contains "subject" "viagra" {
@@ -466,43 +466,43 @@ if header :contains "subject" "viagra" {
 
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 /* this is a comment /* with a nested comment inside */
 it is allowed by the RFC :p */
 """)
 
     def test_nonopened_block(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :is "Sender" "me@example.com" 
     discard;
 }
 """)
 
     def test_nonclosed_block(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :is "Sender" "me@example.com" {
     discard;
 
 """)
 
     def test_unknown_token(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
     
 }
 """)
 
     def test_empty_string_list(self):
-        self.compilation_ko("require [];")
+        self.compilation_ko(b"require [];")
 
     def test_unclosed_string_list(self):
-        self.compilation_ko('require ["toto", "tata";')
+        self.compilation_ko(b'require ["toto", "tata";')
 
     def test_misplaced_comma_in_string_list(self):
-        self.compilation_ko('require ["toto",];')
+        self.compilation_ko(b'require ["toto",];')
 
     def test_nonopened_tests_list(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if anyof header :is "Sender" "me@example.com",
           header :is "Sender" "myself@example.com") {
     fileinto "trash";
@@ -510,7 +510,7 @@ if anyof header :is "Sender" "me@example.com",
 """)
 
     def test_nonclosed_tests_list(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if anyof (header :is "Sender" "me@example.com",
           header :is "Sender" "myself@example.com" {
     fileinto "trash";
@@ -518,59 +518,59 @@ if anyof (header :is "Sender" "me@example.com",
 """)
 
     def test_nonclosed_tests_list2(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if anyof (header :is "Sender" {
     fileinto "trash";
 }
 """)
 
     def test_misplaced_comma_in_tests_list(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if anyof (header :is "Sender" "me@example.com",) {
 
 }
 """)
 
     def test_comma_inside_arguments(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 require "fileinto", "enveloppe";
 """)
 
     def test_non_ordered_args(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if address "From" :is "tim@example.com" {
     discard;
 }
 """)
 
     def test_extra_arg(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if address :is "From" "tim@example.com" "tutu" {
     discard;
 }
 """)
 
     def test_empty_not(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if not {
     discard;
 }
 """)
 
     def test_missing_semicolon(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 require ["fileinto"]
 """)
 
     def test_missing_semicolon_in_block(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if true {
     stop
 }
 """)
 
     def test_misplaced_parenthesis(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if (true) {
 
 }
@@ -579,26 +579,26 @@ if (true) {
 
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 macommande "Toto";
 """)
 
     def test_misplaced_elsif(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 elsif true {
 
 }
 """)
 
     def test_misplaced_elsif2(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 elsif header :is "From" "toto" {
 
 }
 """)
 
     def test_misplaced_nested_elsif(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if true {
   elsif false {
 
@@ -607,43 +607,43 @@ if true {
 """)
 
     def test_unexpected_argument(self):
-        self.compilation_ko('stop "toto";')
+        self.compilation_ko(b'stop "toto";')
 
     def test_bad_arg_value(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :isnot "Sent" "me@example.com" {
   stop;
 }
 """)
 
     def test_bad_arg_value2(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :isnot "Sent" 10000 {
   stop;
 }
 """)
 
     def test_bad_comparator_value(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :contains :comparator "i;prout" "Subject" "MAKE MONEY FAST" {
   discard;
 }
 """)
 
     def test_not_included_extension(self):
-        self.compilation_ko("""
+        self.compilation_ko(b"""
 if header :contains "Subject" "MAKE MONEY FAST" {
   fileinto "spam";
 }
 """)
 
     def test_test_outside_control(self):
-        self.compilation_ko("true;")
+        self.compilation_ko(b"true;")
 
 
 class DateCommands(SieveTest):
     def test_currentdate_command(self):
-        self.compilation_ok("""require ["date", "relational"];
+        self.compilation_ok(b"""require ["date", "relational"];
 
 if allof ( currentdate :value "ge" "date" "2013-10-23" , currentdate :value "le" "date" "2014-10-12" ) 
 {
@@ -652,7 +652,7 @@ if allof ( currentdate :value "ge" "date" "2013-10-23" , currentdate :value "le"
 """)
 
     def test_currentdate_command_timezone(self):
-        self.compilation_ok("""require ["date", "relational"];
+        self.compilation_ok(b"""require ["date", "relational"];
 
 if allof ( currentdate :zone "+0100" :value "ge" "date" "2013-10-23" , currentdate :value "le" "date" "2014-10-12" ) 
 {
@@ -661,7 +661,7 @@ if allof ( currentdate :zone "+0100" :value "ge" "date" "2013-10-23" , currentda
 """)
 
     def test_currentdate_norel(self):
-        self.compilation_ok("""require ["date"];
+        self.compilation_ok(b"""require ["date"];
 
 if allof ( 
   currentdate :zone "+0100" :is "date" "2013-10-23"  
@@ -673,7 +673,7 @@ if allof (
 
 class VariablesCommands(SieveTest):
     def test_set_command(self):
-        self.compilation_ok("""require ["variables"];
+        self.compilation_ok(b"""require ["variables"];
 
 set "matchsub" "testsubject";
         
