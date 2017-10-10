@@ -428,6 +428,14 @@ vacation :days 23 :addresses ["tjs@example.edu",
    If it's an emergency, call 911, I guess." ;
 """)
 
+    def test_vacationext_with_single_mail_address(self):
+        self.compilation_ok("""
+require "vacation";
+vacation :days 23 :addresses "tjs@example.edu"
+   "I'm away until October 19.
+   If it's an emergency, call 911, I guess." ;
+""")
+
     def test_vacationext_with_multiline(self):
         self.compilation_ok("""
 require "vacation";
