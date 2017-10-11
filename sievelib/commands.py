@@ -323,7 +323,7 @@ class Command(object):
             return False
 
         if self.curarg is not None and "extra_arg" in self.curarg:
-            if atype == self.curarg["extra_arg"]["type"]:
+            if atype in self.curarg["extra_arg"]["type"]:
                 if "values" not in self.curarg["extra_arg"] \
                    or avalue in self.curarg["extra_arg"]["values"]:
                     if add:
@@ -633,7 +633,7 @@ class VacationCommand(ActionCommand):
          "type": ["tag"],
          "write_tag": True,
          "values": [":addresses"],
-         "extra_arg": {"type": "stringlist"},
+         "extra_arg": {"type": ["string", "stringlist"]},
          "required": False},
         {"name": "handle",
          "type": ["tag"],
