@@ -22,13 +22,13 @@ import six
 
 from .digest_md5 import DigestMD5
 
-CRLF = '\r\n'
+CRLF = b'\r\n'
 
-KNOWN_CAPABILITIES = ["IMPLEMENTATION", "SASL", "SIEVE",
-                      "STARTTLS", "NOTIFY", "LANGUAGE",
-                      "RENAME"]
+KNOWN_CAPABILITIES = [u"IMPLEMENTATION", u"SASL", u"SIEVE",
+                      u"STARTTLS", u"NOTIFY", u"LANGUAGE",
+                      u"RENAME"]
 
-SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN"]
+SUPPORTED_AUTH_MECHS = [u"DIGEST-MD5", u"PLAIN", u"LOGIN"]
 
 
 class Error(Exception):
@@ -79,14 +79,14 @@ class Client(object):
         self.srvport = srvport
         self.__debug = debug
         self.sock = None
-        self.__read_buffer = ""
+        self.__read_buffer = b""
         self.authenticated = False
         self.errcode = None
 
         self.__capabilities = {}
-        self.__respcode_expr = re.compile(r"(OK|NO|BYE)\s*(.+)?")
-        self.__error_expr = re.compile(r'(\([\w/-]+\))?\s*(".+")')
-        self.__size_expr = re.compile(r"\{(\d+)\+?\}")
+        self.__respcode_expr = re.compile(br"(OK|NO|BYE)\s*(.+)?")
+        self.__error_expr = re.compile(br'(\([\w/-]+\))?\s*(".+")')
+        self.__size_expr = re.compile(br"\{(\d+)\+?\}")
         self.__active_expr = re.compile("ACTIVE", re.IGNORECASE)
 
     def __del__(self):
@@ -146,7 +146,7 @@ class Client(object):
         :rtype: string
         :return: the read line
         """
-        ret = ""
+        ret = b""
         while True:
             try:
                 pos = self.__read_buffer.index(CRLF)
@@ -190,7 +190,7 @@ class Client(object):
         :return: a tuple of the form (code, data, response). If
         nblines is provided, code and data can be equal to None.
         """
-        resp, code, data = ("", None, None)
+        resp, code, data = (b"", None, None)
         cpt = 0
         while True:
             try:
@@ -222,10 +222,13 @@ class Client(object):
         """
         ret = []
         for a in args:
-            if type(a) in [str, unicode] and self.__size_expr.match(a) is None:
-                ret += ['"%s"' % a.encode('utf-8')]
+            if type(a) is type(b""):
+                if self.__size_expr.match(a):
+                    ret += [a]
+                else:
+                    ret += [b'"%s"' % (a,)]
                 continue
-            ret += ["%s" % str(a)]
+            ret += [b'%s' % (str(a).encode("utf-8"),)]
         return ret
 
     def __send_command(
@@ -249,14 +252,18 @@ class Client(object):
         :returns: a tuple of the form (code, data[, response])
 
         """
-        tosend = name
+        tosend = name.encode("utf-8")
         if len(args):
-            tosend += " " + " ".join(self.__prepare_args(args))
+            tosend += b" " + b" ".join(self.__prepare_args(args))
         self.__dprint("Command: %s" % tosend)
-        self.sock.sendall("%s%s" % (tosend, CRLF))
+        self.sock.sendall(tosend + CRLF)
         for l in extralines:
-            self.sock.sendall("%s%s" % (l, CRLF))
+            self.sock.sendall(l + CRLF)
         code, data, content = self.__read_response(nblines)
+
+        if type(code) is not type(""):
+            code = code.decode("utf-8")
+        data = data.decode("utf-8")
 
         if withcontent:
             return (code, data, content)
@@ -269,11 +276,11 @@ class Client(object):
 
         for l in capabilities.splitlines():
             parts = l.split(None, 1)
-            cname = parts[0].strip('"')
+            cname = parts[0].strip(b'"').decode("utf-8")
             if cname not in KNOWN_CAPABILITIES:
                 continue
             self.__capabilities[cname] = \
-                parts[1].strip('"') if len(parts) > 1 else None
+                parts[1].strip(b'"').decode("utf-8") if len(parts) > 1 else None
         return True
 
     def __parse_error(self, text):
@@ -315,8 +322,8 @@ class Client(object):
             login = login.encode("utf-8")
         if isinstance(login, six.text_type):
             password = password.encode("utf-8")
-        params = base64.b64encode('\0'.join([authz_id, login, password]))
-        code, data = self.__send_command("AUTHENTICATE", ["PLAIN", params])
+        params = base64.b64encode(b'\0'.join([authz_id, login, password]))
+        code, data = self.__send_command("AUTHENTICATE", [b"PLAIN", params])
         if code == "OK":
             return True
         return False
@@ -328,9 +335,9 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        extralines = ['"%s"' % base64.b64encode(login),
-                      '"%s"' % base64.b64encode(password)]
-        code, data = self.__send_command("AUTHENTICATE", ["LOGIN"],
+        extralines = [b'"%s"' % base64.b64encode(login.encode("utf-8")),
+                      b'"%s"' % base64.b64encode(password.encode("utf-8"))]
+        code, data = self.__send_command("AUTHENTICATE", [b"LOGIN"],
                                          extralines=extralines)
         if code == "OK":
             return True
@@ -344,7 +351,7 @@ class Client(object):
         :return: True on success, False otherwise.
         """
         code, data, challenge = \
-            self.__send_command("AUTHENTICATE", ["DIGEST-MD5"],
+            self.__send_command("AUTHENTICATE", [b"DIGEST-MD5"],
                                 withcontent=True, nblines=1)
         dmd5 = DigestMD5(challenge, "sieve/%s" % self.srvaddr)
 
@@ -479,7 +486,8 @@ class Client(object):
         :rtype: boolean
         """
         try:
-            self.sock = socket.create_connection((self.srvaddr, self.srvport))
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((self.srvaddr, self.srvport))
             self.sock.settimeout(Client.read_timeout)
         except socket.error as msg:
             raise Error("Connection to server failed: %s" % str(msg))
@@ -523,7 +531,7 @@ class Client(object):
         :param scriptsize: script's size
         :rtype: boolean
         """
-        code, data = self.__send_command("HAVESPACE", [scriptname, scriptsize])
+        code, data = self.__send_command("HAVESPACE", [scriptname.encode("utf-8"), scriptsize])
         if code == "OK":
             return True
         return False
@@ -545,9 +553,9 @@ class Client(object):
         for l in listing.splitlines():
             if self.__size_expr.match(l):
                 continue
-            m = re.match(r'"([^"]+)"\s*(.+)', l)
+            m = re.match(br'"([^"]+)"\s*(.+)', l)
             if m is None:
-                ret += [l.strip('"')]
+                ret += [l.strip(b'"').decode("utf-8")]
             else:
                 if self.__active_expr.match(m.group(2)):
                     active_script = m.group(1)
@@ -567,12 +575,12 @@ class Client(object):
         :returns: the script's content on succes, None otherwise
         """
         code, data, content = self.__send_command(
-            "GETSCRIPT", [name], withcontent=True)
+            "GETSCRIPT", [name.encode("utf-8")], withcontent=True)
         if code == "OK":
             lines = content.splitlines()
             if self.__size_expr.match(lines[0]) is not None:
                 lines = lines[1:]
-            return "\n".join(lines)
+            return b"\n".join(lines)
         return None
 
     @authentication_required
@@ -585,12 +593,9 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
-        if type(content) is unicode:
-            content = content.encode("utf-8")
-
-        content = "{%d+}%s%s" % (len(content), CRLF, content)
+        content = b"{%d+}%s%s" % (len(content), CRLF, content)
         code, data = \
-            self.__send_command("PUTSCRIPT", [name, content])
+            self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content])
         if code == "OK":
             return True
         return False
@@ -604,7 +609,7 @@ class Client(object):
         :param name: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command("DELETESCRIPT", [name])
+        code, data = self.__send_command("DELETESCRIPT", [name.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -624,7 +629,7 @@ class Client(object):
         """
         if "RENAMESCRIPT" in self.__capabilities:
             code, data = self.__send_command(
-                "RENAMESCRIPT", [oldname, newname])
+                "RENAMESCRIPT", [oldname.encode("utf-8"), newname.encode("utf-8")])
             if code == "OK":
                 return True
             return False
@@ -660,7 +665,7 @@ class Client(object):
         :param scriptname: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command("SETACTIVE", [scriptname])
+        code, data = self.__send_command("SETACTIVE", [scriptname.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -677,7 +682,7 @@ class Client(object):
         if type(content) is unicode:
             content = content.encode("utf-8")
 
-        content = "{%d+}%s%s" % (len(content), CRLF, content)
+        content = b"{%d+}%s%s" % (len(content), CRLF, content)
         code, data = \
             self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":
