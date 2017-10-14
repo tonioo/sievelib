@@ -49,7 +49,10 @@ class Lexer(object):
         self.definitions = definitions
         parts = []
         for name, part in definitions:
-            parts.append(b"(?P<%s>%s)" % (name, part))
+            parts.append(
+                # Python 3.4 compat...
+                bytes("(?P<%s>%s)" % (name.decode(), part.decode()), "utf-8")
+            )
         self.regexpString = b"|".join(parts)
         self.regexp = re.compile(self.regexpString, re.MULTILINE)
         self.wsregexp = re.compile(br'\s+', re.M)
