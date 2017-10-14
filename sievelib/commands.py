@@ -27,7 +27,6 @@ from collections import Iterable
 import sys
 
 from future.utils import python_2_unicode_compatible
-import six
 
 
 @python_2_unicode_compatible
@@ -158,8 +157,6 @@ class Command(object):
                     continue
 
                 if "string" in arg["type"]:
-                    if isinstance(value, six.binary_type):
-                        value = value.decode("utf-8")
                     target.write(value)
                     if not value.startswith('"'):
                         target.write("\n")
@@ -409,7 +406,7 @@ class RequireCommand(ControlCommand):
     loaded_extensions = []
 
     def complete_cb(self):
-        if type(self.arguments["capabilities"]) == str:
+        if type(self.arguments["capabilities"]) != list:
             exts = [self.arguments["capabilities"]]
         else:
             exts = self.arguments["capabilities"]

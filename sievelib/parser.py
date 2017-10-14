@@ -14,7 +14,7 @@ import codecs
 import re
 import sys
 
-from future.utils import python_2_unicode_compatible
+from future.utils import python_2_unicode_compatible, text_type
 
 from sievelib.commands import (
     get_command_instance, UnknownCommand, BadArgument, BadValue
@@ -42,21 +42,24 @@ class Lexer(object):
     Patterns are provided into a list of 2-uple. Each 2-uple consists
     of a token name and an associated pattern, example:
 
-      [("left_bracket", r'\['),]
+      [(b"left_bracket", br'\['),]
     """
 
     def __init__(self, definitions):
         self.definitions = definitions
         parts = []
         for name, part in definitions:
-            parts.append("(?P<%s>%s)" % (name, part))
-        self.regexpString = "|".join(parts)
+            parts.append(
+                # Python 3.4 compat...
+                bytes("(?P<%s>%s)" % (name.decode(), part.decode()), "utf-8")
+            )
+        self.regexpString = b"|".join(parts)
         self.regexp = re.compile(self.regexpString, re.MULTILINE)
-        self.wsregexp = re.compile(r'\s+', re.M)
+        self.wsregexp = re.compile(br'\s+', re.M)
 
     def curlineno(self):
         """Return the current line number"""
-        return self.text[:self.pos].count('\n') + 1
+        return self.text[:self.pos].count(b'\n') + 1
 
     def scan(self, text):
         """Analyse some data
@@ -67,7 +70,7 @@ class Lexer(object):
 
         On error, a ParseError exception is raised.
 
-        :param text: a string containing the data to parse
+        :param text: a binary string containing the data to parse
         """
         self.pos = 0
         self.text = text
@@ -92,21 +95,21 @@ class Parser(object):
     works with a Lexer object in order to check for grammar validity.
     """
     lrules = [
-        ("left_bracket", r'\['),
-        ("right_bracket", r'\]'),
-        ("left_parenthesis", r'\('),
-        ("right_parenthesis", r'\)'),
-        ("left_cbracket", r'{'),
-        ("right_cbracket", r'}'),
-        ("semicolon", r';'),
-        ("comma", r','),
-        ("hash_comment", r'#.*$'),
-        ("bracket_comment", r'/\*[\s\S]*?\*/'),
-        ("multiline", r'text:[^$]*?[\r\n]+\.$'),
-        ("string", r'"([^"\\]|\\.)*"'),
-        ("identifier", r'[a-zA-Z_][\w]*'),
-        ("tag", r':[a-zA-Z_][\w]*'),
-        ("number", r'[0-9]+[KMGkmg]?'),
+        (b"left_bracket", br'\['),
+        (b"right_bracket", br'\]'),
+        (b"left_parenthesis", br'\('),
+        (b"right_parenthesis", br'\)'),
+        (b"left_cbracket", br'{'),
+        (b"right_cbracket", br'}'),
+        (b"semicolon", br';'),
+        (b"comma", br','),
+        (b"hash_comment", br'#.*$'),
+        (b"bracket_comment", br'/\*[\s\S]*?\*/'),
+        (b"multiline", br'text:[^$]*?[\r\n]+\.$'),
+        (b"string", br'"([^"\\]|\\.)*"'),
+        (b"identifier", br'[a-zA-Z_][\w]*'),
+        (b"tag", br':[a-zA-Z_][\w]*'),
+        (b"number", br'[0-9]+[KMGkmg]?'),
     ]
 
     def __init__(self, debug=False):
@@ -223,7 +226,7 @@ class Parser(object):
                             ; are optional
         """
         if ttype == "string":
-            self.__curstringlist += [tvalue]
+            self.__curstringlist += [tvalue.decode("utf-8")]
             self.__set_expected("comma", "right_bracket")
             return True
         if ttype == "comma":
@@ -247,11 +250,11 @@ class Parser(object):
         :param tvalue: current token value
         :return: False if an error is encountered, True otherwise
         """
-        if ttype == "multiline":
-            return self.__curcommand.check_next_arg("string", tvalue)
+        if ttype in ["multiline", "string"]:
+            return self.__curcommand.check_next_arg("string", tvalue.decode("utf-8"))
 
-        if ttype in ["number", "tag", "string"]:
-            return self.__curcommand.check_next_arg(ttype, tvalue)
+        if ttype in ["number", "tag"]:
+            return self.__curcommand.check_next_arg(ttype, tvalue.decode("ascii"))
 
         if ttype == "left_bracket":
             self.__cstate = self.__stringlist
@@ -275,7 +278,7 @@ class Parser(object):
         :return: False if an error is encountered, True otherwise
         """
         if ttype == "identifier":
-            test = get_command_instance(tvalue, self.__curcommand)
+            test = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
             self.__curcommand.check_next_arg("test", test)
             self.__expected = test.get_expected_first()
             self.__curcommand = test
@@ -323,7 +326,7 @@ class Parser(object):
 
             if ttype != "identifier":
                 return False
-            command = get_command_instance(tvalue, self.__curcommand)
+            command = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
             if command.get_type() == "test":
                 raise ParseError("%s may not appear as a first command" % command.name)
             if command.get_type() == "control" and command.accept_children \
@@ -370,6 +373,9 @@ class Parser(object):
         :param text: a string containing the data to parse
         :return: True on success (no error detected), False otherwise
         """
+        if isinstance(text, text_type):
+            text = text.encode("utf-8")
+        
         self.__reset_parser()
         try:
             for ttype, tvalue in self.lexer.scan(text):
@@ -412,10 +418,9 @@ class Parser(object):
         :param name: the pathname of the file to parse
         :return: True on success (no error detected), False otherwise
         """
-        fp = codecs.open(name, encoding='utf8')
-        content = fp.read()
-        fp.close()
-        return self.parse(content)
+        with open(name, "rb") as fp:
+            return self.parse(fp.read())
+        
 
     def dump(self, target=sys.stdout):
         """Dump the parsing tree.
