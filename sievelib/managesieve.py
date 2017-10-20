@@ -222,7 +222,7 @@ class Client(object):
         """
         ret = []
         for a in args:
-            if isinstance(a, six.string_types):
+            if isinstance(a, six.binary_type):
                 if self.__size_expr.match(a):
                     ret += [a]
                 else:
@@ -534,7 +534,8 @@ class Client(object):
         :param scriptsize: script's size
         :rtype: boolean
         """
-        code, data = self.__send_command("HAVESPACE", [scriptname.encode("utf-8"), scriptsize])
+        code, data = self.__send_command(
+            "HAVESPACE", [scriptname.encode("utf-8"), scriptsize])
         if code == "OK":
             return True
         return False
