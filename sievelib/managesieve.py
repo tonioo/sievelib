@@ -222,11 +222,11 @@ class Client(object):
         """
         ret = []
         for a in args:
-            if type(a) is type(b""):
+            if isinstance(a, six.string_types):
                 if self.__size_expr.match(a):
                     ret += [a]
                 else:
-                    ret += [b'"%s"' % (a,)]
+                    ret += [b'"' + a + b'"']
                 continue
             ret += [b'%s' % (str(a).encode("utf-8"),)]
         return ret
