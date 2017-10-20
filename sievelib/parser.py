@@ -10,11 +10,11 @@ This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 """
 from __future__ import print_function
 
-import codecs
 import re
 import sys
 
 from future.utils import python_2_unicode_compatible, text_type
+import six
 
 from sievelib.commands import (
     get_command_instance, UnknownCommand, BadArgument, BadValue
@@ -49,10 +49,10 @@ class Lexer(object):
         self.definitions = definitions
         parts = []
         for name, part in definitions:
-            parts.append(
-                # Python 3.4 compat...
-                bytes("(?P<%s>%s)" % (name.decode(), part.decode()), "utf-8")
-            )
+            param = "(?P<%s>%s)" % (name.decode(), part.decode())
+            if six.PY3:
+                param = bytes(param, "utf-8")
+            parts.append(param)
         self.regexpString = b"|".join(parts)
         self.regexp = re.compile(self.regexpString, re.MULTILINE)
         self.wsregexp = re.compile(br'\s+', re.M)
@@ -375,7 +375,7 @@ class Parser(object):
         """
         if isinstance(text, text_type):
             text = text.encode("utf-8")
-        
+
         self.__reset_parser()
         try:
             for ttype, tvalue in self.lexer.scan(text):
