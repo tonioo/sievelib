@@ -279,8 +279,10 @@ class Client(object):
             cname = parts[0].strip(b'"').decode("utf-8")
             if cname not in KNOWN_CAPABILITIES:
                 continue
-            self.__capabilities[cname] = \
-                parts[1].strip(b'"').decode("utf-8") if len(parts) > 1 else None
+            self.__capabilities[cname] = (
+                parts[1].strip(b'"').decode("utf-8")
+                if len(parts) > 1 else None
+            )
         return True
 
     def __parse_error(self, text):
@@ -311,7 +313,7 @@ class Client(object):
             self.errcode = ""
         self.errmsg = m.group(2).strip('"')
 
-    def _plain_authentication(self, login, password, authz_id=""):
+    def _plain_authentication(self, login, password, authz_id=b""):
         """SASL PLAIN authentication
 
         :param login: username
@@ -369,7 +371,7 @@ class Client(object):
             return True
         return False
 
-    def __authenticate(self, login, password, authz_id="", authmech=None):
+    def __authenticate(self, login, password, authz_id=b"", authmech=None):
         """AUTHENTICATE command
 
         Actually, it is just a wrapper to the real commands (one by
@@ -468,12 +470,13 @@ class Client(object):
 
         :rtype: string
         """
-        if type(self.__capabilities["SIEVE"]) == str:
+        if isinstance(self.__capabilities["SIEVE"], six.string_types):
             self.__capabilities["SIEVE"] = self.__capabilities["SIEVE"].split()
         return self.__capabilities["SIEVE"]
 
     def connect(
-            self, login, password, authz_id="", starttls=False, authmech=None):
+            self, login, password, authz_id=b"", starttls=False,
+            authmech=None):
         """Establish a connection with the server.
 
         This function must be used. It read the server capabilities
