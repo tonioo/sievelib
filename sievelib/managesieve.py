@@ -87,7 +87,7 @@ class Client(object):
         self.__respcode_expr = re.compile(br"(OK|NO|BYE)\s*(.+)?")
         self.__error_expr = re.compile(br'(\([\w/-]+\))?\s*(".+")')
         self.__size_expr = re.compile(br"\{(\d+)\+?\}")
-        self.__active_expr = re.compile("ACTIVE", re.IGNORECASE)
+        self.__active_expr = re.compile(br"ACTIVE", re.IGNORECASE)
 
     def __del__(self):
         if self.sock is not None:
@@ -129,6 +129,7 @@ class Client(object):
             buf += self.sock.recv(size)
         except (socket.timeout, ssl.SSLError):
             raise Error("Failed to read %d bytes from the server" % size)
+        self.__dprint(but)
         return buf
 
     def __read_line(self):
@@ -150,13 +151,14 @@ class Client(object):
         while True:
             try:
                 pos = self.__read_buffer.index(CRLF)
-                ret = self.__read_buffer[0:pos]
+                ret = self.__read_buffer[:pos]
                 self.__read_buffer = self.__read_buffer[pos + len(CRLF):]
                 break
             except ValueError:
                 pass
             try:
                 nval = self.sock.recv(self.read_size)
+                self.__dprint(nval)
                 if not len(nval):
                     break
                 self.__read_buffer += nval
@@ -200,7 +202,7 @@ class Client(object):
                 data = inst.data
                 break
             except Literal as inst:
-                resp += self.__read_block(inst.value)
+                resp += self.__read_block(inst.value) + self.__read_line() + CRLF
                 continue
             if not len(line):
                 continue
@@ -228,7 +230,7 @@ class Client(object):
                 else:
                     ret += [b'"' + a + b'"']
                 continue
-            ret += [b'%s' % (str(a).encode("utf-8"),)]
+            ret += [bytes(str(a).encode("utf-8"))]
         return ret
 
     def __send_command(
@@ -518,8 +520,8 @@ class Client(object):
 
         :rtype: string
         """
-        code, data, capabilities = \
-            self.__send_command("CAPABILITY", withcontent=True)
+        code, data, capabilities = (
+            self.__send_command("CAPABILITY", withcontent=True))
         if code == "OK":
             return capabilities
         return None
@@ -560,11 +562,12 @@ class Client(object):
             m = re.match(br'"([^"]+)"\s*(.+)', l)
             if m is None:
                 ret += [l.strip(b'"').decode("utf-8")]
-            else:
-                if self.__active_expr.match(m.group(2)):
-                    active_script = m.group(1)
-                else:
-                    ret += [m.group(1)]
+                continue
+            script = m.group(1).decode("utf-8")
+            if self.__active_expr.match(m.group(2)):
+                active_script = script
+                continue
+            ret += [script]
         self.__dprint(ret)
         return (active_script, ret)
 
