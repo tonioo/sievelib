@@ -2,7 +2,6 @@
 
 """Managesieve test cases."""
 
-import socket
 import unittest
 try:
     from unittest import mock
@@ -33,6 +32,7 @@ LISTSCRIPTS = (
     b'"main_script" ACTIVE\r\n'
     b'OK "Listscripts completed.\r\n'
 )
+
 
 class ManageSieveTestCase(unittest.TestCase):
     """Managesieve test cases."""
@@ -70,7 +70,7 @@ class ManageSieveTestCase(unittest.TestCase):
         active_script, others = self.client.listscripts()
         self.assertEqual(active_script, "main_script")
         self.assertEqual(
-            others, ['summer_script', 'vacàtion_script', 'clever"script'])
+            others, [u'summer_script', u'vacàtion_script', u'clever"script'])
 
 
 if __name__ == "__main__":
