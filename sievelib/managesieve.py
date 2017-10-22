@@ -21,6 +21,8 @@ from future.utils import python_2_unicode_compatible
 import six
 
 from .digest_md5 import DigestMD5
+from . import tools
+
 
 CRLF = b'\r\n'
 
@@ -129,7 +131,7 @@ class Client(object):
             buf += self.sock.recv(size)
         except (socket.timeout, ssl.SSLError):
             raise Error("Failed to read %d bytes from the server" % size)
-        self.__dprint(but)
+        self.__dprint(buf)
         return buf
 
     def __read_line(self):
@@ -202,7 +204,9 @@ class Client(object):
                 data = inst.data
                 break
             except Literal as inst:
-                resp += self.__read_block(inst.value) + self.__read_line() + CRLF
+                resp += self.__read_block(inst.value)
+                if not resp.endswith(CRLF):
+                    resp += self.__read_line() + CRLF
                 continue
             if not len(line):
                 continue
@@ -263,7 +267,7 @@ class Client(object):
             self.sock.sendall(l + CRLF)
         code, data, content = self.__read_response(nblines)
 
-        if type(code) is not type(""):
+        if isinstance(code, six.binary_type):
             code = code.decode("utf-8")
         data = data.decode("utf-8")
 
@@ -587,7 +591,7 @@ class Client(object):
             lines = content.splitlines()
             if self.__size_expr.match(lines[0]) is not None:
                 lines = lines[1:]
-            return b"\n".join(lines)
+            return u"\n".join([line.decode("utf-8") for line in lines])
         return None
 
     @authentication_required
@@ -600,9 +604,10 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
-        content = b"{%d+}%s%s" % (len(content), CRLF, content)
-        code, data = \
-            self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content])
+        content = tools.to_bytes(
+            u"{%d+}%s%s" % (len(content), str(CRLF), content))
+        code, data = (
+            self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content]))
         if code == "OK":
             return True
         return False
@@ -616,7 +621,8 @@ class Client(object):
         :param name: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command("DELETESCRIPT", [name.encode("utf-8")])
+        code, data = self.__send_command(
+            "DELETESCRIPT", [name.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -636,7 +642,8 @@ class Client(object):
         """
         if "RENAMESCRIPT" in self.__capabilities:
             code, data = self.__send_command(
-                "RENAMESCRIPT", [oldname.encode("utf-8"), newname.encode("utf-8")])
+                "RENAMESCRIPT",
+                [oldname.encode("utf-8"), newname.encode("utf-8")])
             if code == "OK":
                 return True
             return False
@@ -672,7 +679,8 @@ class Client(object):
         :param scriptname: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command("SETACTIVE", [scriptname.encode("utf-8")])
+        code, data = self.__send_command(
+            "SETACTIVE", [scriptname.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -686,12 +694,9 @@ class Client(object):
         :param name: script's content
         :rtype: boolean
         """
-        if type(content) is unicode:
-            content = content.encode("utf-8")
-
-        content = b"{%d+}%s%s" % (len(content), CRLF, content)
-        code, data = \
-            self.__send_command("CHECKSCRIPT", [content])
+        content = tools.to_bytes(
+            u"{%d+}%s%s" % (len(content), str(CRLF), content))
+        code, data = self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":
             return True
         return False
