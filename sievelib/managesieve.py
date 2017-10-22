@@ -21,6 +21,8 @@ from future.utils import python_2_unicode_compatible
 import six
 
 from .digest_md5 import DigestMD5
+from . import tools
+
 
 CRLF = b'\r\n'
 
@@ -87,7 +89,7 @@ class Client(object):
         self.__respcode_expr = re.compile(br"(OK|NO|BYE)\s*(.+)?")
         self.__error_expr = re.compile(br'(\([\w/-]+\))?\s*(".+")')
         self.__size_expr = re.compile(br"\{(\d+)\+?\}")
-        self.__active_expr = re.compile("ACTIVE", re.IGNORECASE)
+        self.__active_expr = re.compile(br"ACTIVE", re.IGNORECASE)
 
     def __del__(self):
         if self.sock is not None:
@@ -129,6 +131,7 @@ class Client(object):
             buf += self.sock.recv(size)
         except (socket.timeout, ssl.SSLError):
             raise Error("Failed to read %d bytes from the server" % size)
+        self.__dprint(buf)
         return buf
 
     def __read_line(self):
@@ -150,13 +153,14 @@ class Client(object):
         while True:
             try:
                 pos = self.__read_buffer.index(CRLF)
-                ret = self.__read_buffer[0:pos]
+                ret = self.__read_buffer[:pos]
                 self.__read_buffer = self.__read_buffer[pos + len(CRLF):]
                 break
             except ValueError:
                 pass
             try:
                 nval = self.sock.recv(self.read_size)
+                self.__dprint(nval)
                 if not len(nval):
                     break
                 self.__read_buffer += nval
@@ -201,6 +205,8 @@ class Client(object):
                 break
             except Literal as inst:
                 resp += self.__read_block(inst.value)
+                if not resp.endswith(CRLF):
+                    resp += self.__read_line() + CRLF
                 continue
             if not len(line):
                 continue
@@ -222,13 +228,13 @@ class Client(object):
         """
         ret = []
         for a in args:
-            if type(a) is type(b""):
+            if isinstance(a, six.binary_type):
                 if self.__size_expr.match(a):
                     ret += [a]
                 else:
-                    ret += [b'"%s"' % (a,)]
+                    ret += [b'"' + a + b'"']
                 continue
-            ret += [b'%s' % (str(a).encode("utf-8"),)]
+            ret += [bytes(str(a).encode("utf-8"))]
         return ret
 
     def __send_command(
@@ -261,7 +267,7 @@ class Client(object):
             self.sock.sendall(l + CRLF)
         code, data, content = self.__read_response(nblines)
 
-        if type(code) is not type(""):
+        if isinstance(code, six.binary_type):
             code = code.decode("utf-8")
         data = data.decode("utf-8")
 
@@ -279,8 +285,10 @@ class Client(object):
             cname = parts[0].strip(b'"').decode("utf-8")
             if cname not in KNOWN_CAPABILITIES:
                 continue
-            self.__capabilities[cname] = \
-                parts[1].strip(b'"').decode("utf-8") if len(parts) > 1 else None
+            self.__capabilities[cname] = (
+                parts[1].strip(b'"').decode("utf-8")
+                if len(parts) > 1 else None
+            )
         return True
 
     def __parse_error(self, text):
@@ -311,7 +319,7 @@ class Client(object):
             self.errcode = ""
         self.errmsg = m.group(2).strip('"')
 
-    def _plain_authentication(self, login, password, authz_id=""):
+    def _plain_authentication(self, login, password, authz_id=b""):
         """SASL PLAIN authentication
 
         :param login: username
@@ -369,7 +377,7 @@ class Client(object):
             return True
         return False
 
-    def __authenticate(self, login, password, authz_id="", authmech=None):
+    def __authenticate(self, login, password, authz_id=b"", authmech=None):
         """AUTHENTICATE command
 
         Actually, it is just a wrapper to the real commands (one by
@@ -468,12 +476,13 @@ class Client(object):
 
         :rtype: string
         """
-        if type(self.__capabilities["SIEVE"]) == str:
+        if isinstance(self.__capabilities["SIEVE"], six.string_types):
             self.__capabilities["SIEVE"] = self.__capabilities["SIEVE"].split()
         return self.__capabilities["SIEVE"]
 
     def connect(
-            self, login, password, authz_id="", starttls=False, authmech=None):
+            self, login, password, authz_id=b"", starttls=False,
+            authmech=None):
         """Establish a connection with the server.
 
         This function must be used. It read the server capabilities
@@ -515,8 +524,8 @@ class Client(object):
 
         :rtype: string
         """
-        code, data, capabilities = \
-            self.__send_command("CAPABILITY", withcontent=True)
+        code, data, capabilities = (
+            self.__send_command("CAPABILITY", withcontent=True))
         if code == "OK":
             return capabilities
         return None
@@ -531,7 +540,8 @@ class Client(object):
         :param scriptsize: script's size
         :rtype: boolean
         """
-        code, data = self.__send_command("HAVESPACE", [scriptname.encode("utf-8"), scriptsize])
+        code, data = self.__send_command(
+            "HAVESPACE", [scriptname.encode("utf-8"), scriptsize])
         if code == "OK":
             return True
         return False
@@ -556,11 +566,12 @@ class Client(object):
             m = re.match(br'"([^"]+)"\s*(.+)', l)
             if m is None:
                 ret += [l.strip(b'"').decode("utf-8")]
-            else:
-                if self.__active_expr.match(m.group(2)):
-                    active_script = m.group(1)
-                else:
-                    ret += [m.group(1)]
+                continue
+            script = m.group(1).decode("utf-8")
+            if self.__active_expr.match(m.group(2)):
+                active_script = script
+                continue
+            ret += [script]
         self.__dprint(ret)
         return (active_script, ret)
 
@@ -580,7 +591,7 @@ class Client(object):
             lines = content.splitlines()
             if self.__size_expr.match(lines[0]) is not None:
                 lines = lines[1:]
-            return b"\n".join(lines)
+            return u"\n".join([line.decode("utf-8") for line in lines])
         return None
 
     @authentication_required
@@ -593,9 +604,10 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
-        content = b"{%d+}%s%s" % (len(content), CRLF, content)
-        code, data = \
-            self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content])
+        content = tools.to_bytes(
+            u"{%d+}%s%s" % (len(content), str(CRLF), content))
+        code, data = (
+            self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content]))
         if code == "OK":
             return True
         return False
@@ -609,7 +621,8 @@ class Client(object):
         :param name: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command("DELETESCRIPT", [name.encode("utf-8")])
+        code, data = self.__send_command(
+            "DELETESCRIPT", [name.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -629,7 +642,8 @@ class Client(object):
         """
         if "RENAMESCRIPT" in self.__capabilities:
             code, data = self.__send_command(
-                "RENAMESCRIPT", [oldname.encode("utf-8"), newname.encode("utf-8")])
+                "RENAMESCRIPT",
+                [oldname.encode("utf-8"), newname.encode("utf-8")])
             if code == "OK":
                 return True
             return False
@@ -665,7 +679,8 @@ class Client(object):
         :param scriptname: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command("SETACTIVE", [scriptname.encode("utf-8")])
+        code, data = self.__send_command(
+            "SETACTIVE", [scriptname.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -679,12 +694,9 @@ class Client(object):
         :param name: script's content
         :rtype: boolean
         """
-        if type(content) is unicode:
-            content = content.encode("utf-8")
-
-        content = b"{%d+}%s%s" % (len(content), CRLF, content)
-        code, data = \
-            self.__send_command("CHECKSCRIPT", [content])
+        content = tools.to_bytes(
+            u"{%d+}%s%s" % (len(content), str(CRLF), content))
+        code, data = self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":
             return True
         return False
