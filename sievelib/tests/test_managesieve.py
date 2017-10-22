@@ -122,6 +122,20 @@ if envelope :contains "to" "tmartin+sent" {
             b'OK "setactive completed."\r\n', )
         self.assertTrue(self.client.setactive(u"test_script"))
 
+    def test_havespace(self, mock_socket):
+        """Test havespace command."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = (
+            b'OK "havespace completed."\r\n', )
+        self.assertTrue(self.client.havespace(u"test_script", 1000))
+
+    def test_renamescript(self, mock_socket):
+        """Test renamescript command."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = (
+            b'OK "renamescript completed."\r\n', )
+        self.assertTrue(self.client.renamescript(u"old_script", u"new_script"))
+
 
 if __name__ == "__main__":
     unittest.main()

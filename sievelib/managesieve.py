@@ -1,14 +1,13 @@
-#!/usr/bin/env python
 # coding: utf-8
 
 """
-A MANAGESIEVE client
+A MANAGESIEVE client.
 
 A protocol for securely managing Sieve scripts on a remote server.
 This protocol allows a user to have multiple scripts, and also alerts
 a user to syntactically flawed scripts.
 
-Implementation based on <draft-martin-managesieve-12>.
+Implementation based on RFC 5804.
 """
 from __future__ import print_function
 
@@ -24,11 +23,11 @@ from .digest_md5 import DigestMD5
 from . import tools
 
 
-CRLF = b'\r\n'
+CRLF = b"\r\n"
 
 KNOWN_CAPABILITIES = [u"IMPLEMENTATION", u"SASL", u"SIEVE",
                       u"STARTTLS", u"NOTIFY", u"LANGUAGE",
-                      u"RENAME"]
+                      u"VERSION"]
 
 SUPPORTED_AUTH_MECHS = [u"DIGEST-MD5", u"PLAIN", u"LOGIN"]
 
@@ -640,7 +639,7 @@ class Client(object):
         :param newname: new script's name
         :rtype: boolean
         """
-        if "RENAMESCRIPT" in self.__capabilities:
+        if "VERSION" in self.__capabilities:
             code, data = self.__send_command(
                 "RENAMESCRIPT",
                 [oldname.encode("utf-8"), newname.encode("utf-8")])
@@ -694,6 +693,9 @@ class Client(object):
         :param name: script's content
         :rtype: boolean
         """
+        if "VERSION" not in self.__capabilities:
+            raise NotImplementedError(
+                "server does not support CHECKSCRIPT command")
         content = tools.to_bytes(
             u"{%d+}%s%s" % (len(content), str(CRLF), content))
         code, data = self.__send_command("CHECKSCRIPT", [content])
