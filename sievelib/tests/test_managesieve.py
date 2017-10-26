@@ -18,6 +18,13 @@ CAPABILITIES = (
     b'"STARTTLS"\r\n'
 )
 
+CAPABILITIES_WITHOUT_VERSION = (
+    b'"IMPLEMENTATION" "Example1 ManageSieved v001"\r\n'
+    b'"SASL" "PLAIN SCRAM-SHA-1 GSSAPI"\r\n'
+    b'"SIEVE" "fileinto vacation"\r\n'
+    b'"STARTTLS"\r\n'
+)
+
 AUTHENTICATION = (
     CAPABILITIES +
     b'OK "Dovecot ready."\r\n'
@@ -135,6 +142,24 @@ if envelope :contains "to" "tmartin+sent" {
         mock_socket.return_value.recv.side_effect = (
             b'OK "renamescript completed."\r\n', )
         self.assertTrue(self.client.renamescript(u"old_script", u"new_script"))
+
+    def test_renamescript_simulated(self, mock_socket):
+        """Test renamescript command simulation."""
+        mock_socket.return_value.recv.side_effect = (
+            CAPABILITIES_WITHOUT_VERSION +
+            b'OK "Dovecot ready."\r\n'
+            b'OK "Logged in."\r\n'
+        )
+        self.client.connect(b"user", b"password")
+        mock_socket.return_value.recv.side_effect = (
+            LISTSCRIPTS,
+            GETSCRIPT,
+            b'OK "putscript completed."\r\n',
+            b'OK "setactive completed."\r\n',
+            b'OK "deletescript completed."\r\n'
+        )
+        self.assertTrue(
+            self.client.renamescript(u"main_script", u"new_script"))
 
 
 if __name__ == "__main__":
