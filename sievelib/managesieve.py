@@ -115,7 +115,7 @@ class Client(object):
         :rtype: string
         :returns: the read block (can be empty)
         """
-        buf = ""
+        buf = b""
         if len(self.__read_buffer):
             limit = (
                 size if size <= len(self.__read_buffer) else
@@ -173,9 +173,9 @@ class Client(object):
 
             m = self.__respcode_expr.match(ret)
             if m:
-                if m.group(1) == "BYE":
+                if m.group(1) == b"BYE":
                     raise Error("Connection closed by server")
-                if m.group(1) == "NO":
+                if m.group(1) == b"NO":
                     self.__parse_error(m.group(2))
                 raise Response(m.group(1), m.group(2))
         return ret
@@ -237,7 +237,8 @@ class Client(object):
         return ret
 
     def __send_command(
-            self, name, args=[], withcontent=False, extralines=[], nblines=-1):
+            self, name, args=None, withcontent=False, extralines=None,
+            nblines=-1):
         """Send a command to the server.
 
         If args is not empty, we concatenate the given command with
@@ -258,12 +259,13 @@ class Client(object):
 
         """
         tosend = name.encode("utf-8")
-        if len(args):
+        if args:
             tosend += b" " + b" ".join(self.__prepare_args(args))
-        self.__dprint("Command: %s" % tosend)
+        self.__dprint(b"Command: " + tosend)
         self.sock.sendall(tosend + CRLF)
-        for l in extralines:
-            self.sock.sendall(l + CRLF)
+        if extralines:
+            for l in extralines:
+                self.sock.sendall(l + CRLF)
         code, data, content = self.__read_response(nblines)
 
         if isinstance(code, six.binary_type):
@@ -305,7 +307,7 @@ class Client(object):
         """
         m = self.__size_expr.match(text)
         if m is not None:
-            self.errcode = ""
+            self.errcode = b""
             self.errmsg = self.__read_block(int(m.group(1)) + 2)
             return
 
@@ -313,10 +315,10 @@ class Client(object):
         if m is None:
             raise Error("Bad error message")
         if m.group(1) is not None:
-            self.errcode = m.group(1).strip("()")
+            self.errcode = m.group(1).strip(b"()")
         else:
-            self.errcode = ""
-        self.errmsg = m.group(2).strip('"')
+            self.errcode = b""
+        self.errmsg = m.group(2).strip(b'"')
 
     def _plain_authentication(self, login, password, authz_id=b""):
         """SASL PLAIN authentication
@@ -411,7 +413,7 @@ class Client(object):
                 return True
             return False
 
-        self.errmsg = "No suitable mechanism found"
+        self.errmsg = b"No suitable mechanism found"
         return False
 
     def __starttls(self, keyfile=None, certfile=None):
@@ -603,8 +605,8 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
-        content = tools.to_bytes(
-            u"{%d+}%s%s" % (len(content), str(CRLF), content))
+        content = tools.to_bytes(content)
+        content = tools.to_bytes("{%d+}" % len(content)) + CRLF + content
         code, data = (
             self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content]))
         if code == "OK":
@@ -653,10 +655,10 @@ class Client(object):
             (scripts is None or oldname not in scripts)
         )
         if condition:
-            self.errmsg = "Old script does not exist"
+            self.errmsg = b"Old script does not exist"
             return False
         if newname in scripts:
-            self.errmsg = "New script already exists"
+            self.errmsg = b"New script already exists"
             return False
         oldscript = self.getscript(oldname)
         if oldscript is None:

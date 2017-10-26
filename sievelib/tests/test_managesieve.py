@@ -148,7 +148,7 @@ if envelope :contains "to" "tmartin+sent" {
         mock_socket.return_value.recv.side_effect = (
             CAPABILITIES_WITHOUT_VERSION +
             b'OK "Dovecot ready."\r\n'
-            b'OK "Logged in."\r\n'
+            b'OK "Logged in."\r\n',
         )
         self.client.connect(b"user", b"password")
         mock_socket.return_value.recv.side_effect = (
