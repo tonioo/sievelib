@@ -17,8 +17,7 @@ from future.utils import python_2_unicode_compatible, text_type
 import six
 
 from sievelib.commands import (
-    get_command_instance, UnknownCommand, BadArgument, BadValue
-)
+    get_command_instance, CommandError, RequireCommand)
 
 
 @python_2_unicode_compatible
@@ -136,6 +135,7 @@ class Parser(object):
         self.__curstringlist = None
         self.__expected = None
         self.__opened_blocks = 0
+        RequireCommand.loaded_extensions = []
 
     def __set_expected(self, *args, **kwargs):
         """Set the next expected token.
@@ -326,15 +326,17 @@ class Parser(object):
 
             if ttype != "identifier":
                 return False
-            command = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
+            command = get_command_instance(
+                tvalue.decode("ascii"), self.__curcommand)
             if command.get_type() == "test":
-                raise ParseError("%s may not appear as a first command" % command.name)
+                raise ParseError(
+                    "%s may not appear as a first command" % command.name)
             if command.get_type() == "control" and command.accept_children \
-                and command.has_arguments():
+               and command.has_arguments():
                 self.__set_expected("identifier")
             if self.__curcommand is not None:
                 if not self.__curcommand.addchild(command):
-                    raise ParseError("%s unexpected after a %s" % \
+                    raise ParseError("%s unexpected after a %s" %
                                      (tvalue, self.__curcommand.name))
             self.__curcommand = command
             self.__cstate = self.__arguments
@@ -405,7 +407,7 @@ class Parser(object):
                 raise ParseError("end of script reached while %s expected" %
                                  "|".join(self.__expected))
 
-        except (ParseError, UnknownCommand, BadArgument, BadValue) as e:
+        except (ParseError, CommandError) as e:
             self.error = "line %d: %s" % (self.lexer.curlineno(), str(e))
             return False
         return True
@@ -420,7 +422,6 @@ class Parser(object):
         """
         with open(name, "rb") as fp:
             return self.parse(fp.read())
-        
 
     def dump(self, target=sys.stdout):
         """Dump the parsing tree.

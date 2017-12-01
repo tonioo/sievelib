@@ -16,23 +16,41 @@ class FactoryTestCase(unittest.TestCase):
         self.fs.addfilter(
             "rule1",
             [('Sender', ":is", 'toto@toto.com'), ],
-            [("fileinto", 'Toto'), ])
+            [("fileinto", ":copy", "Toto"), ])
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.fs.tosieve(output)
-        self.assertEqual(output.getvalue(), """require ["fileinto"];
+        self.assertEqual(output.getvalue(), """require ["fileinto", "copy"];
 
 # Filter: rule1
 if anyof (header :is "Sender" "toto@toto.com") {
-    fileinto "Toto";
+    fileinto :copy "Toto";
+}
+""")
+        output.close()
+
+    def test_use_action_with_tag(self):
+        output = six.StringIO()
+        self.fs.addfilter(
+            "rule1",
+            [('Sender', ":is", 'toto@toto.com'), ],
+            [("redirect", ":copy", "toto@titi.com"), ])
+        self.assertIsNot(self.fs.getfilter("rule1"), None)
+        self.fs.tosieve(output)
+        self.assertEqual(output.getvalue(), """require ["copy"];
+
+# Filter: rule1
+if anyof (header :is "Sender" "toto@toto.com") {
+    redirect :copy "toto@titi.com";
 }
 """)
         output.close()
 
     def test_add_header_filter_with_not(self):
         output = six.StringIO()
-        self.fs.addfilter("rule1",
-                          [('Sender', ":notcontains", 'toto@toto.com'),],
-                          [("fileinto", 'Toto'),])
+        self.fs.addfilter(
+            "rule1",
+            [('Sender', ":notcontains", 'toto@toto.com')],
+            [("fileinto", 'Toto')])
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.fs.tosieve(output)
         self.assertEqual(output.getvalue(), """require ["fileinto"];
@@ -47,8 +65,9 @@ if anyof (not header :contains "Sender" "toto@toto.com") {
         output = six.StringIO()
         self.fs.addfilter(
             "rule1",
-            [('exists', "list-help", "list-unsubscribe", "list-subscribe", "list-owner")],
-            [("fileinto", 'Toto'),]
+            [('exists', "list-help", "list-unsubscribe",
+              "list-subscribe", "list-owner")],
+            [("fileinto", 'Toto')]
         )
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.fs.tosieve(output)
@@ -64,8 +83,9 @@ if anyof (exists ["list-help","list-unsubscribe","list-subscribe","list-owner"])
         output = six.StringIO()
         self.fs.addfilter(
             "rule1",
-            [('notexists', "list-help", "list-unsubscribe", "list-subscribe", "list-owner")],
-            [("fileinto", 'Toto'),]
+            [('notexists', "list-help", "list-unsubscribe",
+              "list-subscribe", "list-owner")],
+            [("fileinto", 'Toto')]
         )
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.fs.tosieve(output)
@@ -82,7 +102,7 @@ if anyof (not exists ["list-help","list-unsubscribe","list-subscribe","list-owne
         self.fs.addfilter(
             "rule1",
             [('size', ":over", "100k")],
-            [("fileinto", 'Totoéé'),]
+            [("fileinto", 'Totoéé')]
         )
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.fs.tosieve(output)
@@ -96,8 +116,8 @@ if anyof (size :over 100k) {
 
     def test_remove_filter(self):
         self.fs.addfilter("rule1",
-                          [('Sender', ":is", 'toto@toto.com'),],
-                          [("fileinto", 'Toto'),])
+                          [('Sender', ":is", 'toto@toto.com')],
+                          [("fileinto", 'Toto')])
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.assertEqual(self.fs.removefilter("rule1"), True)
         self.assertIs(self.fs.getfilter("rule1"), None)
@@ -107,8 +127,8 @@ if anyof (size :over 100k) {
         FIXME: Extra spaces are written between if and anyof, why?!
         """
         self.fs.addfilter("rule1",
-                          [('Sender', ":is", 'toto@toto.com'),],
-                          [("fileinto", 'Toto'),])
+                          [('Sender', ":is", 'toto@toto.com')],
+                          [("fileinto", 'Toto')])
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.assertEqual(self.fs.disablefilter("rule1"), True)
         output = six.StringIO()

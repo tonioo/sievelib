@@ -29,8 +29,14 @@ import sys
 from future.utils import python_2_unicode_compatible
 
 
+class CommandError(Exception):
+    """Base command exception class."""
+
+    pass
+
+
 @python_2_unicode_compatible
-class UnknownCommand(Exception):
+class UnknownCommand(CommandError):
     """Specific exception raised when an unknown command is encountered"""
 
     def __init__(self, name):
@@ -41,7 +47,7 @@ class UnknownCommand(Exception):
 
 
 @python_2_unicode_compatible
-class BadArgument(Exception):
+class BadArgument(CommandError):
     """Specific exception raised when a bad argument is encountered"""
 
     def __init__(self, command, seen, expected):
@@ -55,7 +61,7 @@ class BadArgument(Exception):
 
 
 @python_2_unicode_compatible
-class BadValue(Exception):
+class BadValue(CommandError):
     """Specific exception raised when a bad argument value is encountered"""
 
     def __init__(self, argument, value):
@@ -66,6 +72,16 @@ class BadValue(Exception):
         return "bad value %s for argument %s" \
                % (self.value, self.argument)
 
+
+@python_2_unicode_compatible
+class ExtensionNotLoaded(CommandError):
+    """Raised when an extension is not loaded."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "extension '{}' not loaded".format(self.name)
 
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
@@ -150,7 +166,11 @@ class Command(object):
                                 target.write(", ")
                         target.write(")")
                     else:
-                        target.write("[" + ((", ".join(['"%s"' % v.strip('"') for v in value]))) + "]")
+                        target.write(
+                            "[{}]".format(", ".join(
+                                ['"%s"' % v.strip('"') for v in value])
+                            )
+                        )
                     continue
                 if isinstance(value, Command):
                     value.tosieve(indentlevel, target=target)
@@ -225,7 +245,8 @@ class Command(object):
                         for t in value:
                             t.dump(indentlevel, target)
                     else:
-                        self.__print("[" + (",".join(value)) + "]", indentlevel, target=target)
+                        self.__print("[" + (",".join(value)) + "]",
+                                     indentlevel, target=target)
                     continue
                 if isinstance(value, Command):
                     value.dump(indentlevel, target)
@@ -288,7 +309,7 @@ class Command(object):
             return True
         return value.lower() in arg["values"]
 
-    def check_next_arg(self, atype, avalue, add=True):
+    def check_next_arg(self, atype, avalue, add=True, check_extension=True):
         """Argument validity checking
 
         This method is usually used by the parser to check if detected
@@ -312,6 +333,8 @@ class Command(object):
         :param atype: the argument's type
         :param avalue: the argument's value
         :param add: indicates if this argument should be recorded on success
+        :param check_extension: raise ExtensionNotLoaded if extension not
+                                loaded
         :return: True on success, False otherwise
         """
         if not self.has_arguments():
@@ -353,6 +376,12 @@ class Command(object):
                 break
 
             if atype in curarg["type"]:
+                ext = curarg.get("extension")
+                condition = (
+                    check_extension and ext and
+                    ext not in RequireCommand.loaded_extensions)
+                if condition:
+                    raise ExtensionNotLoaded(ext)
                 if self.__is_valid_value_for_arg(curarg, avalue):
                     if "extra_arg" in curarg:
                         self.curarg = curarg
@@ -460,6 +489,11 @@ class ActionCommand(Command):
 class FileintoCommand(ActionCommand):
     is_extension = True
     args_definition = [
+        {"name": "copy",
+         "type": ["tag"],
+         "values": [":copy"],
+         "required": False,
+         "extension": "copy"},
         {"name": "mailbox",
          "type": ["string"],
          "required": True}
@@ -468,6 +502,11 @@ class FileintoCommand(ActionCommand):
 
 class RedirectCommand(ActionCommand):
     args_definition = [
+        {"name": "copy",
+         "type": ["tag"],
+         "values": [":copy"],
+         "required": False,
+         "extension": "copy"},
         {"name": "address",
          "type": ["string"],
          "required": True}
