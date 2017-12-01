@@ -97,6 +97,14 @@ class FiltersSet(object):
         if name not in self.requires:
             self.requires += [name]
 
+    def check_if_arg_is_extension(self, arg):
+        """Include extension if arg requires one."""
+        args_using_extensions = {
+            ":copy": "copy"
+        }
+        if arg in args_using_extensions:
+            self.require(args_using_extensions[arg])
+
     def __gen_require_command(self):
         """Internal method to create a RequireCommand based on requirements
 
@@ -200,7 +208,13 @@ class FiltersSet(object):
             if action.is_extension:
                 self.require(actdef[0])
             for arg in actdef[1:]:
-                action.check_next_arg("string", self.__quote_if_necessary(arg))
+                self.check_if_arg_is_extension(arg)
+                if arg.startswith(":"):
+                    atype = "tag"
+                else:
+                    atype = "string"
+                    arg = self.__quote_if_necessary(arg)
+                action.check_next_arg(atype, arg, check_extension=False)
             ifcontrol.addchild(action)
         return ifcontrol
 

@@ -694,5 +694,37 @@ if allof (
 """)
 
 
+class CopyWithoutSideEffectsTestCase(SieveTest):
+    """RFC3894 test cases."""
+
+    def test_redirect_with_copy(self):
+        self.compilation_ko(b"""
+if header :contains "subject" "test" {
+    redirect :copy "dev@null.com";
+}
+""")
+
+        self.compilation_ok(b"""require "copy";
+if header :contains "subject" "test" {
+    redirect :copy "dev@null.com";
+}
+""")
+
+    def test_fileinto_with_copy(self):
+        self.compilation_ko(b"""require "fileinto";
+if header :contains "subject" "test" {
+    fileinto :copy "Spam";
+}
+""")
+        self.assertEqual(
+            self.parser.error, "line 3: extension 'copy' not loaded")
+
+        self.compilation_ok(b"""require ["fileinto", "copy"];
+if header :contains "subject" "test" {
+    fileinto :copy "Spam";
+}
+""")
+
+
 if __name__ == "__main__":
     unittest.main()
