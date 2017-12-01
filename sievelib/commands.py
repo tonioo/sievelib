@@ -397,6 +397,10 @@ class Command(object):
                               self.args_definition[pos]["type"])
         return True
 
+    def __contains__(self, name):
+        """Check if argument is provided with command."""
+        return name in self.arguments
+
     def __getitem__(self, name):
         """Shorcut to access a command argument
 
