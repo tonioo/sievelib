@@ -36,6 +36,7 @@ supported.
 
 The following extensions are also supported:
 
+* Copying Without Side Effects (`RFC 3894 <https://tools.ietf.org/html/rfc3894>`_)
 * Date and Index (`RFC 5260 <https://tools.ietf.org/html/rfc5260>`_)
 * Vacation (`RFC 5230 <http://tools.ietf.org/html/rfc5230>`_)
 

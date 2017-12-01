@@ -50,11 +50,12 @@ def parse_dependency_links(*filenames):
 def read(fname):
     return open(os.path.join(ROOT, fname)).read()
 
+
 setup(
     name="sievelib",
     packages=find_packages(),
     include_package_data=True,
-    version="1.0.0",
+    version="1.1.0",
     description="Client-side SIEVE library",
     author="Antoine Nguyen",
     author_email="tonio@ngyn.org",
