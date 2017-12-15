@@ -329,7 +329,7 @@ class Client(object):
         """
         if isinstance(login, six.text_type):
             login = login.encode("utf-8")
-        if isinstance(login, six.text_type):
+        if isinstance(password, six.text_type):
             password = password.encode("utf-8")
         params = base64.b64encode(b'\0'.join([authz_id, login, password]))
         code, data = self.__send_command("AUTHENTICATE", [b"PLAIN", params])
