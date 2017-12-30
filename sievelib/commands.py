@@ -498,6 +498,11 @@ class FileintoCommand(ActionCommand):
          "values": [":copy"],
          "required": False,
          "extension": "copy"},
+        {"name": "create",
+         "type": ["tag"],
+         "values": [":create"],
+         "required": False,
+         "extension": "mailbox"},
         {"name": "mailbox",
          "type": ["string"],
          "required": True}
