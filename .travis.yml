@@ -1,9 +1,11 @@
 language: python
+
 cache: pip
+
 python:
-  - "2.7"
-  - "3.4"
-  - "3.6"
+  - '2.7'
+  - '3.4'
+  - '3.6'
 
 before_install:
   - pip install codecov nose
@@ -15,3 +17,14 @@ script: nosetests --with-coverage
 
 after_success:
   - codecov
+
+deploy:
+  provider: pypi
+  user: tonio
+  password:
+    secure: Mb1Xiif6MnUmEC6c0lUcW3BEqxvmBeh8V46BkMznX7FgqG1jUcBTtvLLub7Hzh31gvL7xltcUCS9AMhu3CnJrxSLxkyzthpWMp/kib00WM5qmrw9o8ZWeJm+wFMfFJchZ7Nx61PL/17D/Qjaf6lNLYQudXW8Z+hZ1CcQic3B3Kw=
+  skip_cleanup: true
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+    python: '3.6'
