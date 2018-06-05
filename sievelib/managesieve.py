@@ -270,7 +270,8 @@ class Client(object):
 
         if isinstance(code, six.binary_type):
             code = code.decode("utf-8")
-        data = data.decode("utf-8")
+        if isinstance(data, six.binary_type):
+            data = data.decode("utf-8")
 
         if withcontent:
             return (code, data, content)
