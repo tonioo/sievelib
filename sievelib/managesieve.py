@@ -270,7 +270,8 @@ class Client(object):
 
         if isinstance(code, six.binary_type):
             code = code.decode("utf-8")
-        data = data.decode("utf-8")
+        if isinstance(data, six.binary_type):
+            data = data.decode("utf-8")
 
         if withcontent:
             return (code, data, content)
@@ -496,8 +497,7 @@ class Client(object):
         :rtype: boolean
         """
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((self.srvaddr, self.srvport))
+            self.sock = socket.create_connection((self.srvaddr, self.srvport))
             self.sock.settimeout(Client.read_timeout)
         except socket.error as msg:
             raise Error("Connection to server failed: %s" % str(msg))
