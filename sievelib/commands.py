@@ -376,13 +376,13 @@ class Command(object):
                 break
 
             if atype in curarg["type"]:
-                ext = curarg.get("extension")
-                condition = (
-                    check_extension and ext and
-                    ext not in RequireCommand.loaded_extensions)
-                if condition:
-                    raise ExtensionNotLoaded(ext)
                 if self.__is_valid_value_for_arg(curarg, avalue):
+                    ext = curarg.get("extension")
+                    condition = (
+                        check_extension and ext and
+                        ext not in RequireCommand.loaded_extensions)
+                    if condition:
+                        raise ExtensionNotLoaded(ext)
                     if "extra_arg" in curarg:
                         self.curarg = curarg
                         break
