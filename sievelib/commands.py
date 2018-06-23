@@ -85,6 +85,7 @@ class ExtensionNotLoaded(CommandError):
     def __str__(self):
         return "extension '{}' not loaded".format(self.name)
 
+
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
 comparator = {"name": "comparator",
@@ -336,6 +337,7 @@ class Command(object):
         :param value: the value to check
         :return: True on succes, False otherwise
         """
+        print(arg, value)
         if "values" not in arg:
             return True
         return value.lower() in arg["values"]
@@ -758,6 +760,29 @@ class HeaderCommand(TestCommand):
         else:
             result = result + (self.arguments["key-list"].strip('"'),)
         return result
+
+
+class BodyCommand(TestCommand):
+    """Body extension.
+
+    See https://tools.ietf.org/html/rfc5173.
+    """
+
+    is_extension = True
+    args_definition = [
+        comparator,
+        match_type,
+        {"name": "header-names",
+         "type": ["string", "stringlist"],
+         "required": True},
+        {"name": "body-transform",
+         "values": [":raw", ":content", ":text"],
+         "type": ["tag"],
+         "required": False},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": False},
+    ]
 
 
 class NotCommand(TestCommand):

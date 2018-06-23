@@ -507,6 +507,16 @@ if hasflag "Var1" "Truc" {
 }
 """)
 
+    def test_body_extension(self):
+        self.parser.parse(b"""
+require "body";
+
+if body :content "text" :contains ["missile", "coordinates"] {
+    fileinto "secrets";
+}
+""")
+        print(self.parser.error)
+
 
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
@@ -517,7 +527,7 @@ it is allowed by the RFC :p */
 
     def test_nonopened_block(self):
         self.compilation_ko(b"""
-if header :is "Sender" "me@example.com" 
+if header :is "Sender" "me@example.com"
     discard;
 }
 """)
@@ -532,7 +542,7 @@ if header :is "Sender" "me@example.com" {
     def test_unknown_token(self):
         self.compilation_ko(b"""
 if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
-    
+
 }
 """)
 
