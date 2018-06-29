@@ -325,7 +325,7 @@ class FiltersSet(object):
             elif isinstance(node, (commands.HeaderCommand,
                                    commands.SizeCommand,
                                    commands.ExistsCommand)):
-                args = node.args_as_list()
+                args = node.args_as_tuple()
                 if negate:
                     if node.name == "header":
                         args = (args[0], ":not{}".format(args[1][1:]), args[2])
@@ -343,7 +343,7 @@ class FiltersSet(object):
         actions = []
         for node in flt.walk():
             if isinstance(node, commands.ActionCommand):
-                actions.append(node.args_as_list())
+                actions.append(node.args_as_tuple())
         return actions
 
     def removefilter(self, name):

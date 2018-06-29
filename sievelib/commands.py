@@ -512,7 +512,7 @@ class ActionCommand(Command):
 
     _type = "action"
 
-    def args_as_list(self):
+    def args_as_tuple(self):
         args = []
         for name, value in list(self.arguments.items()):
             unquote = False
@@ -647,7 +647,7 @@ class ExistsCommand(TestCommand):
          "required": True}
     ]
 
-    def args_as_list(self):
+    def args_as_tuple(self):
         return ("exists", ) + tuple(
             tools.to_list(self.arguments["header-names"]))
 
@@ -672,7 +672,7 @@ class HeaderCommand(TestCommand):
          "required": True}
     ]
 
-    def args_as_list(self):
+    def args_as_tuple(self):
         """Return arguments as a list."""
         if "," in self.arguments["header-names"]:
             result = tuple(tools.to_list(self.arguments["header-names"]))
@@ -712,7 +712,7 @@ class SizeCommand(TestCommand):
          "required": True},
     ]
 
-    def args_as_list(self):
+    def args_as_tuple(self):
         return ("size", self.arguments["comparator"], self.arguments["limit"])
 
 
