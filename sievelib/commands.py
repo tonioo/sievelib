@@ -28,6 +28,8 @@ import sys
 
 from future.utils import python_2_unicode_compatible
 
+from . import tools
+
 
 class CommandError(Exception):
     """Base command exception class."""
@@ -254,6 +256,26 @@ class Command(object):
                 self.__print(str(value), indentlevel, target=target)
         for ch in self.children:
             ch.dump(indentlevel, target)
+
+    def walk(self):
+        """Walk through commands."""
+        yield self
+        if self.has_arguments():
+            for arg in self.args_definition:
+                if not arg["name"] in self.arguments:
+                    continue
+                value = self.arguments[arg["name"]]
+                if type(value) == list:
+                    if self.__get_arg_type(arg["name"]) == ["testlist"]:
+                        for t in value:
+                            for node in t.walk():
+                                yield node
+                if isinstance(value, Command):
+                    for node in value.walk():
+                        yield node
+        for ch in self.children:
+            for node in ch.walk():
+                yield node
 
     def addchild(self, child):
         """Add a new child to the command
@@ -487,7 +509,30 @@ class ElseCommand(ControlCommand):
 
 class ActionCommand(Command):
     """Indermediate class to represent "action" commands"""
+
     _type = "action"
+
+    def args_as_list(self):
+        args = []
+        for name, value in list(self.arguments.items()):
+            unquote = False
+            for argdef in self.args_definition:
+                if name == argdef["name"]:
+                    condition = (
+                        "string" in argdef["type"] or
+                        "stringlist" in argdef["type"]
+                    )
+                    if condition:
+                        unquote = True
+                        break
+            if unquote:
+                if "," in value:
+                    args += tools.to_list(value)
+                else:
+                    args.append(value.strip('"'))
+                continue
+            args.append(value)
+        return (self.name, ) + tuple(args)
 
 
 class FileintoCommand(ActionCommand):
@@ -602,6 +647,10 @@ class ExistsCommand(TestCommand):
          "required": True}
     ]
 
+    def args_as_list(self):
+        return ("exists", ) + tuple(
+            tools.to_list(self.arguments["header-names"]))
+
 
 class TrueCommand(TestCommand):
     args_definition = []
@@ -622,6 +671,21 @@ class HeaderCommand(TestCommand):
          "type": ["string", "stringlist"],
          "required": True}
     ]
+
+    def args_as_list(self):
+        """Return arguments as a list."""
+        if "," in self.arguments["header-names"]:
+            result = tuple(tools.to_list(self.arguments["header-names"]))
+        else:
+            result = (self.arguments["header-names"].strip('"'),)
+        result = result + (self.arguments["match-type"],)
+        if "," in self.arguments["key-list"]:
+            keylist = self.arguments["key-list"][1:-1]
+            result = result + tuple(
+                tools.to_list(self.arguments["key-list"], unquote=False))
+        else:
+            result = result + (self.arguments["key-list"].strip('"'),)
+        return result
 
 
 class NotCommand(TestCommand):
@@ -647,6 +711,9 @@ class SizeCommand(TestCommand):
          "type": ["number"],
          "required": True},
     ]
+
+    def args_as_list(self):
+        return ("size", self.arguments["comparator"], self.arguments["limit"])
 
 
 class VacationCommand(ActionCommand):

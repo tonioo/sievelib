@@ -3,13 +3,73 @@ from __future__ import unicode_literals
 
 import unittest
 import six
+
 from sievelib.factory import FiltersSet
+from sievelib import commands
 
 
 class FactoryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.fs = FiltersSet("test")
+
+    def test_get_filter_conditions(self):
+        """Test get_filter_conditions method."""
+        orig_conditions = [('Sender', ":is", 'toto@toto.com')]
+        self.fs.addfilter(
+            "ruleX",
+            orig_conditions,
+            [("fileinto", ":copy", "Toto"), ])
+        conditions = self.fs.get_filter_conditions("ruleX")
+        self.assertEqual(orig_conditions, conditions)
+
+        orig_conditions = [("exists", "list-help", "list-unsubscribe",
+                            "list-subscribe", "list-owner")]
+        self.fs.addfilter(
+            "ruleY",
+            orig_conditions,
+            [("fileinto", 'List')]
+        )
+        conditions = self.fs.get_filter_conditions("ruleY")
+        self.assertEqual(orig_conditions, conditions)
+
+        orig_conditions = [('Sender', ":notis", 'toto@toto.com')]
+        self.fs.addfilter(
+            "ruleZ",
+            orig_conditions,
+            [("fileinto", ":copy", "Toto"), ])
+        conditions = self.fs.get_filter_conditions("ruleZ")
+        self.assertEqual(orig_conditions, conditions)
+
+        orig_conditions = [("notexists", "list-help", "list-unsubscribe",
+                            "list-subscribe", "list-owner")]
+        self.fs.addfilter(
+            "ruleA",
+            orig_conditions,
+            [("fileinto", 'List')]
+        )
+        conditions = self.fs.get_filter_conditions("ruleA")
+        self.assertEqual(orig_conditions, conditions)
+
+    def test_get_filter_matchtype(self):
+        """Test get_filter_matchtype method."""
+        self.fs.addfilter(
+            "ruleX",
+            [('Sender', ":is", 'toto@toto.com'), ],
+            [("fileinto", ":copy", "Toto"), ])
+        match_type = self.fs.get_filter_matchtype("ruleX")
+        self.assertEqual(match_type, "anyof")
+
+    def test_get_filter_actions(self):
+        """Test get_filter_actions method."""
+        self.fs.addfilter(
+            "ruleX",
+            [('Sender', ":is", 'toto@toto.com'), ],
+            [("fileinto", ":copy", "Toto"), ])
+        actions = self.fs.get_filter_actions("ruleX")
+        self.assertIn("fileinto", actions[0])
+        self.assertIn(":copy", actions[0])
+        self.assertIn("Toto", actions[0])
 
     def test_add_header_filter(self):
         output = six.StringIO()
