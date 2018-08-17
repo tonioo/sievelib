@@ -173,7 +173,17 @@ class Parser(object):
             self.result += [self.__curcommand]
 
         if not onlyrecord:
-            self.__curcommand = self.__curcommand.parent
+            while self.__curcommand:
+                self.__curcommand = self.__curcommand.parent
+                # Make sure to detect all done tests (including 'not' ones).
+                condition = (
+                    self.__curcommand and
+                    self.__curcommand.get_type() == "test" and
+                    self.__curcommand.iscomplete()
+                )
+                if condition:
+                    continue
+                break
 
     def __check_command_completion(self, testsemicolon=True):
         """Check for command(s) completion
