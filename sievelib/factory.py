@@ -17,9 +17,7 @@ import sys
 from future.utils import python_2_unicode_compatible
 import six
 
-from sievelib.commands import (
-    get_command_instance, IfCommand, RequireCommand, FalseCommand
-)
+from sievelib import commands
 
 
 @python_2_unicode_compatible
@@ -57,16 +55,16 @@ class FiltersSet(object):
 
         :param fcontent: the filter's name
         """
-        if not isinstance(fcontent, IfCommand):
+        if not isinstance(fcontent, commands.IfCommand):
             return False
-        if not isinstance(fcontent["test"], FalseCommand):
+        if not isinstance(fcontent["test"], commands.FalseCommand):
             return False
         return True
 
     def from_parser_result(self, parser):
         cpt = 1
         for f in parser.result:
-            if isinstance(f, RequireCommand):
+            if isinstance(f, commands.RequireCommand):
                 if type(f.arguments["capabilities"]) == list:
                     [self.require(c) for c in f.arguments["capabilities"]]
                 else:
@@ -112,7 +110,7 @@ class FiltersSet(object):
         """
         if not len(self.requires):
             return None
-        reqcmd = get_command_instance("require")
+        reqcmd = commands.get_command_instance("require")
         reqcmd.check_next_arg("stringlist", self.requires)
         return reqcmd
 
@@ -137,7 +135,7 @@ class FiltersSet(object):
         """
         if tag is None:
             tag = condition[1]
-        cmd = get_command_instance("header", parent)
+        cmd = commands.get_command_instance("header", parent)
         cmd.check_next_arg("tag", tag)
         cmd.check_next_arg("string", self.__quote_if_necessary(condition[0]))
         cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
@@ -166,8 +164,8 @@ class FiltersSet(object):
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
-        ifcontrol = get_command_instance("if")
-        mtypeobj = get_command_instance(matchtype, ifcontrol)
+        ifcontrol = commands.get_command_instance("if")
+        mtypeobj = commands.get_command_instance(matchtype, ifcontrol)
         for c in conditions:
             if c[0].startswith("not"):
                 negate = True
@@ -176,13 +174,13 @@ class FiltersSet(object):
                 negate = False
                 cname = c[0]
             if cname in ("true", "false"):
-                cmd = get_command_instance(c[0], ifcontrol)
+                cmd = commands.get_command_instance(c[0], ifcontrol)
             elif cname == "size":
-                cmd = get_command_instance("size", ifcontrol)
+                cmd = commands.get_command_instance("size", ifcontrol)
                 cmd.check_next_arg("tag", c[1])
                 cmd.check_next_arg("number", c[2])
             elif cname == "exists":
-                cmd = get_command_instance("exists", ifcontrol)
+                cmd = commands.get_command_instance("exists", ifcontrol)
                 cmd.check_next_arg(
                     "stringlist",
                     "[%s]" % (",".join('"%s"' % val for val in c[1:]))
@@ -191,22 +189,22 @@ class FiltersSet(object):
                 if c[1].startswith(':not'):
                     cmd = self.__build_condition(
                         c, ifcontrol, c[1].replace("not", "", 1))
-                    not_cmd = get_command_instance("not", ifcontrol)
+                    not_cmd = commands.get_command_instance("not", ifcontrol)
                     not_cmd.check_next_arg("test", cmd)
                     cmd = not_cmd
                 else:
                     cmd = self.__build_condition(c, ifcontrol)
             if negate:
-                not_cmd = get_command_instance("not", ifcontrol)
+                not_cmd = commands.get_command_instance("not", ifcontrol)
                 not_cmd.check_next_arg("test", cmd)
                 cmd = not_cmd
             mtypeobj.check_next_arg("test", cmd)
         ifcontrol.check_next_arg("test", mtypeobj)
 
         for actdef in actions:
-            action = get_command_instance(actdef[0], ifcontrol, False)
-            if action.is_extension:
-                self.require(actdef[0])
+            action = commands.get_command_instance(actdef[0], ifcontrol, False)
+            if action.extension is not None:
+                self.require(action.extension)
             for arg in actdef[1:]:
                 self.check_if_arg_is_extension(arg)
                 if arg.startswith(":"):
@@ -304,6 +302,50 @@ class FiltersSet(object):
                 return f["content"]
         return None
 
+    def get_filter_matchtype(self, name):
+        """Retrieve matchtype of the given filter."""
+        flt = self.getfilter(name)
+        if not flt:
+            return None
+        for node in flt.walk():
+            if isinstance(node, (commands.AllofCommand, commands.AnyofCommand)):
+                return node.__class__.__name__.lower().replace("command", "")
+        return None
+
+    def get_filter_conditions(self, name):
+        """Retrieve conditions of the given filter."""
+        flt = self.getfilter(name)
+        if not flt:
+            return None
+        conditions = []
+        negate = False
+        for node in flt.walk():
+            if isinstance(node, commands.NotCommand):
+                negate = True
+            elif isinstance(node, (commands.HeaderCommand,
+                                   commands.SizeCommand,
+                                   commands.ExistsCommand)):
+                args = node.args_as_tuple()
+                if negate:
+                    if node.name == "header":
+                        args = (args[0], ":not{}".format(args[1][1:]), args[2])
+                    elif node.name == "exists":
+                        args = ("not{}".format(args[0]),) + args[1:]
+                    negate = False
+                conditions.append(args)
+        return conditions
+
+    def get_filter_actions(self, name):
+        """Retrieve actions of the given filter."""
+        flt = self.getfilter(name)
+        if not flt:
+            return None
+        actions = []
+        for node in flt.walk():
+            if isinstance(node, commands.ActionCommand):
+                actions.append(node.args_as_tuple())
+        return actions
+
     def removefilter(self, name):
         """Remove a specific filter
 
@@ -355,8 +397,8 @@ class FiltersSet(object):
         :return: True if filter was disabled, False otherwise
         """
         name = self._unicode_filter_name(name)
-        ifcontrol = get_command_instance("if")
-        falsecmd = get_command_instance("false", ifcontrol)
+        ifcontrol = commands.get_command_instance("if")
+        falsecmd = commands.get_command_instance("false", ifcontrol)
         ifcontrol.check_next_arg("test", falsecmd)
         for f in self.filters:
             if f["name"] != name:

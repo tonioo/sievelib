@@ -29,6 +29,8 @@ import sys
 from future.utils import python_2_unicode_compatible
 from collections import OrderedDict
 
+from . import tools
+
 
 class CommandError(Exception):
     """Base command exception class."""
@@ -84,6 +86,7 @@ class ExtensionNotLoaded(CommandError):
     def __str__(self):
         return "extension '{}' not loaded".format(self.name)
 
+
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
 comparator = {"name": "comparator",
@@ -117,9 +120,10 @@ class Command(object):
     """
     _type = None
     variable_args_nb = False
+    non_deterministic_args = False
     accept_children = False
     must_follow = None
-    is_extension = False
+    extension = None
 
     def __init__(self, parent=None):
         self.parent = parent
@@ -291,6 +295,14 @@ class Command(object):
     def has_arguments(self):
         return len(self.args_definition) != 0
 
+    def reassign_arguments(self):
+        """Reassign arguments to proper slots.
+
+        Should be called when parsing of commands with non
+        deterministic arguments is considered done.
+        """
+        raise NotImplementedError
+
     def dump(self, indentlevel=0, target=sys.stdout):
         """Display the command
 
@@ -321,6 +333,26 @@ class Command(object):
         for ch in self.children:
             ch.dump(indentlevel, target)
 
+    def walk(self):
+        """Walk through commands."""
+        yield self
+        if self.has_arguments():
+            for arg in self.args_definition:
+                if not arg["name"] in self.arguments:
+                    continue
+                value = self.arguments[arg["name"]]
+                if type(value) == list:
+                    if self.__get_arg_type(arg["name"]) == ["testlist"]:
+                        for t in value:
+                            for node in t.walk():
+                                yield node
+                if isinstance(value, Command):
+                    for node in value.walk():
+                        yield node
+        for ch in self.children:
+            for node in ch.walk():
+                yield node
+
     def addchild(self, child):
         """Add a new child to the command
 
@@ -335,7 +367,7 @@ class Command(object):
         self.children += [child]
         return True
 
-    def iscomplete(self):
+    def iscomplete(self, atype=None, avalue=None):
         """Check if the command is complete
 
         Check if all required arguments have been encountered. For
@@ -349,10 +381,16 @@ class Command(object):
         if self.required_args == -1:
             self.required_args = 0
             for arg in self.args_definition:
-                if arg["required"]:
+                if arg.get("required", False):
                     self.required_args += 1
-        return (not self.curarg or "extra_arg" not in self.curarg) \
-            and (self.rargs_cnt == self.required_args)
+        return (
+            (not self.curarg or
+             "extra_arg" not in self.curarg or
+             ("valid_for" in self.curarg["extra_arg"] and
+              atype and atype in self.curarg["extra_arg"]["type"] and
+              avalue not in self.curarg["extra_arg"]["valid_for"])) and
+            (self.rargs_cnt == self.required_args)
+        )
 
     def get_type(self):
         """Return the command's type"""
@@ -405,24 +443,27 @@ class Command(object):
         """
         if not self.has_arguments():
             return False
-        if self.iscomplete():
+        if self.iscomplete(atype, avalue):
             return False
 
         if self.curarg is not None and "extra_arg" in self.curarg:
-            if atype in self.curarg["extra_arg"]["type"]:
-                if "values" not in self.curarg["extra_arg"] \
-                   or avalue in self.curarg["extra_arg"]["values"]:
-                    if add:
-                        self.arguments[self.curarg["name"]] = avalue
-                    self.curarg = None
-                    return True
+            condition = (
+                atype in self.curarg["extra_arg"]["type"] and
+                ("values" not in self.curarg["extra_arg"] or
+                 avalue in self.curarg["extra_arg"]["values"])
+            )
+            if condition:
+                if add:
+                    self.arguments[self.curarg["name"]] = avalue
+                self.curarg = None
+                return True
             raise BadValue(self.curarg["name"], avalue)
 
         failed = False
         pos = self.nextargpos
         while pos < len(self.args_definition):
             curarg = self.args_definition[pos]
-            if curarg["required"]:
+            if curarg.get("required", False):
                 if curarg["type"] == ["testlist"]:
                     if atype != "test":
                         failed = True
@@ -441,20 +482,29 @@ class Command(object):
                         self.arguments[curarg["name"]] = avalue
                 break
 
-            if atype in curarg["type"]:
+            condition = (
+                atype in curarg["type"] and
+                ("values" not in curarg or avalue in curarg["values"]) and
+                self.__is_valid_value_for_arg(curarg, avalue)
+            )
+            if condition:
                 ext = curarg.get("extension")
                 condition = (
                     check_extension and ext and
                     ext not in RequireCommand.loaded_extensions)
                 if condition:
                     raise ExtensionNotLoaded(ext)
-                if self.__is_valid_value_for_arg(curarg, avalue):
-                    if "extra_arg" in curarg:
-                        self.curarg = curarg
-                        break
-                    if add:
-                        self.arguments[curarg["name"]] = avalue
+                condition = (
+                    "extra_arg" in curarg and
+                    ("valid_for" not in curarg["extra_arg"] or
+                     avalue in curarg["extra_arg"]["valid_for"])
+                )
+                if condition:
+                    self.curarg = curarg
                     break
+                if add:
+                    self.arguments[curarg["name"]] = avalue
+                break
 
             pos += 1
 
@@ -553,17 +603,51 @@ class ElseCommand(ControlCommand):
 
 class ActionCommand(Command):
     """Indermediate class to represent "action" commands"""
+
     _type = "action"
+
+    def args_as_tuple(self):
+        args = []
+        for name, value in list(self.arguments.items()):
+            unquote = False
+            for argdef in self.args_definition:
+                if name == argdef["name"]:
+                    condition = (
+                        "string" in argdef["type"] or
+                        "stringlist" in argdef["type"]
+                    )
+                    if condition:
+                        unquote = True
+                        break
+            if unquote:
+                if "," in value:
+                    args += tools.to_list(value)
+                else:
+                    args.append(value.strip('"'))
+                continue
+            args.append(value)
+        return (self.name, ) + tuple(args)
 
 
 class FileintoCommand(ActionCommand):
-    is_extension = True
+    extension = "fileinto"
     args_definition = [
         {"name": "copy",
          "type": ["tag"],
          "values": [":copy"],
          "required": False,
          "extension": "copy"},
+        {"name": "create",
+         "type": ["tag"],
+         "values": [":create"],
+         "required": False,
+         "extension": "mailbox"},
+        {"name": "flags",
+         "type": ["tag"],
+         "values": [":flags"],
+         "write_tag": True,
+         "extra_arg": {"type": ["string", "stringlist"]},
+         "extension": "imap4flags"},
         {"name": "mailbox",
          "type": ["string"],
          "required": True}
@@ -584,7 +668,7 @@ class RedirectCommand(ActionCommand):
 
 
 class RejectCommand(ActionCommand):
-    is_extension = True
+    extension = "reject"
     args_definition = [
         {"name": "text",
          "type": ["string"],
@@ -593,11 +677,59 @@ class RejectCommand(ActionCommand):
 
 
 class KeepCommand(ActionCommand):
-    args_definition = []
+    args_definition = [
+        {"name": "flags",
+         "type": ["tag"],
+         "values": [":flags"],
+         "write_tag": True,
+         "extra_arg": {"type": ["string", "stringlist"]},
+         "extension": "imap4flags"},
+    ]
 
 
 class DiscardCommand(ActionCommand):
     args_definition = []
+
+
+class SetflagCommand(ActionCommand):
+    """imap4flags extension: setflag."""
+
+    args_definition = [
+        {"name": "variable-name",
+         "type": ["string"],
+         "required": False},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
+
+
+class AddflagCommand(ActionCommand):
+    """imap4flags extension: addflag."""
+
+    args_definition = [
+        {"name": "variable-name",
+         "type": ["string"],
+         "required": False},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
+
+
+class RemoveflagCommand(ActionCommand):
+    """imap4flags extension: removeflag."""
+
+    args_definition = [
+        {"name": "variable-name",
+         "type": ["string"]},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
 
 
 class TestCommand(Command):
@@ -668,6 +800,10 @@ class ExistsCommand(TestCommand):
          "required": True}
     ]
 
+    def args_as_tuple(self):
+        return ("exists", ) + tuple(
+            tools.to_list(self.arguments["header-names"]))
+
 
 class TrueCommand(TestCommand):
     args_definition = []
@@ -688,6 +824,42 @@ class HeaderCommand(TestCommand):
          "type": ["string", "stringlist"],
          "required": True}
     ]
+
+    def args_as_tuple(self):
+        """Return arguments as a list."""
+        if "," in self.arguments["header-names"]:
+            result = tuple(tools.to_list(self.arguments["header-names"]))
+        else:
+            result = (self.arguments["header-names"].strip('"'),)
+        result = result + (self.arguments["match-type"],)
+        if "," in self.arguments["key-list"]:
+            keylist = self.arguments["key-list"][1:-1]
+            result = result + tuple(
+                tools.to_list(self.arguments["key-list"], unquote=False))
+        else:
+            result = result + (self.arguments["key-list"].strip('"'),)
+        return result
+
+
+class BodyCommand(TestCommand):
+    """Body extension.
+
+    See https://tools.ietf.org/html/rfc5173.
+    """
+
+    args_definition = [
+        comparator,
+        match_type,
+        {"name": "body-transform",
+         "values": [":raw", ":content", ":text"],
+         "extra_arg": {"type": "stringlist", "valid_for": [":content"]},
+         "type": ["tag"],
+         "required": False},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True},
+    ]
+    extension = "body"
 
 
 class NotCommand(TestCommand):
@@ -713,6 +885,36 @@ class SizeCommand(TestCommand):
          "type": ["number"],
          "required": True},
     ]
+
+    def args_as_tuple(self):
+        return ("size", self.arguments["comparator"], self.arguments["limit"])
+
+
+class HasflagCommand(TestCommand):
+    """imap4flags extension: hasflag."""
+
+    args_definition = [
+        comparator,
+        match_type,
+        {"name": "variable-list",
+         "type": ["string", "stringlist"],
+         "required": False},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
+    non_deterministic_args = True
+
+    def reassign_arguments(self):
+        """Deal with optional stringlist before a required one."""
+        condition = (
+            "variable-list" in self.arguments and
+            not "list-of-flags" in self.arguments
+        )
+        if condition:
+            self.arguments["list-of-flags"] = self.arguments.pop("variable-list")
+            self.rargs_cnt = 1
 
 
 class VacationCommand(ActionCommand):
@@ -765,7 +967,7 @@ class SetCommand(ControlCommand):
     http://tools.ietf.org/html/rfc5229
     """
 
-    is_extension = True
+    extension = "variables"
     args_definition = [
         {"name": "startend",
          "type": ["string"],
@@ -783,7 +985,7 @@ class CurrentdateCommand(ControlCommand):
     http://tools.ietf.org/html/rfc5260#section-5
     """
 
-    is_extension = True
+    extension = "date"
     accept_children = True
     args_definition = [
         {"name": "zone",
@@ -837,21 +1039,13 @@ def get_command_instance(name, parent=None, checkexists=True):
     :param parent: the eventual parent command
     :return: a new class instance
     """
-
-    # Mapping between extension names and command names
-    extension_map = {
-        'date': set(['currentdate']),
-        'variables': set(['set'])
-    }
-    extname = name
-    for extension in extension_map:
-        if name in extension_map[extension]:
-            extname = extension
-            break
-
     cname = "%sCommand" % name.lower().capitalize()
-    if cname not in globals() or \
-            (checkexists and globals()[cname].is_extension and
-             extname not in RequireCommand.loaded_extensions):
+    gl = globals()
+    condition = (
+        cname not in gl or
+        (checkexists and gl[cname].extension and
+         gl[cname].extension not in RequireCommand.loaded_extensions)
+    )
+    if condition:
         raise UnknownCommand(name)
-    return globals()[cname](parent)
+    return gl[cname](parent)

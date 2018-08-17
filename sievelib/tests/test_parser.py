@@ -52,8 +52,8 @@ class SieveTest(unittest.TestCase):
     def __checkCompilation(self, script, result):
         self.assertEqual(self.parser.parse(script), result)
 
-    def compilation_ok(self, script):
-        self.__checkCompilation(script, True)
+    def compilation_ok(self, script, **kwargs):
+        self.__checkCompilation(script, True, **kwargs)
 
     def compilation_ko(self, script):
         self.__checkCompilation(script, False)
@@ -199,6 +199,41 @@ Your email has been canceled too
 .
 """)
 
+    def test_complex_allof_with_not(self):
+        """Test for allof/anyof commands including a not test.
+
+        See https://github.com/tonioo/sievelib/issues/69.
+        """
+        self.compilation_ok(b"""
+require ["fileinto", "reject"];
+
+if allof (not allof (address :is ["From","sender"] ["test1@test2.priv","test2@test2.priv"], header :matches "Subject" "INACTIVE*"), address :is "From" "user3@test3.priv")
+{
+    reject;
+}
+""")
+        self.representation_is("""
+require (type: control)
+    ["fileinto","reject"]
+if (type: control)
+    allof (type: test)
+        not (type: test)
+            allof (type: test)
+                address (type: test)
+                    :is
+                    ["From","sender"]
+                    ["test1@test2.priv","test2@test2.priv"]
+                header (type: test)
+                    :matches
+                    "Subject"
+                    "INACTIVE*"
+        address (type: test)
+            :is
+            "From"
+            "user3@test3.priv"
+    reject (type: action)
+""")
+
     def test_nested_blocks(self):
         self.compilation_ok(b"""
 if header :contains "Sender" "example.com" {
@@ -259,7 +294,7 @@ if header :is "Sender" "owner-ietf-mta-filters@imc.org"
 #
 # Keep all messages to or from people in my company
 #
-elsif address :DOMAIN :is ["From", "To"] "example.com"
+elsif address :domain :is ["From", "To"] "example.com"
         {
         keep;               # keep in "In" mailbox
         }
@@ -294,7 +329,7 @@ if (type: control)
         "filter"
 elsif (type: control)
     address (type: test)
-        :DOMAIN
+        :domain
         :is
         ["From","To"]
         "example.com"
@@ -471,6 +506,66 @@ if header :contains "subject" "viagra" {
 }
 """)
 
+    def test_fileinto_create(self):
+        self.compilation_ok(b"""require ["fileinto", "mailbox"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        fileinto :create "filter";  # move to "filter" mailbox
+        }
+""")
+
+    def test_imap4flags_extension(self):
+        self.compilation_ok(b"""
+require ["fileinto", "imap4flags", "variables"];
+if size :over 1M {
+    addflag "MyFlags" "Big";
+    if header :is "From" "boss@company.example.com" {
+       # The message will be marked as "\Flagged Big" when filed into
+       # mailbox "Big messages"
+       addflag "MyFlags" "\\Flagged";
+    }
+    fileinto :flags "${MyFlags}" "Big messages";
+}
+""")
+
+    def test_imap4flags_hasflag(self):
+        self.compilation_ok(b"""
+require ["imap4flags", "fileinto"];
+
+if hasflag ["test", "toto"] {
+    fileinto "Test";
+}
+addflag "Var1" "Truc";
+if hasflag "Var1" "Truc" {
+    fileinto "Truc";
+}
+""")
+
+    def test_body_extension(self):
+        self.compilation_ok(b"""
+require ["body", "fileinto"];
+
+if body :content "text" :contains ["missile", "coordinates"] {
+    fileinto "secrets";
+}
+""")
+        self.compilation_ok(b"""
+require "body";
+
+if body :raw :contains "MAKE MONEY FAST" {
+    discard;
+}
+""")
+        self.compilation_ok(b"""
+require ["body", "fileinto"];
+
+# Save messages mentioning the project schedule in the
+# project/schedule folder.
+if body :text :contains "project schedule" {
+    fileinto "project/schedule";
+}
+""")
+
 
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
@@ -481,7 +576,7 @@ it is allowed by the RFC :p */
 
     def test_nonopened_block(self):
         self.compilation_ko(b"""
-if header :is "Sender" "me@example.com" 
+if header :is "Sender" "me@example.com"
     discard;
 }
 """)
@@ -496,7 +591,7 @@ if header :is "Sender" "me@example.com" {
     def test_unknown_token(self):
         self.compilation_ko(b"""
 if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
-    
+
 }
 """)
 
@@ -647,6 +742,26 @@ if header :contains "Subject" "MAKE MONEY FAST" {
 
     def test_test_outside_control(self):
         self.compilation_ko(b"true;")
+
+    def test_fileinto_create_without_mailbox(self):
+        self.compilation_ko(b"""require ["fileinto"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        fileinto :create "filter";  # move to "filter" mailbox
+        }
+""")
+        self.assertEqual(
+            self.parser.error, "line 4: extension 'mailbox' not loaded")
+
+    def test_fileinto_create_without_fileinto(self):
+        self.compilation_ko(b"""require ["mailbox"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        fileinto :create "filter";  # move to "filter" mailbox
+        }
+""")
+        self.assertEqual(
+            self.parser.error, "line 4: unknown command fileinto")
 
 
 class DateCommands(SieveTest):
