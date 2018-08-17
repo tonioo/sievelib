@@ -472,6 +472,14 @@ if header :contains "subject" "viagra" {
 }
 """)
 
+    def test_fileinto_create(self):
+        self.compilation_ok(b"""require ["fileinto", "mailbox"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        fileinto :create "filter";  # move to "filter" mailbox
+        }
+""")
+
     def test_imap4flags_extension(self):
         self.compilation_ok(b"""
 require ["fileinto", "imap4flags", "variables"];
@@ -675,6 +683,26 @@ if header :contains "Subject" "MAKE MONEY FAST" {
 
     def test_test_outside_control(self):
         self.compilation_ko(b"true;")
+
+    def test_fileinto_create_without_mailbox(self):
+        self.compilation_ko(b"""require ["fileinto"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        fileinto :create "filter";  # move to "filter" mailbox
+        }
+""")
+        self.assertEqual(
+            self.parser.error, "line 4: extension 'mailbox' not loaded")
+
+    def test_fileinto_create_without_fileinto(self):
+        self.compilation_ko(b"""require ["mailbox"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        fileinto :create "filter";  # move to "filter" mailbox
+        }
+""")
+        self.assertEqual(
+            self.parser.error, "line 4: unknown command fileinto")
 
 
 class DateCommands(SieveTest):

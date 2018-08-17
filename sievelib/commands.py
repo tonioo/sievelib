@@ -408,7 +408,8 @@ class Command(object):
 
             condition = (
                 atype in curarg["type"] and
-                ("values" not in curarg or avalue in curarg["values"])
+                ("values" not in curarg or avalue in curarg["values"]) and
+                self.__is_valid_value_for_arg(curarg, avalue)
             )
             if condition:
                 ext = curarg.get("extension")
@@ -417,13 +418,12 @@ class Command(object):
                     ext not in RequireCommand.loaded_extensions)
                 if condition:
                     raise ExtensionNotLoaded(ext)
-                if self.__is_valid_value_for_arg(curarg, avalue):
-                    if "extra_arg" in curarg:
-                        self.curarg = curarg
-                        break
-                    if add:
-                        self.arguments[curarg["name"]] = avalue
+                if "extra_arg" in curarg:
+                    self.curarg = curarg
                     break
+                if add:
+                    self.arguments[curarg["name"]] = avalue
+                break
 
             pos += 1
 
@@ -556,6 +556,11 @@ class FileintoCommand(ActionCommand):
          "values": [":copy"],
          "required": False,
          "extension": "copy"},
+        {"name": "create",
+         "type": ["tag"],
+         "values": [":create"],
+         "required": False,
+         "extension": "mailbox"},
         {"name": "flags",
          "type": ["tag"],
          "values": [":flags"],
