@@ -261,6 +261,17 @@ class Parser(object):
             self.__curstringlist = []
             self.__set_expected("string")
             return True
+
+        condition = (
+            ttype in ["left_cbracket", "comma"] and
+            self.__curcommand.non_deterministic_args
+        )
+        if condition:
+            self.__curcommand.reassign_arguments()
+            # rewind lexer
+            self.lexer.pos -= 1
+            return True
+
         return False
 
     def __arguments(self, ttype, tvalue):

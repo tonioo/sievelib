@@ -118,9 +118,10 @@ class Command(object):
     """
     _type = None
     variable_args_nb = False
+    non_deterministic_args = False
     accept_children = False
     must_follow = None
-    is_extension = False
+    extension = None
 
     def __init__(self, parent=None):
         self.parent = parent
@@ -227,6 +228,14 @@ class Command(object):
     def has_arguments(self):
         return len(self.args_definition) != 0
 
+    def reassign_arguments(self):
+        """Reassign arguments to proper slots.
+
+        Should be called when parsing of commands with non
+        deterministic arguments is considered done.
+        """
+        raise NotImplementedError
+
     def dump(self, indentlevel=0, target=sys.stdout):
         """Display the command
 
@@ -305,7 +314,7 @@ class Command(object):
         if self.required_args == -1:
             self.required_args = 0
             for arg in self.args_definition:
-                if arg["required"]:
+                if arg.get("required", False):
                     self.required_args += 1
         return (not self.curarg or "extra_arg" not in self.curarg) \
             and (self.rargs_cnt == self.required_args)
@@ -378,7 +387,7 @@ class Command(object):
         pos = self.nextargpos
         while pos < len(self.args_definition):
             curarg = self.args_definition[pos]
-            if curarg["required"]:
+            if curarg.get("required", False):
                 if curarg["type"] == ["testlist"]:
                     if atype != "test":
                         failed = True
@@ -397,7 +406,11 @@ class Command(object):
                         self.arguments[curarg["name"]] = avalue
                 break
 
-            if atype in curarg["type"]:
+            condition = (
+                atype in curarg["type"] and
+                ("values" not in curarg or avalue in curarg["values"])
+            )
+            if condition:
                 ext = curarg.get("extension")
                 condition = (
                     check_extension and ext and
@@ -536,13 +549,19 @@ class ActionCommand(Command):
 
 
 class FileintoCommand(ActionCommand):
-    is_extension = True
+    extension = "fileinto"
     args_definition = [
         {"name": "copy",
          "type": ["tag"],
          "values": [":copy"],
          "required": False,
          "extension": "copy"},
+        {"name": "flags",
+         "type": ["tag"],
+         "values": [":flags"],
+         "write_tag": True,
+         "extra_arg": {"type": ["string", "stringlist"]},
+         "extension": "imap4flags"},
         {"name": "mailbox",
          "type": ["string"],
          "required": True}
@@ -563,7 +582,7 @@ class RedirectCommand(ActionCommand):
 
 
 class RejectCommand(ActionCommand):
-    is_extension = True
+    extension = "reject"
     args_definition = [
         {"name": "text",
          "type": ["string"],
@@ -572,11 +591,59 @@ class RejectCommand(ActionCommand):
 
 
 class KeepCommand(ActionCommand):
-    args_definition = []
+    args_definition = [
+        {"name": "flags",
+         "type": ["tag"],
+         "values": [":flags"],
+         "write_tag": True,
+         "extra_arg": {"type": ["string", "stringlist"]},
+         "extension": "imap4flags"},
+    ]
 
 
 class DiscardCommand(ActionCommand):
     args_definition = []
+
+
+class SetflagCommand(ActionCommand):
+    """imap4flags extension: setflag."""
+
+    args_definition = [
+        {"name": "variable-name",
+         "type": ["string"],
+         "required": False},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
+
+
+class AddflagCommand(ActionCommand):
+    """imap4flags extension: addflag."""
+
+    args_definition = [
+        {"name": "variable-name",
+         "type": ["string"],
+         "required": False},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
+
+
+class RemoveflagCommand(ActionCommand):
+    """imap4flags extension: removeflag."""
+
+    args_definition = [
+        {"name": "variable-name",
+         "type": ["string"]},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
 
 
 class TestCommand(Command):
@@ -716,6 +783,33 @@ class SizeCommand(TestCommand):
         return ("size", self.arguments["comparator"], self.arguments["limit"])
 
 
+class HasflagCommand(TestCommand):
+    """imap4flags extension: hasflag."""
+
+    args_definition = [
+        comparator,
+        match_type,
+        {"name": "variable-list",
+         "type": ["string", "stringlist"],
+         "required": False},
+        {"name": "list-of-flags",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+    extension = "imap4flags"
+    non_deterministic_args = True
+
+    def reassign_arguments(self):
+        """Deal with optional stringlist before a required one."""
+        condition = (
+            "variable-list" in self.arguments and
+            not "list-of-flags" in self.arguments
+        )
+        if condition:
+            self.arguments["list-of-flags"] = self.arguments.pop("variable-list")
+            self.rargs_cnt = 1
+
+
 class VacationCommand(ActionCommand):
     args_definition = [
         {"name": "subject",
@@ -766,7 +860,7 @@ class SetCommand(ControlCommand):
     http://tools.ietf.org/html/rfc5229
     """
 
-    is_extension = True
+    extension = "variables"
     args_definition = [
         {"name": "startend",
          "type": ["string"],
@@ -784,7 +878,7 @@ class CurrentdateCommand(ControlCommand):
     http://tools.ietf.org/html/rfc5260#section-5
     """
 
-    is_extension = True
+    extension = "date"
     accept_children = True
     args_definition = [
         {"name": "zone",
@@ -838,21 +932,13 @@ def get_command_instance(name, parent=None, checkexists=True):
     :param parent: the eventual parent command
     :return: a new class instance
     """
-
-    # Mapping between extension names and command names
-    extension_map = {
-        'date': set(['currentdate']),
-        'variables': set(['set'])
-    }
-    extname = name
-    for extension in extension_map:
-        if name in extension_map[extension]:
-            extname = extension
-            break
-
     cname = "%sCommand" % name.lower().capitalize()
-    if cname not in globals() or \
-            (checkexists and globals()[cname].is_extension and
-             extname not in RequireCommand.loaded_extensions):
+    gl = globals()
+    condition = (
+        cname not in gl or
+        (checkexists and gl[cname].extension and
+         gl[cname].extension not in RequireCommand.loaded_extensions)
+    )
+    if condition:
         raise UnknownCommand(name)
-    return globals()[cname](parent)
+    return gl[cname](parent)

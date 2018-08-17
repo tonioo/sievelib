@@ -203,8 +203,8 @@ class FiltersSet(object):
 
         for actdef in actions:
             action = commands.get_command_instance(actdef[0], ifcontrol, False)
-            if action.is_extension:
-                self.require(actdef[0])
+            if action.extension is not None:
+                self.require(action.extension)
             for arg in actdef[1:]:
                 self.check_if_arg_is_extension(arg)
                 if arg.startswith(":"):
