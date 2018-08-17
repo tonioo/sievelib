@@ -85,6 +85,7 @@ class ExtensionNotLoaded(CommandError):
     def __str__(self):
         return "extension '{}' not loaded".format(self.name)
 
+
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
 comparator = {"name": "comparator",
@@ -300,7 +301,7 @@ class Command(object):
         self.children += [child]
         return True
 
-    def iscomplete(self):
+    def iscomplete(self, atype=None, avalue=None):
         """Check if the command is complete
 
         Check if all required arguments have been encountered. For
@@ -316,8 +317,14 @@ class Command(object):
             for arg in self.args_definition:
                 if arg.get("required", False):
                     self.required_args += 1
-        return (not self.curarg or "extra_arg" not in self.curarg) \
-            and (self.rargs_cnt == self.required_args)
+        return (
+            (not self.curarg or
+             "extra_arg" not in self.curarg or
+             ("valid_for" in self.curarg["extra_arg"] and
+              atype and atype in self.curarg["extra_arg"]["type"] and
+              avalue not in self.curarg["extra_arg"]["valid_for"])) and
+            (self.rargs_cnt == self.required_args)
+        )
 
     def get_type(self):
         """Return the command's type"""
@@ -370,17 +377,20 @@ class Command(object):
         """
         if not self.has_arguments():
             return False
-        if self.iscomplete():
+        if self.iscomplete(atype, avalue):
             return False
 
         if self.curarg is not None and "extra_arg" in self.curarg:
-            if atype in self.curarg["extra_arg"]["type"]:
-                if "values" not in self.curarg["extra_arg"] \
-                   or avalue in self.curarg["extra_arg"]["values"]:
-                    if add:
-                        self.arguments[self.curarg["name"]] = avalue
-                    self.curarg = None
-                    return True
+            condition = (
+                atype in self.curarg["extra_arg"]["type"] and
+                ("values" not in self.curarg["extra_arg"] or
+                 avalue in self.curarg["extra_arg"]["values"])
+            )
+            if condition:
+                if add:
+                    self.arguments[self.curarg["name"]] = avalue
+                self.curarg = None
+                return True
             raise BadValue(self.curarg["name"], avalue)
 
         failed = False
@@ -418,7 +428,12 @@ class Command(object):
                     ext not in RequireCommand.loaded_extensions)
                 if condition:
                     raise ExtensionNotLoaded(ext)
-                if "extra_arg" in curarg:
+                condition = (
+                    "extra_arg" in curarg and
+                    ("valid_for" not in curarg["extra_arg"] or
+                     avalue in curarg["extra_arg"]["valid_for"])
+                )
+                if condition:
                     self.curarg = curarg
                     break
                 if add:
@@ -758,6 +773,27 @@ class HeaderCommand(TestCommand):
         else:
             result = result + (self.arguments["key-list"].strip('"'),)
         return result
+
+
+class BodyCommand(TestCommand):
+    """Body extension.
+
+    See https://tools.ietf.org/html/rfc5173.
+    """
+
+    args_definition = [
+        comparator,
+        match_type,
+        {"name": "body-transform",
+         "values": [":raw", ":content", ":text"],
+         "extra_arg": {"type": "stringlist", "valid_for": [":content"]},
+         "type": ["tag"],
+         "required": False},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True},
+    ]
+    extension = "body"
 
 
 class NotCommand(TestCommand):

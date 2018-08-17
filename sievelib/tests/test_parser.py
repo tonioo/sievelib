@@ -507,6 +507,31 @@ if hasflag "Var1" "Truc" {
 }
 """)
 
+    def test_body_extension(self):
+        self.compilation_ok(b"""
+require ["body", "fileinto"];
+
+if body :content "text" :contains ["missile", "coordinates"] {
+    fileinto "secrets";
+}
+""")
+        self.compilation_ok(b"""
+require "body";
+
+if body :raw :contains "MAKE MONEY FAST" {
+    discard;
+}
+""")
+        self.compilation_ok(b"""
+require ["body", "fileinto"];
+
+# Save messages mentioning the project schedule in the
+# project/schedule folder.
+if body :text :contains "project schedule" {
+    fileinto "project/schedule";
+}
+""")
+
 
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
@@ -517,7 +542,7 @@ it is allowed by the RFC :p */
 
     def test_nonopened_block(self):
         self.compilation_ko(b"""
-if header :is "Sender" "me@example.com" 
+if header :is "Sender" "me@example.com"
     discard;
 }
 """)
@@ -532,7 +557,7 @@ if header :is "Sender" "me@example.com" {
     def test_unknown_token(self):
         self.compilation_ko(b"""
 if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
-    
+
 }
 """)
 
