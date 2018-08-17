@@ -29,6 +29,7 @@ import sys
 from future.utils import python_2_unicode_compatible
 from collections import OrderedDict
 
+
 class CommandError(Exception):
     """Base command exception class."""
 
@@ -138,11 +139,10 @@ class Command(object):
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
 
-    def iterify(self,iterable):
+    def iterify(self, iterable):
         if not isinstance(iterable, list):
             iterable = [iterable]
         return iterable
-
 
     def todict(self):
         """Generate the dict representation corresponding to this command
@@ -150,15 +150,13 @@ class Command(object):
         Recursive method.
 
         """
-
-        j=OrderedDict()
-        comms=[]
-
-        if isinstance(self,TestCommand):
+        j = OrderedDict()
+        comms = []
+        if isinstance(self, TestCommand):
             j.update({"command": "test"})
-        elif isinstance(self,ControlCommand):
+        elif isinstance(self, ControlCommand):
             j.update({"command": "control"})
-        elif isinstance(self,ActionCommand):
+        elif isinstance(self, ActionCommand):
             j.update({"command": "action"})
         else:
             j.update({"command": "unsupported"})
@@ -167,28 +165,27 @@ class Command(object):
 
         if self.hash_comments:
             for comment in self.hash_comments:
-                comment_s=comment.decode("utf-8")
-                comms=comms + [comment_s]
+                comment_s = comment.decode("utf-8")
+                comms = comms + [comment_s]
                 j.update({"comments": comms})
 
         if self.arguments:
             j.update({"arguments": OrderedDict()})
             for argname in self.arguments:
-                args=self.iterify(self[argname])
+                args = self.iterify(self[argname])
                 for arg in args:
-                    if isinstance(arg,Command):
+                    if isinstance(arg, Command):
                         j["arguments"].update(arg.todict())
                     else:
-                        j["arguments"].update({argname: str(arg).replace('"', '')})
+                        j["arguments"].update({argname:
+                                               str(arg).replace('"', '')})
 
         if self.children:
             j.update({"children": []})
             for child in self.children:
-                #target.write(("*" * (indentlevel+10))+'{"'+argname+'": "'+str(arg)+'"},\n')
-                if isinstance(child,Command):
+                if isinstance(child, Command):
                     j["children"].append(child.todict())
         return j
-
 
     def tosieve(self, indentlevel=0, target=sys.stdout):
         """Generate the sieve syntax corresponding to this command
