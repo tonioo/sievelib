@@ -170,14 +170,14 @@ class Command(object):
                 j.update({"comments": comms})
 
         if self.arguments:
-            j.update({"arguments": OrderedDict()})
+            j.update({"arguments": []})
             for argname in self.arguments:
                 args = self.iterify(self[argname])
                 for arg in args:
                     if isinstance(arg, Command):
-                        j["arguments"].update(arg.todict())
+                        j["arguments"].append(arg.todict())
                     else:
-                        j["arguments"].update({argname:
+                        j["arguments"].append({argname:
                                                str(arg).replace('"', '')})
 
         if self.children:
