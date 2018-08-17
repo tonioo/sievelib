@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import unittest
 import six
 from sievelib.factory import FiltersSet
+from sievelib.parser import Parser
 
 
 class FactoryTestCase(unittest.TestCase):
