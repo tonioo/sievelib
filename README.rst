@@ -41,6 +41,10 @@ The following extensions are also supported:
 * Vacation (`RFC 5230 <http://tools.ietf.org/html/rfc5230>`_)
 * Imap4flags (`RFC 5232 <https://tools.ietf.org/html/rfc5232>`_)
 
+The following extensions are partially supported:
+
+* Checking Mailbox Status and Accessing Mailbox Metadata (`RFC 5490 <https://tools.ietf.org/html/rfc5490>`_)
+
 Extending the parser
 ^^^^^^^^^^^^^^^^^^^^
 
