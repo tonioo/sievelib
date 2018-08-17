@@ -400,17 +400,24 @@ class Parser(object):
                 if self.__expected is not None:
                     if ttype not in self.__expected:
                         if self.lexer.pos < len(text):
-                            msg = "%s found while %s expected near '%s'" \
-                                  % (ttype, "|".join(self.__expected), text[self.lexer.pos])
+                            msg = (
+                                "%s found while %s expected near '%s'"
+                                % (ttype, "|".join(self.__expected),
+                                   text[self.lexer.pos])
+                            )
                         else:
-                            msg = "%s found while %s expected at end of file" \
+                            msg = (
+                                "%s found while %s expected at end of file"
                                   % (ttype, "|".join(self.__expected))
+                            )
                         raise ParseError(msg)
                     self.__expected = None
 
                 if not self.__command(ttype, tvalue):
-                    msg = "unexpected token '%s' found near '%s'" \
-                          % (tvalue, text[self.lexer.pos])
+                    msg = (
+                        "unexpected token '%s' found near '%s'"
+                        % (tvalue.decode(), text.decode()[self.lexer.pos])
+                    )
                     raise ParseError(msg)
             if self.__opened_blocks:
                 self.__set_expected("right_cbracket")

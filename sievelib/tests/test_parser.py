@@ -508,14 +508,29 @@ if hasflag "Var1" "Truc" {
 """)
 
     def test_body_extension(self):
-        self.parser.parse(b"""
-require "body";
+        self.compilation_ok(b"""
+require ["body", "fileinto"];
 
 if body :content "text" :contains ["missile", "coordinates"] {
     fileinto "secrets";
 }
 """)
-        print(self.parser.error)
+        self.compilation_ok(b"""
+require "body";
+
+if body :raw :contains "MAKE MONEY FAST" {
+    discard;
+}
+""")
+        self.compilation_ok(b"""
+require ["body", "fileinto"];
+
+# Save messages mentioning the project schedule in the
+# project/schedule folder.
+if body :text :contains "project schedule" {
+    fileinto "project/schedule";
+}
+""")
 
 
 class InvalidSyntaxes(SieveTest):
