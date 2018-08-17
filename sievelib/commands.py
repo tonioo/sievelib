@@ -139,11 +139,6 @@ class Command(object):
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
 
-    def iterify(self, iterable):
-        if not isinstance(iterable, list):
-            iterable = [iterable]
-        return iterable
-
     def todict(self):
         """Generate the dict representation corresponding to this command
 
@@ -175,22 +170,33 @@ class Command(object):
             else:
                 j.update({"arguments": OrderedDict()})
             for argname in self.arguments:
-                args = self.iterify(self[argname])
-                for arg in args:
-                    if isinstance(arg, Command):
-                        if self.variable_args_nb:
-                            j["arguments"].append(arg.todict())
+                args = self[argname]
+                if isinstance(args, list):
+                    for arg in args:
+                        if isinstance(arg, Command):
+                            if self.variable_args_nb:
+                                j["arguments"].append(arg.todict())
+                            else:
+                                j["arguments"].update(arg.todict())
                         else:
-                            j["arguments"].update(arg.todict())
+                            argvalue = str(arg).replace('"', '')
+                            if isinstance(j["arguments"].get(argname), list):
+                                j["arguments"][argname].append(argvalue)
+                            else:
+                                j["arguments"][argname] = [argvalue]
+                else:
+                    if isinstance(args, Command):
+                        if self.variable_args_nb:
+                            j["arguments"].append(args.todict())
+                        else:
+                            j["arguments"].update(args.todict())
                     else:
+                        argvalue = str(args).replace('"', '')
                         if self.variable_args_nb:
-                            j["arguments"].append({argname:
-                                                   str(arg).replace('"', '')})
+                            j["arguments"].append({argname: argvalue})
                         else:
-                            j["arguments"].update({argname:
-                                                   str(arg).replace('"', '')})
+                            j["arguments"].update({argname: argvalue})
 
-  
         if self.children:
             j.update({"children": []})
             for child in self.children:
