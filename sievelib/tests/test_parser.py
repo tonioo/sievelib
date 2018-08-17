@@ -50,7 +50,6 @@ class SieveTest(unittest.TestCase):
         self.parser = Parser()
 
     def __checkCompilation(self, script, result):
-        r = self.parser.parse(script)
         self.assertEqual(self.parser.parse(script), result)
 
     def compilation_ok(self, script, **kwargs):
@@ -198,6 +197,41 @@ else (type: control)
 Your email has been canceled too
 ================================
 .
+""")
+
+    def test_complex_allof_with_not(self):
+        """Test for allof/anyof commands including a not test.
+
+        See https://github.com/tonioo/sievelib/issues/69.
+        """
+        self.compilation_ok(b"""
+require ["fileinto", "reject"];
+
+if allof (not allof (address :is ["From","sender"] ["test1@test2.priv","test2@test2.priv"], header :matches "Subject" "INACTIVE*"), address :is "From" "user3@test3.priv")
+{
+    reject;
+}
+""")
+        self.representation_is("""
+require (type: control)
+    ["fileinto","reject"]
+if (type: control)
+    allof (type: test)
+        not (type: test)
+            allof (type: test)
+                address (type: test)
+                    :is
+                    ["From","sender"]
+                    ["test1@test2.priv","test2@test2.priv"]
+                header (type: test)
+                    :matches
+                    "Subject"
+                    "INACTIVE*"
+        address (type: test)
+            :is
+            "From"
+            "user3@test3.priv"
+    reject (type: action)
 """)
 
     def test_nested_blocks(self):
