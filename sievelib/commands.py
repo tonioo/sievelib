@@ -151,16 +151,8 @@ class Command(object):
         """
         j = OrderedDict()
         comms = []
-        if isinstance(self, TestCommand):
-            j.update({"command": "test"})
-        elif isinstance(self, ControlCommand):
-            j.update({"command": "control"})
-        elif isinstance(self, ActionCommand):
-            j.update({"command": "action"})
-        else:
-            j.update({"command": "unsupported"})
-
-        j.update({"type": self.name})
+        j.update({"type": self.get_type()})
+        j.update({"command": self.name})
 
         if self.hash_comments:
             for comment in self.hash_comments:
