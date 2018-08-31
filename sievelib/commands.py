@@ -143,7 +143,7 @@ class Command(object):
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
 
-    def todict(self):
+    def todict(self,attributemap=None):
         """Generate the dict representation corresponding to this command
 
         Recursive method.
@@ -166,38 +166,44 @@ class Command(object):
             else:
                 j.update({"arguments": OrderedDict()})
             for argname in self.arguments:
+                outargname=argname
+                if attributemap:
+                    mappedname=attributemap.get(argname)
+                    if mappedname:
+                        outargname=mappedname
+                
                 args = self[argname]
                 if isinstance(args, list):
                     for arg in args:
                         if isinstance(arg, Command):
                             if self.variable_args_nb:
-                                j["arguments"].append(arg.todict())
+                                j["arguments"].append(arg.todict(attributemap=attributemap))
                             else:
-                                j["arguments"].update(arg.todict())
+                                j["arguments"].update(arg.todict(attributemap=attributemap))
                         else:
                             argvalue = str(arg).replace('"', '')
-                            if isinstance(j["arguments"].get(argname), list):
-                                j["arguments"][argname].append(argvalue)
+                            if isinstance(j["arguments"].get(outargname), list):
+                                j["arguments"][outargname].append(argvalue)
                             else:
-                                j["arguments"][argname] = [argvalue]
+                                j["arguments"][outargname] = [argvalue]
                 else:
                     if isinstance(args, Command):
                         if self.variable_args_nb:
-                            j["arguments"].append(args.todict())
+                            j["arguments"].append(args.todict(attributemap=attributemap))
                         else:
-                            j["arguments"].update(args.todict())
+                            j["arguments"].update(args.todict(attributemap=attributemap))
                     else:
                         argvalue = str(args).replace('"', '')
                         if self.variable_args_nb:
-                            j["arguments"].append({argname: argvalue})
+                            j["arguments"].append({outargname: argvalue})
                         else:
-                            j["arguments"].update({argname: argvalue})
+                            j["arguments"].update({outargname: argvalue})
 
         if self.children:
             j.update({"children": []})
             for child in self.children:
                 if isinstance(child, Command):
-                    j["children"].append(child.todict())
+                    j["children"].append(child.todict(attributemap=attributemap))
         return j
 
     def tosieve(self, indentlevel=0, target=sys.stdout):
