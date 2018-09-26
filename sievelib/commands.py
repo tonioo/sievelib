@@ -119,6 +119,7 @@ class Command(object):
 
     """
     _type = None
+    _name = None
     variable_args_nb = False
     non_deterministic_args = False
     accept_children = False
@@ -135,13 +136,20 @@ class Command(object):
         self.rargs_cnt = 0
         self.curarg = None  # for arguments that expect an argument :p (ex: :comparator)
 
-        self.name = self.__class__.__name__.replace("Command", "")
+        if self._name == None:
+            self.name = self.__class__.__name__.replace("Command", "")
+        else:
+            self.name = self._name
+
         self.name = self.name.lower()
 
         self.hash_comments = []
 
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
+
+    def manglearg(self,str):
+        return str
 
     def todict(self,attributemap=None):
         """Generate the dict representation corresponding to this command

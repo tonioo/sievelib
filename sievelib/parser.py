@@ -236,7 +236,7 @@ class Parser(object):
                             ; are optional
         """
         if ttype == "string":
-            self.__curstringlist += [tvalue.decode("utf-8")]
+            self.__curstringlist += [self.__curcommand.manglearg(tvalue.decode("utf-8"))]
             self.__set_expected("comma", "right_bracket")
             return True
         if ttype == "comma":
