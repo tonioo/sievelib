@@ -763,6 +763,20 @@ if header :is "Sender" "owner-ietf-mta-filters@imc.org"
         self.assertEqual(
             self.parser.error, "line 4: unknown command fileinto")
 
+    def test_exists_get_string_or_list(self):
+        self.compilation_ok(b"""
+if exists "subject"
+{
+       discard;
+}
+""")
+        self.compilation_ok(b"""
+if exists ["subject"]
+{
+       discard;
+}
+""")
+
 
 class DateCommands(SieveTest):
     def test_currentdate_command(self):
