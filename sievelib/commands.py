@@ -347,6 +347,19 @@ class Command(object):
             return True
         return value.lower() in arg["values"]
 
+    def __is_valid_type(self, typ, typlist):
+        """ Check if type is valid based on input type list
+            "string" is special because it can be used for stringlist
+
+        :param typ: the type to check
+        :param typlist: the list of type to check
+        :return: True on success, False otherwise
+        """
+        typ_is_str = typ == "string"
+        str_list_in_typlist = "stringlist" in typlist
+
+        return typ in typlist or (typ_is_str and str_list_in_typlist)
+
     def check_next_arg(self, atype, avalue, add=True, check_extension=True):
         """Argument validity checking
 
@@ -405,7 +418,7 @@ class Command(object):
                         if not curarg["name"] in self.arguments:
                             self.arguments[curarg["name"]] = []
                         self.arguments[curarg["name"]] += [avalue]
-                elif atype not in curarg["type"] or \
+                elif not self.__is_valid_type(atype, curarg["type"]) or \
                         not self.__is_valid_value_for_arg(curarg, avalue):
                     failed = True
                 else:
@@ -735,8 +748,11 @@ class ExistsCommand(TestCommand):
     ]
 
     def args_as_tuple(self):
-        return ("exists", ) + tuple(
-            tools.to_list(self.arguments["header-names"]))
+        value = self.arguments["header-names"]
+        if ',' not in value:
+            return ('exists', value)
+
+        return ("exists", ) + tuple(tools.to_list(value))
 
 
 class TrueCommand(TestCommand):
