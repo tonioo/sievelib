@@ -185,6 +185,26 @@ class FiltersSet(object):
                     "stringlist",
                     "[%s]" % (",".join('"%s"' % val for val in c[1:]))
                 )
+            elif cname == "envelope":
+                cmd = commands.get_command_instance("envelope", ifcontrol)
+                cmd.check_next_arg("tag", c[1])
+                cmd.check_next_arg(
+                    "stringlist",
+                    "[{}]".format(",".join('"{}"'.format(val) for val in c[2]))
+                )
+                cmd.check_next_arg(
+                    "stringlist",
+                    "[{}]".format(",".join('"{}"'.format(val) for val in c[3]))
+                )
+            elif cname == "body":
+                cmd = commands.get_command_instance("body", ifcontrol, False)
+                self.require(cmd.extension)
+                cmd.check_next_arg("tag", c[1])
+                cmd.check_next_arg("tag", c[2])
+                cmd.check_next_arg(
+                    "stringlist",
+                    "[%s]" % (",".join('"%s"' % val for val in c[3:]))
+                )
             else:
                 if c[1].startswith(':not'):
                     cmd = self.__build_condition(
@@ -308,7 +328,8 @@ class FiltersSet(object):
         if not flt:
             return None
         for node in flt.walk():
-            if isinstance(node, (commands.AllofCommand, commands.AnyofCommand)):
+            if isinstance(node, (commands.AllofCommand,
+                                 commands.AnyofCommand)):
                 return node.__class__.__name__.lower().replace("command", "")
         return None
 
@@ -324,7 +345,9 @@ class FiltersSet(object):
                 negate = True
             elif isinstance(node, (commands.HeaderCommand,
                                    commands.SizeCommand,
-                                   commands.ExistsCommand)):
+                                   commands.ExistsCommand,
+                                   commands.BodyCommand,
+                                   commands.EnvelopeCommand)):
                 args = node.args_as_tuple()
                 if negate:
                     if node.name == "header":
