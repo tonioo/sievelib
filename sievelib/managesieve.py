@@ -702,8 +702,8 @@ class Client(object):
         if "VERSION" not in self.__capabilities:
             raise NotImplementedError(
                 "server does not support CHECKSCRIPT command")
-        content = tools.to_bytes(
-            u"{%d+}%s%s" % (len(content), str(CRLF), content))
+        content = tools.to_bytes(content)
+        content = tools.to_bytes("{%d+}" % len(content)) + CRLF + content
         code, data = self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":
             return True
