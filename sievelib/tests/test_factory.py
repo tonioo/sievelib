@@ -4,9 +4,7 @@ from __future__ import unicode_literals
 import unittest
 import six
 
-from sievelib import commands
 from sievelib.factory import FiltersSet
-from sievelib.parser import Parser
 
 
 class FactoryTestCase(unittest.TestCase):
@@ -50,6 +48,24 @@ class FactoryTestCase(unittest.TestCase):
             [("fileinto", 'List')]
         )
         conditions = self.fs.get_filter_conditions("ruleA")
+        self.assertEqual(orig_conditions, conditions)
+
+        orig_conditions = [("envelope", ":is", ["From"], ["hello"])]
+        self.fs.addfilter(
+            "ruleB",
+            orig_conditions,
+            [("fileinto", "INBOX")]
+        )
+        conditions = self.fs.get_filter_conditions("ruleB")
+        self.assertEqual(orig_conditions, conditions)
+
+        orig_conditions = [("body", ":raw", ":contains", "matteo")]
+        self.fs.addfilter(
+            "ruleC",
+            orig_conditions,
+            [("fileinto", "INBOX")]
+        )
+        conditions = self.fs.get_filter_conditions("ruleC")
         self.assertEqual(orig_conditions, conditions)
 
     def test_get_filter_matchtype(self):
@@ -219,6 +235,36 @@ if false {
 # Filter: Testé
 if anyof (header :is "Sender" "toto@toto.com") {
     fileinto "Toto";
+}
+""")
+
+    def test_add_body_filter(self):
+        """Add a body filter."""
+        self.fs.addfilter(
+            "test",
+            [("body", ":raw", ":contains", "matteo")],
+            [("fileinto", "Toto")]
+        )
+        self.assertEqual("{}".format(self.fs), """require ["body", "fileinto"];
+
+# Filter: test
+if anyof (body :contains :raw ["matteo"]) {
+    fileinto "Toto";
+}
+""")
+
+    def test_add_envelope_filter(self):
+        """Add a envelope filter."""
+        self.fs.addfilter(
+            "test",
+            [("envelope", ":is", ["From"], ["hello"])],
+            [("fileinto", "INBOX")]
+        )
+        self.assertEqual("{}".format(self.fs), """require ["fileinto"];
+
+# Filter: test
+if anyof (envelope :is ["From"] ["hello"]) {
+    fileinto "INBOX";
 }
 """)
 

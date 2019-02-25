@@ -182,7 +182,7 @@ class Command(object):
 
                 if "string" in arg["type"]:
                     target.write(value)
-                    if not value.startswith('"'):
+                    if not value.startswith('"') and not value.startswith("["):
                         target.write("\n")
                 else:
                     target.write(value)
@@ -739,6 +739,20 @@ class EnvelopeCommand(TestCommand):
          "required": True}
     ]
 
+    def args_as_tuple(self):
+        """Return arguments as a list."""
+        result = ("envelope", self.arguments["match-type"])
+        if self.arguments["header-list"].startswith("["):
+            result += (tools.to_list(self.arguments["header-list"]),)
+        else:
+            result += ([self.arguments["header-list"].strip('"')],)
+        if self.arguments["key-list"].startswith("["):
+            result = result + (
+                tools.to_list(self.arguments["key-list"]),)
+        else:
+            result = result + ([self.arguments["key-list"].strip('"')],)
+        return result
+
 
 class ExistsCommand(TestCommand):
     args_definition = [
@@ -749,9 +763,8 @@ class ExistsCommand(TestCommand):
 
     def args_as_tuple(self):
         value = self.arguments["header-names"]
-        if ',' not in value:
-            return ('exists', value)
-
+        if not value.startswith("["):
+            return ('exists', value.strip('"'))
         return ("exists", ) + tuple(tools.to_list(value))
 
 
@@ -783,7 +796,6 @@ class HeaderCommand(TestCommand):
             result = (self.arguments["header-names"].strip('"'),)
         result = result + (self.arguments["match-type"],)
         if "," in self.arguments["key-list"]:
-            keylist = self.arguments["key-list"][1:-1]
             result = result + tuple(
                 tools.to_list(self.arguments["key-list"], unquote=False))
         else:
@@ -810,6 +822,18 @@ class BodyCommand(TestCommand):
          "required": True},
     ]
     extension = "body"
+
+    def args_as_tuple(self):
+        """Return arguments as a list."""
+        result = ("body", )
+        result = result + (
+            self.arguments["body-transform"], self.arguments["match-type"])
+        if self.arguments["key-list"].startswith("["):
+            result = result + tuple(
+                tools.to_list(self.arguments["key-list"]))
+        else:
+            result = result + (self.arguments["key-list"].strip('"'),)
+        return result
 
 
 class NotCommand(TestCommand):
@@ -860,10 +884,11 @@ class HasflagCommand(TestCommand):
         """Deal with optional stringlist before a required one."""
         condition = (
             "variable-list" in self.arguments and
-            not "list-of-flags" in self.arguments
+            "list-of-flags" not in self.arguments
         )
         if condition:
-            self.arguments["list-of-flags"] = self.arguments.pop("variable-list")
+            self.arguments["list-of-flags"] = (
+                self.arguments.pop("variable-list"))
             self.rargs_cnt = 1
 
 
