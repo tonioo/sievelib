@@ -98,10 +98,21 @@ address_part = {"name": "address-part",
                 "values": [":localpart", ":domain", ":all"],
                 "type": ["tag"],
                 "required": False}
-match_type = {"name": "match-type",
-              "values": [":is", ":contains", ":matches"],
-              "type": ["tag"],
-              "required": False}
+match_type = {
+    "name": "match-type",
+    "values": [":is", ":contains", ":matches"],
+    "extension_values": {
+        ":count": "relational",
+        ":value": "relational"
+    },
+    "extra_arg": {
+        "type": "string",
+        "values": ['"gt"', '"ge"', '"lt"', '"le"', '"eq"', '"ne"'],
+        "valid_for": [":count", ":value"]
+    },
+    "type": ["tag"],
+    "required": False
+}
 
 
 class Command(object):
@@ -343,9 +354,17 @@ class Command(object):
         :param value: the value to check
         :return: True on succes, False otherwise
         """
-        if "values" not in arg:
+        if "values" not in arg and "extension_values" not in arg:
             return True
-        return value.lower() in arg["values"]
+        if "values" in arg and value.lower() in arg["values"]:
+            return True
+        if "extension_values" in arg:
+            extension = arg["extension_values"].get(value.lower())
+            if extension:
+                if extension not in RequireCommand.loaded_extensions:
+                    raise ExtensionNotLoaded(extension)
+                return True
+        return False
 
     def __is_valid_type(self, typ, typlist):
         """ Check if type is valid based on input type list
@@ -431,7 +450,6 @@ class Command(object):
 
             condition = (
                 atype in curarg["type"] and
-                ("values" not in curarg or avalue in curarg["values"]) and
                 self.__is_valid_value_for_arg(curarg, avalue)
             )
             if condition:
@@ -892,6 +910,59 @@ class HasflagCommand(TestCommand):
             self.rargs_cnt = 1
 
 
+class DateCommand(TestCommand):
+    """date command, part of the date extension.
+
+    https://tools.ietf.org/html/rfc5260#section-4
+    """
+
+    extension = "date"
+    args_definition = [
+        {"name": "zone",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":zone", ":originalzone"],
+         "extra_arg": {"type": "string", "valid_for": [":zone"]},
+         "required": False},
+        comparator,
+        match_type,
+        {"name": "header-name",
+         "type": ["string"],
+         "required": True},
+        {"name": "date-part",
+         "type": ["string"],
+         "required": True},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+
+
+class CurrentdateCommand(TestCommand):
+    """currentdate command, part of the date extension.
+
+    http://tools.ietf.org/html/rfc5260#section-5
+    """
+
+    extension = "date"
+    args_definition = [
+        {"name": "zone",
+         "type": ["tag"],
+         "write_tag": True,
+         "values": [":zone"],
+         "extra_arg": {"type": "string"},
+         "required": False},
+        comparator,
+        match_type,
+        {"name": "date-part",
+         "type": ["string"],
+         "required": True},
+        {"name": "key-list",
+         "type": ["string", "stringlist"],
+         "required": True}
+    ]
+
+
 class VacationCommand(ActionCommand):
     args_definition = [
         {"name": "subject",
@@ -937,7 +1008,7 @@ class VacationCommand(ActionCommand):
 
 class SetCommand(ControlCommand):
 
-    """currentdate command, part of the variables extension
+    """set command, part of the variables extension
 
     http://tools.ietf.org/html/rfc5229
     """
@@ -948,37 +1019,6 @@ class SetCommand(ControlCommand):
          "type": ["string"],
          "required": True},
         {"name": "date",
-         "type": ["string"],
-         "required": True}
-    ]
-
-
-class CurrentdateCommand(ControlCommand):
-
-    """currentdate command, part of the date extension
-
-    http://tools.ietf.org/html/rfc5260#section-5
-    """
-
-    extension = "date"
-    accept_children = True
-    args_definition = [
-        {"name": "zone",
-         "type": ["tag"],
-         "write_tag": True,
-         "values": [":zone"],
-         "extra_arg": {"type": "string"},
-         "required": False},
-        {"name": "match-value",
-         "type": ["tag"],
-         "required": True},
-        {"name": "comparison",
-         "type": ["string"],
-         "required": True},
-        {"name": "match-against",
-         "type": ["string"],
-         "required": True},
-        {"name": "match-against-field",
          "type": ["string"],
          "required": True}
     ]
