@@ -187,7 +187,12 @@ class FiltersSet(object):
                 )
             elif cname == "envelope":
                 cmd = commands.get_command_instance("envelope", ifcontrol)
-                cmd.check_next_arg("tag", c[1])
+                if c[1].startswith(":not"):
+                    comp_tag = c[1].replace("not", "")
+                    negate = True
+                else:
+                    comp_tag = c[1]
+                cmd.check_next_arg("tag", comp_tag)
                 cmd.check_next_arg(
                     "stringlist",
                     "[{}]".format(",".join('"{}"'.format(val) for val in c[2]))
@@ -200,18 +205,22 @@ class FiltersSet(object):
                 cmd = commands.get_command_instance("body", ifcontrol, False)
                 self.require(cmd.extension)
                 cmd.check_next_arg("tag", c[1])
-                cmd.check_next_arg("tag", c[2])
+                if c[2].startswith(":not"):
+                    comp_tag = c[2].replace("not", "")
+                    negate = True
+                else:
+                    comp_tag = c[2]
+                cmd.check_next_arg("tag", comp_tag)
                 cmd.check_next_arg(
                     "stringlist",
                     "[%s]" % (",".join('"%s"' % val for val in c[3:]))
                 )
             else:
+                # header command fallback
                 if c[1].startswith(':not'):
                     cmd = self.__build_condition(
                         c, ifcontrol, c[1].replace("not", "", 1))
-                    not_cmd = commands.get_command_instance("not", ifcontrol)
-                    not_cmd.check_next_arg("test", cmd)
-                    cmd = not_cmd
+                    negate = True
                 else:
                     cmd = self.__build_condition(c, ifcontrol)
             if negate:
@@ -350,8 +359,14 @@ class FiltersSet(object):
                                    commands.EnvelopeCommand)):
                 args = node.args_as_tuple()
                 if negate:
-                    if node.name == "header":
+                    if node.name in ["header", "envelope"]:
                         args = (args[0], ":not{}".format(args[1][1:]), args[2])
+                    elif node.name == "body":
+                        args = (
+                            args[:2] +
+                            (":not{}".format(args[2][1:]),) +
+                            args[3:]
+                        )
                     elif node.name == "exists":
                         args = ("not{}".format(args[0]),) + args[1:]
                     negate = False

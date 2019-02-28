@@ -59,7 +59,7 @@ class FactoryTestCase(unittest.TestCase):
         conditions = self.fs.get_filter_conditions("ruleB")
         self.assertEqual(orig_conditions, conditions)
 
-        orig_conditions = [("body", ":raw", ":contains", "matteo")]
+        orig_conditions = [("body", ":raw", ":notcontains", "matteo")]
         self.fs.addfilter(
             "ruleC",
             orig_conditions,
@@ -253,6 +253,21 @@ if anyof (body :contains :raw ["matteo"]) {
 }
 """)
 
+    def test_add_notbody_filter(self):
+        """Add a not body filter."""
+        self.fs.addfilter(
+            "test",
+            [("body", ":raw", ":notcontains", "matteo")],
+            [("fileinto", "Toto")]
+        )
+        self.assertEqual("{}".format(self.fs), """require ["body", "fileinto"];
+
+# Filter: test
+if anyof (not body :contains :raw ["matteo"]) {
+    fileinto "Toto";
+}
+""")
+
     def test_add_envelope_filter(self):
         """Add a envelope filter."""
         self.fs.addfilter(
@@ -264,6 +279,21 @@ if anyof (body :contains :raw ["matteo"]) {
 
 # Filter: test
 if anyof (envelope :is ["From"] ["hello"]) {
+    fileinto "INBOX";
+}
+""")
+
+    def test_add_notenvelope_filter(self):
+        """Add a not envelope filter."""
+        self.fs.addfilter(
+            "test",
+            [("envelope", ":notis", ["From"], ["hello"])],
+            [("fileinto", "INBOX")]
+        )
+        self.assertEqual("{}".format(self.fs), """require ["fileinto"];
+
+# Filter: test
+if anyof (not envelope :is ["From"] ["hello"]) {
     fileinto "INBOX";
 }
 """)
