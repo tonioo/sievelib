@@ -68,6 +68,17 @@ class FactoryTestCase(unittest.TestCase):
         conditions = self.fs.get_filter_conditions("ruleC")
         self.assertEqual(orig_conditions, conditions)
 
+        orig_conditions = [(
+            "currentdate", ":zone", "+0100", ":notis", "date", "2019-02-26"
+        )]
+        self.fs.addfilter(
+            "ruleD",
+            orig_conditions,
+            [("fileinto", "INBOX")]
+        )
+        conditions = self.fs.get_filter_conditions("ruleD")
+        self.assertEqual(orig_conditions, conditions)
+
     def test_get_filter_matchtype(self):
         """Test get_filter_matchtype method."""
         self.fs.addfilter(
@@ -294,6 +305,21 @@ if anyof (envelope :is ["From"] ["hello"]) {
 
 # Filter: test
 if anyof (not envelope :is ["From"] ["hello"]) {
+    fileinto "INBOX";
+}
+""")
+
+    def test_add_currentdate_filter(self):
+        """Add a currentdate filter."""
+        self.fs.addfilter(
+            "test",
+            [("currentdate", ":zone", "+0100", ":is", "date", "2019-02-26")],
+            [("fileinto", "INBOX")]
+        )
+        self.assertEqual("{}".format(self.fs), """require ["date", "fileinto"];
+
+# Filter: test
+if anyof (currentdate :zone "+0100" :is "date" ["2019-02-26"]) {
     fileinto "INBOX";
 }
 """)
