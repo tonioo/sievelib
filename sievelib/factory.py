@@ -215,6 +215,23 @@ class FiltersSet(object):
                     "stringlist",
                     "[%s]" % (",".join('"%s"' % val for val in c[3:]))
                 )
+            elif cname == "currentdate":
+                cmd = commands.get_command_instance(
+                    "currentdate", ifcontrol, False)
+                self.require(cmd.extension)
+                cmd.check_next_arg("tag", c[1])
+                cmd.check_next_arg("string", self.__quote_if_necessary(c[2]))
+                if c[3].startswith(":not"):
+                    comp_tag = c[3].replace("not", "")
+                    negate = True
+                else:
+                    comp_tag = c[3]
+                cmd.check_next_arg("tag", comp_tag)
+                cmd.check_next_arg("string", self.__quote_if_necessary(c[4]))
+                cmd.check_next_arg(
+                    "stringlist",
+                    "[%s]" % (",".join('"%s"' % val for val in c[5:]))
+                )
             else:
                 # header command fallback
                 if c[1].startswith(':not'):
@@ -356,7 +373,8 @@ class FiltersSet(object):
                                    commands.SizeCommand,
                                    commands.ExistsCommand,
                                    commands.BodyCommand,
-                                   commands.EnvelopeCommand)):
+                                   commands.EnvelopeCommand,
+                                   commands.CurrentdateCommand)):
                 args = node.args_as_tuple()
                 if negate:
                     if node.name in ["header", "envelope"]:
@@ -366,6 +384,12 @@ class FiltersSet(object):
                             args[:2] +
                             (":not{}".format(args[2][1:]),) +
                             args[3:]
+                        )
+                    elif node.name == "currentdate":
+                        args = (
+                            args[:3] +
+                            (":not{}".format(args[3][1:]),) +
+                            args[4:]
                         )
                     elif node.name == "exists":
                         args = ("not{}".format(args[0]),) + args[1:]

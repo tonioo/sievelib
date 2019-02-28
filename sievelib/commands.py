@@ -962,6 +962,22 @@ class CurrentdateCommand(TestCommand):
          "required": True}
     ]
 
+    def args_as_tuple(self):
+        """Return arguments as a list."""
+        result = ("currentdate", )
+        result += (
+            ":zone",
+            self.arguments["zone"].strip('"'),
+            self.arguments["match-type"],
+            self.arguments["date-part"].strip('"')
+        )
+        if self.arguments["key-list"].startswith("["):
+            result = result + tuple(
+                tools.to_list(self.arguments["key-list"]))
+        else:
+            result = result + (self.arguments["key-list"].strip('"'),)
+        return result
+
 
 class VacationCommand(ActionCommand):
     args_definition = [
