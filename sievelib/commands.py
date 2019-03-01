@@ -111,7 +111,7 @@ match_type = {
         "valid_for": [":count", ":value"]
     },
     "type": ["tag"],
-    "required": False
+    "required": False,
 }
 
 
@@ -138,6 +138,7 @@ class Command(object):
     def __init__(self, parent=None):
         self.parent = parent
         self.arguments = {}
+        self.extra_arguments = {}  # to store tag arguments
         self.children = []
 
         self.nextargpos = 0
@@ -168,9 +169,15 @@ class Command(object):
                     continue
                 target.write(" ")
                 value = self.arguments[arg["name"]]
-
-                if "tag" in arg["type"] and arg.get("write_tag", False):
-                    target.write("%s " % arg["values"][0])
+                atype = arg["type"]
+                if "tag" in atype:
+                    target.write(value)
+                    if arg["name"] in self.extra_arguments:
+                        value = self.extra_arguments[arg["name"]]
+                        atype = arg["extra_arg"]["type"]
+                        target.write(" ")
+                    else:
+                        continue
 
                 if type(value) == list:
                     if self.__get_arg_type(arg["name"]) == ["testlist"]:
@@ -191,7 +198,7 @@ class Command(object):
                     value.tosieve(indentlevel, target=target)
                     continue
 
-                if "string" in arg["type"]:
+                if "string" in atype:
                     target.write(value)
                     if not value.startswith('"') and not value.startswith("["):
                         target.write("\n")
@@ -263,6 +270,14 @@ class Command(object):
                 if not arg["name"] in self.arguments:
                     continue
                 value = self.arguments[arg["name"]]
+                atype = arg["type"]
+                if "tag" in atype:
+                    self.__print(str(value), indentlevel, target=target)
+                    if arg["name"] in self.extra_arguments:
+                        value = self.extra_arguments[arg["name"]]
+                        atype = arg["extra_arg"]["type"]
+                    else:
+                        continue
                 if type(value) == list:
                     if self.__get_arg_type(arg["name"]) == ["testlist"]:
                         for t in value:
@@ -343,7 +358,7 @@ class Command(object):
             raise NotImplementedError
         return self._type
 
-    def __is_valid_value_for_arg(self, arg, value):
+    def __is_valid_value_for_arg(self, arg, value, check_extension=True):
         """Check if value is allowed for arg
 
         Some commands only allow a limited set of values. The method
@@ -352,6 +367,7 @@ class Command(object):
 
         :param arg: the argument's name
         :param value: the value to check
+        :param check_extension: check if value requires an extension
         :return: True on succes, False otherwise
         """
         if "values" not in arg and "extension_values" not in arg:
@@ -361,7 +377,11 @@ class Command(object):
         if "extension_values" in arg:
             extension = arg["extension_values"].get(value.lower())
             if extension:
-                if extension not in RequireCommand.loaded_extensions:
+                condition = (
+                    check_extension and
+                    extension not in RequireCommand.loaded_extensions
+                )
+                if condition:
                     raise ExtensionNotLoaded(extension)
                 return True
         return False
@@ -420,7 +440,7 @@ class Command(object):
             )
             if condition:
                 if add:
-                    self.arguments[self.curarg["name"]] = avalue
+                    self.extra_arguments[self.curarg["name"]] = avalue
                 self.curarg = None
                 return True
             raise BadValue(self.curarg["name"], avalue)
@@ -438,7 +458,8 @@ class Command(object):
                             self.arguments[curarg["name"]] = []
                         self.arguments[curarg["name"]] += [avalue]
                 elif not self.__is_valid_type(atype, curarg["type"]) or \
-                        not self.__is_valid_value_for_arg(curarg, avalue):
+                        not self.__is_valid_value_for_arg(
+                            curarg, avalue, check_extension):
                     failed = True
                 else:
                     self.curarg = curarg
@@ -450,7 +471,7 @@ class Command(object):
 
             condition = (
                 atype in curarg["type"] and
-                self.__is_valid_value_for_arg(curarg, avalue)
+                self.__is_valid_value_for_arg(curarg, avalue, check_extension)
             )
             if condition:
                 ext = curarg.get("extension")
@@ -466,7 +487,6 @@ class Command(object):
                 )
                 if condition:
                     self.curarg = curarg
-                    break
                 if add:
                     self.arguments[curarg["name"]] = avalue
                 break
@@ -610,7 +630,6 @@ class FileintoCommand(ActionCommand):
         {"name": "flags",
          "type": ["tag"],
          "values": [":flags"],
-         "write_tag": True,
          "extra_arg": {"type": ["string", "stringlist"]},
          "extension": "imap4flags"},
         {"name": "mailbox",
@@ -646,7 +665,6 @@ class KeepCommand(ActionCommand):
         {"name": "flags",
          "type": ["tag"],
          "values": [":flags"],
-         "write_tag": True,
          "extra_arg": {"type": ["string", "stringlist"]},
          "extension": "imap4flags"},
     ]
@@ -920,7 +938,6 @@ class DateCommand(TestCommand):
     args_definition = [
         {"name": "zone",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":zone", ":originalzone"],
          "extra_arg": {"type": "string", "valid_for": [":zone"]},
          "required": False},
@@ -948,7 +965,6 @@ class CurrentdateCommand(TestCommand):
     args_definition = [
         {"name": "zone",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":zone"],
          "extra_arg": {"type": "string"},
          "required": False},
@@ -967,7 +983,7 @@ class CurrentdateCommand(TestCommand):
         result = ("currentdate", )
         result += (
             ":zone",
-            self.arguments["zone"].strip('"'),
+            self.extra_arguments["zone"].strip('"'),
             self.arguments["match-type"],
             self.arguments["date-part"].strip('"')
         )
@@ -983,37 +999,31 @@ class VacationCommand(ActionCommand):
     args_definition = [
         {"name": "subject",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":subject"],
          "extra_arg": {"type": "string"},
          "required": False},
         {"name": "days",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":days"],
          "extra_arg": {"type": "number"},
          "required": False},
         {"name": "from",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":from"],
          "extra_arg": {"type": "string"},
          "required": False},
         {"name": "addresses",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":addresses"],
          "extra_arg": {"type": ["string", "stringlist"]},
          "required": False},
         {"name": "handle",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":handle"],
          "extra_arg": {"type": "string"},
          "required": False},
         {"name": "mime",
          "type": ["tag"],
-         "write_tag": True,
          "values": [":mime"],
          "required": False},
         {"name": "reason",

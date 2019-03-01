@@ -362,6 +362,7 @@ if header :contains :comparator "i;octet" "Subject" "MAKE MONEY FAST" {
         self.representation_is("""
 if (type: control)
     header (type: test)
+        :comparator
         "i;octet"
         :contains
         "Subject"

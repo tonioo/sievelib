@@ -324,6 +324,21 @@ if anyof (currentdate :zone "+0100" :is "date" ["2019-02-26"]) {
 }
 """)
 
+        self.fs.removefilter("test")
+        self.fs.addfilter(
+            "test",
+            [("currentdate", ":zone", "+0100", ":value", "gt", "date",
+              "2019-02-26")],
+            [("fileinto", "INBOX")]
+        )
+        self.assertEqual("{}".format(self.fs), """require ["date", "fileinto", "relational"];
+
+# Filter: test
+if anyof (currentdate :zone "+0100" :value "gt" "date" ["2019-02-26"]) {
+    fileinto "INBOX";
+}
+""")
+
 
 if __name__ == "__main__":
     unittest.main()

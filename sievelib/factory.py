@@ -226,11 +226,20 @@ class FiltersSet(object):
                     negate = True
                 else:
                     comp_tag = c[3]
-                cmd.check_next_arg("tag", comp_tag)
-                cmd.check_next_arg("string", self.__quote_if_necessary(c[4]))
+                cmd.check_next_arg("tag", comp_tag, check_extension=False)
+                next_arg_pos = 4
+                if comp_tag == ":value":
+                    self.require("relational")
+                    cmd.check_next_arg(
+                        "string", self.__quote_if_necessary(c[next_arg_pos]))
+                    next_arg_pos += 1
+                cmd.check_next_arg(
+                    "string", self.__quote_if_necessary(c[next_arg_pos]))
+                next_arg_pos += 1
                 cmd.check_next_arg(
                     "stringlist",
-                    "[%s]" % (",".join('"%s"' % val for val in c[5:]))
+                    "[%s]" %
+                    (",".join('"%s"' % val for val in c[next_arg_pos:]))
                 )
             else:
                 # header command fallback
@@ -378,7 +387,15 @@ class FiltersSet(object):
                 args = node.args_as_tuple()
                 if negate:
                     if node.name in ["header", "envelope"]:
-                        args = (args[0], ":not{}".format(args[1][1:]), args[2])
+                        nargs = (
+                            args[0],
+                            ":not{}".format(args[1][1:])
+                        )
+                        if len(args) > 3:
+                            nargs += (args[2:])
+                        else:
+                            nargs += (args[2],)
+                        args = nargs
                     elif node.name == "body":
                         args = (
                             args[:2] +
