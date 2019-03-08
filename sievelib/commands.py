@@ -985,8 +985,10 @@ class CurrentdateCommand(TestCommand):
             ":zone",
             self.extra_arguments["zone"].strip('"'),
             self.arguments["match-type"],
-            self.arguments["date-part"].strip('"')
         )
+        if self.arguments["match-type"] in [":count", ":value"]:
+            result += (self.extra_arguments["match-type"].strip('"'), )
+        result += (self.arguments["date-part"].strip('"'), )
         if self.arguments["key-list"].startswith("["):
             result = result + tuple(
                 tools.to_list(self.arguments["key-list"]))

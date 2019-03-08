@@ -79,6 +79,18 @@ class FactoryTestCase(unittest.TestCase):
         conditions = self.fs.get_filter_conditions("ruleD")
         self.assertEqual(orig_conditions, conditions)
 
+        orig_conditions = [(
+            "currentdate", ":zone", "+0100", ":value", "gt", "date",
+            "2019-02-26"
+        )]
+        self.fs.addfilter(
+            "ruleE",
+            orig_conditions,
+            [("fileinto", "INBOX")]
+        )
+        conditions = self.fs.get_filter_conditions("ruleE")
+        self.assertEqual(orig_conditions, conditions)
+
     def test_get_filter_matchtype(self):
         """Test get_filter_matchtype method."""
         self.fs.addfilter(
