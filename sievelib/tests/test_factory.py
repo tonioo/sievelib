@@ -111,6 +111,14 @@ class FactoryTestCase(unittest.TestCase):
         self.assertIn(":copy", actions[0])
         self.assertIn("Toto", actions[0])
 
+        self.fs.addfilter(
+            "ruleY",
+            [("Subject", ":contains", "aaa")],
+            [("stop",)]
+        )
+        actions = self.fs.get_filter_actions("ruleY")
+        self.assertIn("stop", actions[0])
+
     def test_add_header_filter(self):
         output = six.StringIO()
         self.fs.addfilter(

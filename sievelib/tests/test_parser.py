@@ -189,7 +189,7 @@ noreply
 Your email has been canceled
 ============================
 .
-    stop (type: control)
+    stop (type: action)
 else (type: control)
     reject (type: action)
         text:
@@ -399,7 +399,7 @@ if (type: control)
             not (type: test)
                 not (type: test)
                     true (type: test)
-    stop (type: control)
+    stop (type: action)
 """)
 
     def test_just_one_command(self):
