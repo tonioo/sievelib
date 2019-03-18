@@ -550,10 +550,6 @@ class RequireCommand(ControlCommand):
                 RequireCommand.loaded_extensions += [ext]
 
 
-class StopCommand(ControlCommand):
-    args_definition = []
-
-
 class IfCommand(ControlCommand):
     accept_children = True
 
@@ -612,6 +608,10 @@ class ActionCommand(Command):
                 continue
             args.append(value)
         return (self.name, ) + tuple(args)
+
+
+class StopCommand(ActionCommand):
+    args_definition = []
 
 
 class FileintoCommand(ActionCommand):
