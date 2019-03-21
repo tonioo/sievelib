@@ -798,7 +798,16 @@ class ExistsCommand(TestCommand):
     ]
 
     def args_as_tuple(self):
+        """FIXME: en fonction de la manière dont la commande a été générée
+        (factory ou parser), le type des arguments est différent :
+        string quand ça vient de la factory ou type normal depuis le
+        parser. Il faut uniformiser tout ça !!
+
+        """
         value = self.arguments["header-names"]
+        if isinstance(value, list):
+            value = "[{}]".format(
+                ",".join('"{}"'.format(item) for item in value))
         if not value.startswith("["):
             return ('exists', value.strip('"'))
         return ("exists", ) + tuple(tools.to_list(value))
