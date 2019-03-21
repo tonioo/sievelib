@@ -5,6 +5,7 @@ import unittest
 import six
 
 from sievelib.factory import FiltersSet
+from .. import parser
 
 
 class FactoryTestCase(unittest.TestCase):
@@ -90,6 +91,21 @@ class FactoryTestCase(unittest.TestCase):
         )
         conditions = self.fs.get_filter_conditions("ruleE")
         self.assertEqual(orig_conditions, conditions)
+
+    def test_get_filter_conditions_from_parser_result(self):
+        res = """require ["fileinto"];
+
+# rule:[test]
+if anyof (exists ["Subject"]) {
+    fileinto "INBOX";
+}
+"""
+        p = parser.Parser()
+        p.parse(res)
+        fs = FiltersSet("test", '# rule:')
+        fs.from_parser_result(p)
+        c = fs.get_filter_conditions('[test]')
+        self.assertEqual(c, [("exists", "Subject")])
 
     def test_get_filter_matchtype(self):
         """Test get_filter_matchtype method."""
