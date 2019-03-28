@@ -107,6 +107,22 @@ if anyof (exists ["Subject"]) {
         c = fs.get_filter_conditions('[test]')
         self.assertEqual(c, [("exists", "Subject")])
 
+        res = """require ["date", "fileinto"];
+
+# rule:aaa
+if anyof (currentdate :zone "+0100" :is "date" ["2019-03-27"]) {
+    fileinto "INBOX";
+}
+"""
+        p = parser.Parser()
+        p.parse(res)
+        fs = FiltersSet("aaa", "# rule:")
+        fs.from_parser_result(p)
+        c = fs.get_filter_conditions('aaa')
+        self.assertEqual(
+            c, [('currentdate', ':zone', '+0100', ':is', 'date', '2019-03-27')]
+        )
+
     def test_get_filter_matchtype(self):
         """Test get_filter_matchtype method."""
         self.fs.addfilter(

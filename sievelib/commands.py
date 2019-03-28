@@ -998,11 +998,15 @@ class CurrentdateCommand(TestCommand):
         if self.arguments["match-type"] in [":count", ":value"]:
             result += (self.extra_arguments["match-type"].strip('"'), )
         result += (self.arguments["date-part"].strip('"'), )
-        if self.arguments["key-list"].startswith("["):
-            result = result + tuple(
-                tools.to_list(self.arguments["key-list"]))
+        value = self.arguments["key-list"]
+        if isinstance(value, list):
+            # FIXME
+            value = "[{}]".format(
+                ",".join('"{}"'.format(item) for item in value))
+        if value.startswith("["):
+            result = result + tuple(tools.to_list(value))
         else:
-            result = result + (self.arguments["key-list"].strip('"'),)
+            result = result + (value.strip('"'),)
         return result
 
 
