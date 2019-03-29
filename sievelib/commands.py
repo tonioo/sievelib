@@ -774,6 +774,7 @@ class EnvelopeCommand(TestCommand):
          "type": ["string", "stringlist"],
          "required": True}
     ]
+    extension = "envelope"
 
     def args_as_tuple(self):
         """Return arguments as a list."""
