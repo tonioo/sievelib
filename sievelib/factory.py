@@ -186,8 +186,9 @@ class FiltersSet(object):
                     "[%s]" % (",".join('"%s"' % val for val in c[1:]))
                 )
             elif cname == "envelope":
-                cmd = commands.get_command_instance("envelope", ifcontrol)
-                self.require(cmd.extension)
+                cmd = commands.get_command_instance(
+                    "envelope", ifcontrol, False)
+                self.require("envelope")
                 if c[1].startswith(":not"):
                     comp_tag = c[1].replace("not", "")
                     negate = True

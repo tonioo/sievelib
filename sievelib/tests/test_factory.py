@@ -338,7 +338,7 @@ if anyof (not body :contains :raw ["matteo"]) {
             [("envelope", ":is", ["From"], ["hello"])],
             [("fileinto", "INBOX")]
         )
-        self.assertEqual("{}".format(self.fs), """require ["fileinto"];
+        self.assertEqual("{}".format(self.fs), """require ["envelope", "fileinto"];
 
 # Filter: test
 if anyof (envelope :is ["From"] ["hello"]) {
@@ -353,7 +353,7 @@ if anyof (envelope :is ["From"] ["hello"]) {
             [("envelope", ":notis", ["From"], ["hello"])],
             [("fileinto", "INBOX")]
         )
-        self.assertEqual("{}".format(self.fs), """require ["fileinto"];
+        self.assertEqual("{}".format(self.fs), """require ["envelope", "fileinto"];
 
 # Filter: test
 if anyof (not envelope :is ["From"] ["hello"]) {
