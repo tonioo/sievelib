@@ -23,8 +23,12 @@ provides extra information such as:
 """
 from __future__ import unicode_literals
 
-from collections import Iterable
 import sys
+
+try:
+    from collections.abc import Iterable
+except ImportError:  # python < 3.3
+    from collections import Iterable
 
 from future.utils import python_2_unicode_compatible
 
