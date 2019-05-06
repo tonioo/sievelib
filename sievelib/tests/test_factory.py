@@ -123,6 +123,22 @@ if anyof (currentdate :zone "+0100" :is "date" ["2019-03-27"]) {
             c, [('currentdate', ':zone', '+0100', ':is', 'date', '2019-03-27')]
         )
 
+        res = """require ["envelope", "fileinto"];
+
+# rule:[aaa]
+if anyof (envelope :contains ["To"] ["hello@world.it"]) {
+    fileinto "INBOX";
+}
+"""
+        p = parser.Parser()
+        p.parse(res)
+        fs = FiltersSet("aaa", "# rule:")
+        fs.from_parser_result(p)
+        c = fs.get_filter_conditions('[aaa]')
+        self.assertEqual(
+            c, [('envelope', ':contains', ['To'], ['hello@world.it'])]
+        )
+
     def test_get_filter_matchtype(self):
         """Test get_filter_matchtype method."""
         self.fs.addfilter(

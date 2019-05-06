@@ -779,15 +779,24 @@ class EnvelopeCommand(TestCommand):
     def args_as_tuple(self):
         """Return arguments as a list."""
         result = ("envelope", self.arguments["match-type"])
-        if self.arguments["header-list"].startswith("["):
-            result += (tools.to_list(self.arguments["header-list"]),)
+        value = self.arguments["header-list"]
+        if isinstance(value, list):
+            # FIXME
+            value = "[{}]".format(
+                ",".join('"{}"'.format(item) for item in value))
+        if value.startswith("["):
+            result += (tools.to_list(value),)
         else:
-            result += ([self.arguments["header-list"].strip('"')],)
-        if self.arguments["key-list"].startswith("["):
-            result = result + (
-                tools.to_list(self.arguments["key-list"]),)
+            result += ([value.strip('"')],)
+        value = self.arguments["key-list"]
+        if isinstance(value, list):
+            # FIXME
+            value = "[{}]".format(
+                ",".join('"{}"'.format(item) for item in value))
+        if value.startswith("["):
+            result += (tools.to_list(value), )
         else:
-            result = result + ([self.arguments["key-list"].strip('"')],)
+            result = result + ([value.strip('"')],)
         return result
 
 
@@ -874,11 +883,15 @@ class BodyCommand(TestCommand):
         result = ("body", )
         result = result + (
             self.arguments["body-transform"], self.arguments["match-type"])
-        if self.arguments["key-list"].startswith("["):
-            result = result + tuple(
-                tools.to_list(self.arguments["key-list"]))
+        value = self.arguments["key-list"]
+        if isinstance(value, list):
+            # FIXME
+            value = "[{}]".format(
+                ",".join('"{}"'.format(item) for item in value))
+        if value.startswith("["):
+            result += tuple(tools.to_list(value))
         else:
-            result = result + (self.arguments["key-list"].strip('"'),)
+            result += (value.strip('"'),)
         return result
 
 
