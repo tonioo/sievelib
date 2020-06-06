@@ -88,7 +88,7 @@ class Lexer(object):
                 raise ParseError("unknown token %s" % text[self.pos:])
 
             yield (m.lastgroup, m.group(m.lastgroup))
-            self.pos += len(m[0])
+            self.pos += len(m.group(0))
 
 
 class Parser(object):
