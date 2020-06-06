@@ -405,6 +405,7 @@ class Parser(object):
 
         self.__reset_parser()
         try:
+            tvalue = ''
             for ttype, tvalue in self.lexer.scan(text):
                 if ttype == "hash_comment":
                     self.hash_comments += [tvalue.strip()]
