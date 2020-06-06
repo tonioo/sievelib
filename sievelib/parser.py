@@ -59,7 +59,7 @@ class Lexer(object):
     def curlineno(self):
         """Return the current line number"""
         return self.text[:self.pos].count(b'\n') + 1
-    
+
     def curcolno(self):
         """Return the current column number"""
         return self.pos - self.text.rfind(b'\n', 0, self.pos)
@@ -88,7 +88,7 @@ class Lexer(object):
                 raise ParseError("unknown token %s" % text[self.pos:])
 
             yield (m.lastgroup, m.group(m.lastgroup))
-            self.pos = m.end()
+            self.pos += len(m[0])
 
 
 class Parser(object):
