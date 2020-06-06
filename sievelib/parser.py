@@ -59,6 +59,10 @@ class Lexer(object):
     def curlineno(self):
         """Return the current line number"""
         return self.text[:self.pos].count(b'\n') + 1
+    
+    def curcolno(self):
+        """Return the current column number"""
+        return self.pos - self.text.rfind(b'\n', 0, self.pos)
 
     def scan(self, text):
         """Analyse some data
@@ -83,8 +87,8 @@ class Lexer(object):
             if m is None:
                 raise ParseError("unknown token %s" % text[self.pos:])
 
-            self.pos = m.end()
             yield (m.lastgroup, m.group(m.lastgroup))
+            self.pos = m.end()
 
 
 class Parser(object):
@@ -409,7 +413,7 @@ class Parser(object):
                     continue
                 if self.__expected is not None:
                     if ttype not in self.__expected:
-                        if self.lexer.pos < len(text):
+                        if self.lexer.pos < len(text) + len(tvalue):
                             msg = (
                                 "%s found while %s expected near '%s'"
                                 % (ttype, "|".join(self.__expected),
@@ -436,7 +440,8 @@ class Parser(object):
                                  "|".join(self.__expected))
 
         except (ParseError, CommandError) as e:
-            self.error = "line %d: %s" % (self.lexer.curlineno(), str(e))
+            self.error_pos = (self.lexer.curlineno(), self.lexer.curcolno())
+            self.error = "line %d: %s" % (self.error_pos[0], str(e))
             return False
         return True
 
