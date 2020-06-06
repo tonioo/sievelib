@@ -440,7 +440,7 @@ class Parser(object):
                                  "|".join(self.__expected))
 
         except (ParseError, CommandError) as e:
-            self.error_pos = (self.lexer.curlineno(), self.lexer.curcolno())
+            self.error_pos = (self.lexer.curlineno(), self.lexer.curcolno(), len(tvalue))
             self.error = "line %d: %s" % (self.error_pos[0], str(e))
             return False
         return True
