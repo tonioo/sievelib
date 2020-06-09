@@ -807,7 +807,7 @@ class EnvelopeCommand(TestCommand):
 class ExistsCommand(TestCommand):
     args_definition = [
         {"name": "header-names",
-         "type": ["stringlist"],
+         "type": ["string", "stringlist"],
          "required": True}
     ]
 
