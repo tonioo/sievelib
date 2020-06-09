@@ -85,7 +85,11 @@ class Lexer(object):
 
             m = self.regexp.match(text, self.pos)
             if m is None:
-                raise ParseError("unknown token %s" % text[self.pos:])
+                token = text[self.pos:]
+                m = self.wsregexp.search(token)
+                if m is not None:
+                    token = token[:m.start()]
+                raise ParseError("unknown token %s" % token)
 
             yield (m.lastgroup, m.group(m.lastgroup))
             self.pos += len(m.group(0))
