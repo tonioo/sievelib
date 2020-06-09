@@ -31,6 +31,7 @@ except ImportError:  # python < 3.3
     from collections import Iterable
 
 from future.utils import python_2_unicode_compatible
+from collections import OrderedDict
 
 from . import tools
 
@@ -133,6 +134,7 @@ class Command(object):
 
     """
     _type = None
+    _name = None
     variable_args_nb = False
     non_deterministic_args = False
     accept_children = False
@@ -150,13 +152,83 @@ class Command(object):
         self.rargs_cnt = 0
         self.curarg = None  # for arguments that expect an argument :p (ex: :comparator)
 
-        self.name = self.__class__.__name__.replace("Command", "")
+        if self._name == None:
+            self.name = self.__class__.__name__.replace("Command", "")
+        else:
+            self.name = self._name
+
         self.name = self.name.lower()
 
         self.hash_comments = []
 
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
+
+    def manglearg(self,str):
+        return str
+
+    def todict(self,attributemap=None):
+        """Generate the dict representation corresponding to this command
+
+        Recursive method.
+
+        """
+        j = OrderedDict()
+        comms = []
+        j.update({"type": self.get_type()})
+        j.update({"command": self.name})
+
+        if self.hash_comments:
+            for comment in self.hash_comments:
+                comment_s = comment.decode("utf-8")
+                comms = comms + [comment_s]
+                j.update({"comments": comms})
+
+        if self.arguments:
+            if self.variable_args_nb:
+                j.update({"arguments": []})
+            else:
+                j.update({"arguments": OrderedDict()})
+            for argname in self.arguments:
+                outargname=argname
+                if attributemap:
+                    mappedname=attributemap.get(argname)
+                    if mappedname:
+                        outargname=mappedname
+                
+                args = self[argname]
+                if isinstance(args, list):
+                    for arg in args:
+                        if isinstance(arg, Command):
+                            if self.variable_args_nb:
+                                j["arguments"].append(arg.todict(attributemap=attributemap))
+                            else:
+                                j["arguments"].update(arg.todict(attributemap=attributemap))
+                        else:
+                            argvalue = str(arg).replace('"', '')
+                            if isinstance(j["arguments"].get(outargname), list):
+                                j["arguments"][outargname].append(argvalue)
+                            else:
+                                j["arguments"][outargname] = [argvalue]
+                else:
+                    if isinstance(args, Command):
+                        if self.variable_args_nb:
+                            j["arguments"].append(args.todict(attributemap=attributemap))
+                        else:
+                            j["arguments"].update(args.todict(attributemap=attributemap))
+                    else:
+                        argvalue = str(args).replace('"', '')
+                        if self.variable_args_nb:
+                            j["arguments"].append({outargname: argvalue})
+                        else:
+                            j["arguments"].update({outargname: argvalue})
+
+        if self.children:
+            j.update({"children": []})
+            for child in self.children:
+                if isinstance(child, Command):
+                    j["children"].append(child.todict(attributemap=attributemap))
+        return j
 
     def tosieve(self, indentlevel=0, target=sys.stdout):
         """Generate the sieve syntax corresponding to this command
