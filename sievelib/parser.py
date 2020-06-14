@@ -142,7 +142,7 @@ class Parser(object):
         self.__curcommand = None
         self.__curstringlist = None
         self.__expected = None
-        self.__opened_blocks = 0
+        self.__expected_brackets = []
         RequireCommand.loaded_extensions = []
 
     def __set_expected(self, *args, **kwargs):
@@ -152,6 +152,28 @@ class Parser(object):
         valid possibilities for the next token).
         """
         self.__expected = args
+
+    def __push_expected_bracket(self, ttype, tvalue):
+        """Append a new expected bracket.
+
+        Next time a bracket is closed, it must match the one provided here.
+        """
+        self.__expected_brackets.append((ttype, tvalue))
+
+    def __pop_expected_bracket(self, ttype, tvalue):
+        """Drop the last expected bracket.
+
+        If the given bracket doesn't match the dropped expected bracket,
+        or if no bracket is expected at all, a ParseError will be raised.
+        """
+        try:
+            etype, evalue = self.__expected_brackets.pop()
+        except IndexError:
+            raise ParseError("unexpected closing bracket %s (none opened)" %
+                             (tvalue,))
+        if ttype != etype:
+            raise ParseError("unexpected closing bracket %s (expected %s)" %
+                             (tvalue, evalue))
 
     def __up(self, onlyrecord=False):
         """Return to the current command's parent
@@ -251,6 +273,7 @@ class Parser(object):
             self.__set_expected("string")
             return True
         if ttype == "right_bracket":
+            self.__pop_expected_bracket(ttype, tvalue)
             self.__curcommand.check_next_arg("stringlist", self.__curstringlist)
             self.__cstate = self.__arguments
             return self.__check_command_completion()
@@ -275,6 +298,7 @@ class Parser(object):
             return self.__curcommand.check_next_arg(ttype, tvalue.decode("ascii"))
 
         if ttype == "left_bracket":
+            self.__push_expected_bracket("right_bracket", b'}')
             self.__cstate = self.__stringlist
             self.__curstringlist = []
             self.__set_expected("string")
@@ -314,6 +338,7 @@ class Parser(object):
             return self.__check_command_completion(testsemicolon=False)
 
         if ttype == "left_parenthesis":
+            self.__push_expected_bracket("right_parenthesis", b')')
             self.__set_expected("identifier")
             return True
 
@@ -322,6 +347,7 @@ class Parser(object):
             return True
 
         if ttype == "right_parenthesis":
+            self.__pop_expected_bracket(ttype, tvalue)
             self.__up()
             return True
 
@@ -348,8 +374,8 @@ class Parser(object):
         """
         if self.__cstate is None:
             if ttype == "right_cbracket":
+                self.__pop_expected_bracket(ttype, tvalue)
                 self.__up()
-                self.__opened_blocks -= 1
                 self.__cstate = None
                 return True
 
@@ -376,7 +402,7 @@ class Parser(object):
             return True
 
         if ttype == "left_cbracket":
-            self.__opened_blocks += 1
+            self.__push_expected_bracket("right_cbracket", b'}')
             self.__cstate = None
             return True
 
@@ -438,8 +464,8 @@ class Parser(object):
                         % (tvalue.decode(), text.decode()[self.lexer.pos])
                     )
                     raise ParseError(msg)
-            if self.__opened_blocks:
-                self.__set_expected("right_cbracket")
+            if self.__expected_brackets:
+                self.__set_expected(self.__expected_brackets[-1][0])
             if self.__expected is not None:
                 raise ParseError("end of script reached while %s expected" %
                                  "|".join(self.__expected))
