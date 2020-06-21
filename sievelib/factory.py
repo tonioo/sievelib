@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """
 Tools for simpler sieve filters generation.
 
@@ -10,17 +8,12 @@ Only commands (control/test/action) defined in the ``commands`` module
 are supported.
 """
 
-from __future__ import print_function, unicode_literals
-
+import io
 import sys
-
-from future.utils import python_2_unicode_compatible
-import six
 
 from sievelib import commands
 
 
-@python_2_unicode_compatible
 class FiltersSet(object):
 
     """A set of filters."""
@@ -42,7 +35,7 @@ class FiltersSet(object):
         self.filters = []
 
     def __str__(self):
-        target = six.StringIO()
+        target = io.StringIO()
         self.tosieve(target)
         ret = target.getvalue()
         target.close()
@@ -74,7 +67,7 @@ class FiltersSet(object):
             name = "Unnamed rule %d" % cpt
             description = ""
             for comment in f.hash_comments:
-                if isinstance(comment, six.binary_type):
+                if isinstance(comment, bytes):
                     comment = comment.decode("utf-8")
                 if comment.startswith(self.filter_name_pretext):
                     name = comment.replace(self.filter_name_pretext, "")
@@ -276,7 +269,7 @@ class FiltersSet(object):
     def _unicode_filter_name(self, name):
         """Convert name to unicode if necessary."""
         return (
-            name.decode("utf-8") if isinstance(name, six.binary_type) else name
+            name.decode("utf-8") if isinstance(name, bytes) else name
         )
 
     def addfilter(self, name, conditions, actions, matchtype="anyof"):

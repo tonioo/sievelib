@@ -1,8 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import unittest
-import six
+import io
 
 from sievelib.factory import FiltersSet
 from .. import parser
@@ -168,7 +165,7 @@ if anyof (envelope :contains ["To"] ["hello@world.it"]) {
         self.assertIn("stop", actions[0])
 
     def test_add_header_filter(self):
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.addfilter(
             "rule1",
             [('Sender', ":is", 'toto@toto.com'), ],
@@ -185,7 +182,7 @@ if anyof (header :is "Sender" "toto@toto.com") {
         output.close()
 
     def test_use_action_with_tag(self):
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.addfilter(
             "rule1",
             [('Sender', ":is", 'toto@toto.com'), ],
@@ -202,7 +199,7 @@ if anyof (header :is "Sender" "toto@toto.com") {
         output.close()
 
     def test_add_header_filter_with_not(self):
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.addfilter(
             "rule1",
             [('Sender', ":notcontains", 'toto@toto.com')],
@@ -218,7 +215,7 @@ if anyof (not header :contains "Sender" "toto@toto.com") {
 """)
 
     def test_add_exists_filter(self):
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.addfilter(
             "rule1",
             [('exists', "list-help", "list-unsubscribe",
@@ -236,7 +233,7 @@ if anyof (exists ["list-help","list-unsubscribe","list-subscribe","list-owner"])
 """)
 
     def test_add_exists_filter_with_not(self):
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.addfilter(
             "rule1",
             [('notexists', "list-help", "list-unsubscribe",
@@ -254,7 +251,7 @@ if anyof (not exists ["list-help","list-unsubscribe","list-subscribe","list-owne
 """)
 
     def test_add_size_filter(self):
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.addfilter(
             "rule1",
             [('size', ":over", "100k")],
@@ -287,7 +284,7 @@ if anyof (size :over 100k) {
                           [("fileinto", 'Toto')])
         self.assertIsNot(self.fs.getfilter("rule1"), None)
         self.assertEqual(self.fs.disablefilter("rule1"), True)
-        output = six.StringIO()
+        output = io.StringIO()
         self.fs.tosieve(output)
         self.assertEqual(output.getvalue(), """require ["fileinto"];
 

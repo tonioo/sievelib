@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """
 SIEVE commands representation
 
@@ -21,17 +19,8 @@ provides extra information such as:
  * etc.
 
 """
-from __future__ import unicode_literals
-
 import sys
-
-try:
-    from collections.abc import Iterable
-except ImportError:  # python < 3.3
-    from collections import Iterable
-
-from future.utils import python_2_unicode_compatible
-
+from collections.abc import Iterable
 from . import tools
 
 
@@ -41,7 +30,6 @@ class CommandError(Exception):
     pass
 
 
-@python_2_unicode_compatible
 class UnknownCommand(CommandError):
     """Specific exception raised when an unknown command is encountered"""
 
@@ -52,7 +40,6 @@ class UnknownCommand(CommandError):
         return "unknown command %s" % self.name
 
 
-@python_2_unicode_compatible
 class BadArgument(CommandError):
     """Specific exception raised when a bad argument is encountered"""
 
@@ -66,7 +53,6 @@ class BadArgument(CommandError):
                % (self.seen, self.command, self.expected)
 
 
-@python_2_unicode_compatible
 class BadValue(CommandError):
     """Specific exception raised when a bad argument value is encountered"""
 
@@ -79,7 +65,6 @@ class BadValue(CommandError):
                % (self.value, self.argument)
 
 
-@python_2_unicode_compatible
 class ExtensionNotLoaded(CommandError):
     """Raised when an extension is not loaded."""
 

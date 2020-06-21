@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """
 A MANAGESIEVE client.
 
@@ -9,15 +7,10 @@ a user to syntactically flawed scripts.
 
 Implementation based on RFC 5804.
 """
-from __future__ import print_function
-
 import base64
 import re
 import socket
 import ssl
-
-from future.utils import python_2_unicode_compatible
-import six
 
 from .digest_md5 import DigestMD5
 from . import tools
@@ -36,7 +29,6 @@ class Error(Exception):
     pass
 
 
-@python_2_unicode_compatible
 class Response(Exception):
     def __init__(self, code, data):
         self.code = code
@@ -46,7 +38,6 @@ class Response(Exception):
         return "%s %s" % (self.code, self.data)
 
 
-@python_2_unicode_compatible
 class Literal(Exception):
     def __init__(self, value):
         self.value = value
@@ -227,7 +218,7 @@ class Client(object):
         """
         ret = []
         for a in args:
-            if isinstance(a, six.binary_type):
+            if isinstance(a, bytes):
                 if self.__size_expr.match(a):
                     ret += [a]
                 else:
@@ -268,9 +259,9 @@ class Client(object):
                 self.sock.sendall(l + CRLF)
         code, data, content = self.__read_response(nblines)
 
-        if isinstance(code, six.binary_type):
+        if isinstance(code, bytes):
             code = code.decode("utf-8")
-        if isinstance(data, six.binary_type):
+        if isinstance(data, bytes):
             data = data.decode("utf-8")
 
         if withcontent:
@@ -328,9 +319,9 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        if isinstance(login, six.text_type):
+        if isinstance(login, str):
             login = login.encode("utf-8")
-        if isinstance(password, six.text_type):
+        if isinstance(password, str):
             password = password.encode("utf-8")
         params = base64.b64encode(b'\0'.join([authz_id, login, password]))
         code, data = self.__send_command("AUTHENTICATE", [b"PLAIN", params])
@@ -478,7 +469,7 @@ class Client(object):
 
         :rtype: string
         """
-        if isinstance(self.__capabilities["SIEVE"], six.string_types):
+        if isinstance(self.__capabilities["SIEVE"], str):
             self.__capabilities["SIEVE"] = self.__capabilities["SIEVE"].split()
         return self.__capabilities["SIEVE"]
 
