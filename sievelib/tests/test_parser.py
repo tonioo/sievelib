@@ -589,6 +589,16 @@ if header :is "Sender" "me@example.com" {
 
 """)
 
+    def test_nonopened_parenthesis(self):
+        self.compilation_ko(b"""
+if header :is "Sender" "me@example.com") {
+    discard;
+}
+""")
+
+    def test_nonopened_block2(self):
+        self.compilation_ko(b"""}""")
+
     def test_unknown_token(self):
         self.compilation_ko(b"""
 if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
@@ -598,6 +608,9 @@ if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
 
     def test_empty_string_list(self):
         self.compilation_ko(b"require [];")
+
+    def test_unopened_string_list(self):
+        self.compilation_ko(b'require "fileinto"];')
 
     def test_unclosed_string_list(self):
         self.compilation_ko(b'require ["toto", "tata";')
@@ -834,7 +847,7 @@ class VariablesCommands(SieveTest):
         self.compilation_ok(b"""require ["variables"];
 
 set "matchsub" "testsubject";
-        
+
 if allof (
   header :contains ["Subject"] "${header}"
 )
