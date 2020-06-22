@@ -227,6 +227,19 @@ class Client(object):
             ret += [bytes(str(a).encode("utf-8"))]
         return ret
 
+    def __prepare_content(self, content):
+        """Format script content before sending it.
+
+        Script length must be inserted before the content,
+        enclosed in curly braces, separated by CRLF.
+
+        :param content: script content as str or bytes
+        :return: transformed script as bytes
+        """
+        if isinstance(content, str):
+            content = content.encode('utf-8')
+        return b"{%d+}%s%s" % (len(content), CRLF, content)
+
     def __send_command(
             self, name, args=None, withcontent=False, extralines=None,
             nblines=-1):
@@ -596,8 +609,7 @@ class Client(object):
         :param content: script's content
         :rtype: boolean
         """
-        content = tools.to_bytes(content)
-        content = tools.to_bytes("{%d+}" % len(content)) + CRLF + content
+        content = self.__prepare_content(content)
         code, data = (
             self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content]))
         if code == "OK":
@@ -693,8 +705,7 @@ class Client(object):
         if "VERSION" not in self.__capabilities:
             raise NotImplementedError(
                 "server does not support CHECKSCRIPT command")
-        content = tools.to_bytes(content)
-        content = tools.to_bytes("{%d+}" % len(content)) + CRLF + content
+        content = self.__prepare_content(content)
         code, data = self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":
             return True
