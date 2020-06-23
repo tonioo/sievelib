@@ -1,12 +1,10 @@
-# coding: utf-8
-
 """
 Unit tests for the SIEVE language parser.
 """
 import unittest
 import os.path
 import codecs
-import six
+import io
 
 from sievelib.parser import Parser
 from sievelib.factory import FiltersSet
@@ -59,7 +57,7 @@ class SieveTest(unittest.TestCase):
         self.__checkCompilation(script, False)
 
     def representation_is(self, content):
-        target = six.StringIO()
+        target = io.StringIO()
         self.parser.dump(target)
         repr_ = target.getvalue()
         target.close()
@@ -68,7 +66,7 @@ class SieveTest(unittest.TestCase):
     def sieve_is(self, content):
         filtersset = FiltersSet("Testfilterset")
         filtersset.from_parser_result(self.parser)
-        target = six.StringIO()
+        target = io.StringIO()
         filtersset.tosieve(target)
         repr_ = target.getvalue()
         target.close()

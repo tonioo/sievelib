@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 This module provides a simple but functional parser for the SIEVE
@@ -8,19 +7,13 @@ language used to filter emails.
 This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 
 """
-from __future__ import print_function
-
 import re
 import sys
-
-from future.utils import python_2_unicode_compatible, text_type
-import six
 
 from sievelib.commands import (
     get_command_instance, CommandError, RequireCommand)
 
 
-@python_2_unicode_compatible
 class ParseError(Exception):
     """Generic parsing error"""
 
@@ -48,9 +41,7 @@ class Lexer(object):
         self.definitions = definitions
         parts = []
         for name, part in definitions:
-            param = "(?P<%s>%s)" % (name.decode(), part.decode())
-            if six.PY3:
-                param = bytes(param, "utf-8")
+            param = b"(?P<%s>%s)" % (name, part)
             parts.append(param)
         self.regexpString = b"|".join(parts)
         self.regexp = re.compile(self.regexpString, re.MULTILINE)
@@ -430,7 +421,7 @@ class Parser(object):
         :param text: a string containing the data to parse
         :return: True on success (no error detected), False otherwise
         """
-        if isinstance(text, text_type):
+        if isinstance(text, str):
             text = text.encode("utf-8")
 
         self.__reset_parser()

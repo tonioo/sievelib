@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 A setuptools based setup module.
@@ -8,14 +7,10 @@ See:
 https://packaging.python.org/en/latest/distributing.html
 """
 
-from __future__ import unicode_literals
-
 import io
 from os import path
 from setuptools import setup, find_packages
 
-
-INSTALL_REQUIRES = ['future', 'six']
 
 if __name__ == "__main__":
     HERE = path.abspath(path.dirname(__file__))
@@ -31,7 +26,7 @@ if __name__ == "__main__":
         url="https://github.com/tonioo/sievelib",
         license="MIT",
         keywords=["sieve", "managesieve", "parser", "client"],
-        install_requires=INSTALL_REQUIRES,
+        install_requires=[],
         setup_requires=["setuptools_scm"],
         use_scm_version=True,
         classifiers=[

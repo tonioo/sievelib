@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """
 Simple Digest-MD5 implementation (client side)
 

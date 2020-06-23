@@ -3,9 +3,8 @@ language: python
 cache: pip
 
 python:
-  - '2.7'
-  - '3.4'
-  - '3.6'
+  - '3.5'
+  - '3.8'
 
 before_install:
   - pip install codecov nose
@@ -27,4 +26,4 @@ deploy:
   distributions: sdist bdist_wheel
   on:
     tags: true
-    python: '3.6'
+    python: '3.8'
