@@ -696,6 +696,16 @@ if (true) {
 if stop;
 """)
 
+    def test_extra_test_in_simple_control(self):
+        self.compilation_ko(b"""
+if address "From" "example.com" header "Subject" "Example" { stop; }
+""")
+
+    def test_missing_comma_in_test_list(self):
+        self.compilation_ko(b"""
+if allof(anyof(address "From" "example.com") header "Subject" "Example") { stop; }
+""")
+
 
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
