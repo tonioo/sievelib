@@ -193,18 +193,30 @@ class Parser(object):
             self.hash_comments = []
             self.result += [self.__curcommand]
 
-        if not onlyrecord:
-            while self.__curcommand:
-                self.__curcommand = self.__curcommand.parent
-                # Make sure to detect all done tests (including 'not' ones).
-                condition = (
-                    self.__curcommand and
-                    self.__curcommand.get_type() == "test" and
-                    self.__curcommand.iscomplete()
-                )
-                if condition:
-                    continue
+        if onlyrecord:
+            # We are done
+            return
+
+        while self.__curcommand:
+            self.__curcommand = self.__curcommand.parent
+            if not self.__curcommand:
                 break
+            # Make sure to detect all done tests (including 'not' ones).
+            condition = (
+                self.__curcommand.get_type() == "test" and
+                self.__curcommand.iscomplete()
+            )
+            if condition:
+                continue
+            # If we are on a control accepting a test list, next token
+            # must be a comma or a right parenthesis.
+            condition = (
+                self.__curcommand.get_type() == "test" and
+                self.__curcommand.variable_args_nb
+            )
+            if condition:
+                self.__set_expected("comma", "right_parenthesis")
+            break
 
     def __check_command_completion(self, testsemicolon=True):
         """Check for command(s) completion
@@ -224,9 +236,11 @@ class Parser(object):
             return True
 
         ctype = self.__curcommand.get_type()
-        if ctype == "action" or \
-                (ctype == "control" and
-                 not self.__curcommand.accept_children):
+        condition = (
+            ctype == "action" or
+            (ctype == "control" and not self.__curcommand.accept_children)
+        )
+        if condition:
             if testsemicolon:
                 self.__set_expected("semicolon")
             return True
@@ -237,6 +251,7 @@ class Parser(object):
             if self.__curcommand.get_type() in ["control", "test"]:
                 if self.__curcommand.iscomplete():
                     if self.__curcommand.get_type() == "control":
+                        self.__set_expected("left_cbracket")
                         break
                     continue
                 if not self.__curcommand.check_next_arg("test", cmd, add=False):
@@ -245,7 +260,6 @@ class Parser(object):
                     if self.__curcommand.variable_args_nb:
                         self.__set_expected("comma", "right_parenthesis")
                     break
-
         return True
 
     def __stringlist(self, ttype, tvalue):
@@ -442,9 +456,9 @@ class Parser(object):
                     if ttype not in self.__expected:
                         if self.lexer.pos < len(text) + len(tvalue):
                             msg = (
-                                "%s found while %s expected near '%s'"
-                                % (ttype, "|".join(self.__expected),
-                                   text[self.lexer.pos])
+                                "{} found while {} expected near '{}'"
+                                .format(ttype, "|".join(self.__expected),
+                                        text.decode()[self.lexer.pos])
                             )
                         else:
                             msg = (

@@ -419,6 +419,11 @@ if (type: control)
     discard (type: action)
 """)
 
+    def test_multitest_testlist(self):
+        self.compilation_ok(b"""
+if anyof(allof(address :contains "From" ""), allof(header :contains "Subject" "")) {}
+""")
+
     def test_truefalse_testlist(self):
         self.compilation_ok(b"""
 if anyof(true, false) {
@@ -694,6 +699,16 @@ if (true) {
     def test_control_command_in_test(self):
         self.compilation_ko(b"""
 if stop;
+""")
+
+    def test_extra_test_in_simple_control(self):
+        self.compilation_ko(b"""
+if address "From" "example.com" header "Subject" "Example" { stop; }
+""")
+
+    def test_missing_comma_in_test_list(self):
+        self.compilation_ko(b"""
+if allof(anyof(address "From" "example.com") header "Subject" "Example") { stop; }
 """)
 
 
