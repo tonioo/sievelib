@@ -691,6 +691,11 @@ if (true) {
 }
 """)
 
+    def test_control_command_in_test(self):
+        self.compilation_ko(b"""
+if stop;
+""")
+
 
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):

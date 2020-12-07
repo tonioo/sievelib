@@ -323,6 +323,11 @@ class Parser(object):
         """
         if ttype == "identifier":
             test = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
+            if test.get_type() != "test":
+                raise ParseError(
+                    "Expected test command, '{}' found instead"
+                    .format(test.name)
+                )
             self.__curcommand.check_next_arg("test", test)
             self.__expected = test.get_expected_first()
             self.__curcommand = test
@@ -444,7 +449,7 @@ class Parser(object):
                         else:
                             msg = (
                                 "%s found while %s expected at end of file"
-                                  % (ttype, "|".join(self.__expected))
+                                % (ttype, "|".join(self.__expected))
                             )
                         raise ParseError(msg)
                     self.__expected = None
