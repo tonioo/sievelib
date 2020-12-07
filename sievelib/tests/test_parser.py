@@ -419,6 +419,11 @@ if (type: control)
     discard (type: action)
 """)
 
+    def test_multitest_testlist(self):
+        self.compilation_ok(b"""
+if anyof(allof(address :contains "From" ""), allof(header :contains "Subject" "")) {}
+""")
+
     def test_truefalse_testlist(self):
         self.compilation_ok(b"""
 if anyof(true, false) {

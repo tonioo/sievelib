@@ -209,13 +209,13 @@ class Parser(object):
             if condition:
                 continue
             # If we are on a control accepting a test list, next token
-            # must be a comma
+            # must be a comma or a right parenthesis.
             condition = (
                 self.__curcommand.get_type() == "test" and
                 self.__curcommand.variable_args_nb
             )
             if condition:
-                self.__set_expected("comma")
+                self.__set_expected("comma", "right_parenthesis")
             break
 
     def __check_command_completion(self, testsemicolon=True):
