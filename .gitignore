@@ -1,4 +1,7 @@
 .*~$
+.eggs
+.venv
 *.pyc
+build
 dist
 sievelib.egg-info
