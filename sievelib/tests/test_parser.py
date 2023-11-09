@@ -501,6 +501,21 @@ Mmmm, <A HREF="ocean.gif">surf</A>...
 ;
 """)
 
+    def test_vacation_seconds(self):
+        self.compilation_ok("""
+require ["vacation", "vacation-seconds"];
+
+vacation :seconds 10 :addresses ["test@example.org"] "Gone";
+""")
+
+# FIXME - this is currently parsed
+#     def test_vacation_seconds_no_arg(self):
+#         self.compilation_ko("""
+#  require ["vacation", "vacation-seconds"];
+#
+# vacation :seconds :addresses ["test@example.org"] "Gone";
+# """)
+
     def test_reject_extension(self):
         self.compilation_ok(b"""
 require "reject";
@@ -903,6 +918,65 @@ if header :contains "subject" "test" {
         self.compilation_ok(b"""require ["fileinto", "copy"];
 if header :contains "subject" "test" {
     fileinto :copy "Spam";
+}
+""")
+
+
+class RegexMatchTest(SieveTest):
+    def test_header_regex(self):
+        self.compilation_ok(b"""require "regex";
+if header :regex "Subject" "^Test" {
+    discard;
+}
+""")
+
+    def test_header_regex_no_middle(self):
+        self.compilation_ko(b"""require "regex";
+if header "Subject" :regex "^Test" {
+    discard;
+}
+""")
+
+    def test_envelope_regex(self):
+        self.compilation_ok(b"""require ["regex","envelope"];
+if envelope :regex "from" "^test@example\\.org$" {
+    discard;
+}
+""")
+
+    def test_envelope_regex_no_middle(self):
+        self.compilation_ko(b"""require "regex";
+if envelope "from" :regex "^test@example\\.org$" {
+    discard;
+}
+""")
+
+    def test_address_regex(self):
+        self.compilation_ok(b"""require "regex";
+if address :regex "from" "^test@example\\.org$" {
+    discard;
+}
+""")
+
+    def test_address_regex_no_middle(self):
+        self.compilation_ko(b"""require "regex";
+if address "from" :regex "^test@example\\.org$" {
+    discard;
+}
+""")
+
+    def test_body_regex(self):
+        self.compilation_ko(b"""require ["body", "regex"];
+if body :content "text" :regex "Sample" {
+    discard;
+}
+""")
+        print('>>>>', self.parser.error)
+
+    def test_body_regex_not_prefix(self):
+        self.compilation_ko(b"""require ["body", "regex"];
+if body :regex :content "text" :contains "Sample" {
+    discard;
 }
 """)
 

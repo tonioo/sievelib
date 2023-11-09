@@ -868,10 +868,6 @@ class BodyCommand(TestCommand):
     args_definition = [
         comparator,
         match_type,
-        {"name": "regex",
-         "type": ["tag"],
-         "values": [":regex"],
-         "required": False},
         {"name": "body-transform",
          "values": [":raw", ":content", ":text"],
          "extra_arg": {"type": "stringlist", "valid_for": [":content"]},
