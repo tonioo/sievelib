@@ -1023,7 +1023,7 @@ class VacationCommand(ActionCommand):
          "required": False},
         {"name": "seconds",
          "type": ["tag"],
-         "values": [":seconds"],
+         "extension_values": {":seconds": "vacation-seconds"},
          "extra_arg": {"type": "number"},
          "required": False},
         {"name": "days",
