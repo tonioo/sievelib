@@ -965,17 +965,16 @@ if address "from" :regex "^test@example\\.org$" {
 }
 """)
 
-    def test_body_regex(self):
-        self.compilation_ko(b"""require ["body", "regex"];
-if body :content "text" :regex "Sample" {
+    def test_body_raw_regex(self):
+        self.compilation_ok(b"""require ["body", "regex"];
+if body :raw :regex "Sample" {
     discard;
 }
 """)
-        print('>>>>', self.parser.error)
 
-    def test_body_regex_not_prefix(self):
-        self.compilation_ko(b"""require ["body", "regex"];
-if body :regex :content "text" :contains "Sample" {
+    def test_body_content_regex(self):
+        self.compilation_ok(b"""require ["body", "regex"];
+if body :content "text" :regex "Sample" {
     discard;
 }
 """)

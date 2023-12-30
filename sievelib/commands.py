@@ -98,7 +98,7 @@ match_type = {
     "extra_arg": {
         "type": "string",
         "values": ['"gt"', '"ge"', '"lt"', '"le"', '"eq"', '"ne"'],
-        "valid_for": [":count", ":value", ":regex"]
+        "valid_for": [":count", ":value"]
     },
     "type": ["tag"],
     "required": False,
