@@ -92,12 +92,13 @@ match_type = {
     "values": [":is", ":contains", ":matches"],
     "extension_values": {
         ":count": "relational",
-        ":value": "relational"
+        ":value": "relational",
+        ":regex": "regex"
     },
     "extra_arg": {
         "type": "string",
         "values": ['"gt"', '"ge"', '"lt"', '"le"', '"eq"', '"ne"'],
-        "valid_for": [":count", ":value"]
+        "valid_for": [":count", ":value", ":regex"]
     },
     "type": ["tag"],
     "required": False,
@@ -714,10 +715,6 @@ class AddressCommand(TestCommand):
         comparator,
         address_part,
         match_type,
-        {"name": "regex",
-         "type": ["tag"],
-         "values": [":regex"],
-         "required": False},
         {"name": "header-list",
          "type": ["string", "stringlist"],
          "required": True},
@@ -760,10 +757,6 @@ class EnvelopeCommand(TestCommand):
         comparator,
         address_part,
         match_type,
-        {"name": "regex",
-         "type": ["tag"],
-         "values": [":regex"],
-         "required": False},
         {"name": "header-list",
          "type": ["string", "stringlist"],
          "required": True},
@@ -832,10 +825,6 @@ class HeaderCommand(TestCommand):
     args_definition = [
         comparator,
         match_type,
-        {"name": "regex",
-         "type": ["tag"],
-         "values": [":regex"],
-         "required": False},
         {"name": "header-names",
          "type": ["string", "stringlist"],
          "required": True},
