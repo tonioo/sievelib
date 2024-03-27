@@ -557,7 +557,7 @@ class Client(object):
         return None
 
     @authentication_required
-    def havespace(self, scriptname, scriptsize):
+    def havespace(self, scriptname: str, scriptsize: int) -> bool:
         """Ask for available space.
 
         See MANAGESIEVE specifications, section 2.5

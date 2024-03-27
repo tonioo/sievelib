@@ -53,3 +53,31 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage.xml
+
+  release:
+    if: github.event_name != 'pull_request'
+    needs: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Publish to Test PyPI
+        if: endsWith(github.event.ref, '/master')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_password }}
+          repository_url: https://test.pypi.org/legacy/
+          skip_existing: true
+      - name: Publish distribution to PyPI
+        if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
+          skip_existing: true
