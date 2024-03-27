@@ -6,9 +6,8 @@ Implementation based on RFC 2831 (http://www.ietf.org/rfc/rfc2831.txt)
 
 import base64
 import hashlib
-import binascii
 import re
-import random
+import secrets
 
 
 class DigestMD5(object):
@@ -18,23 +17,20 @@ class DigestMD5(object):
 
         self.__params = {}
         pexpr = re.compile(r'(\w+)="(.+)"')
-        for elt in base64.b64decode(challenge).split(","):
+        for elt in base64.b64decode(challenge).decode("latin").split(","):
             m = pexpr.match(elt)
             if m is None:
                 continue
             self.__params[m.group(1)] = m.group(2)
 
     def __make_cnonce(self):
-        ret = ""
-        for i in xrange(12):
-            ret += chr(random.randint(0, 0xff))
-        return base64.b64encode(ret)
+        return base64.b64encode(secrets.token_bytes(12))
 
     def __digest(self, value):
-        return hashlib.md5(value).digest()
+        return hashlib.md5(value.encode("latin")).digest()
 
     def __hexdigest(self, value):
-        return binascii.hexlify(hashlib.md5(value).digest())
+        return hashlib.md5(value.encode("latin")).hexdigest()
 
     def __make_response(self, username, password, check=False):
         a1 = "%s:%s:%s" % (
@@ -52,8 +48,7 @@ class DigestMD5(object):
         return self.__hexdigest(resp)
 
     def response(self, username, password, authz_id=''):
-        self.realm = self.__params["realm"] \
-            if self.__params.has_key("realm") else ""
+        self.realm = self.__params.get("realm", "")
         self.cnonce = self.__make_cnonce()
         respvalue = self.__make_response(username, password)
 
@@ -63,11 +58,9 @@ class DigestMD5(object):
                ('realm="%s",' % self.realm) if len(self.realm) else "",
                self.__params["nonce"], self.cnonce, self.__digesturi, respvalue)
         if authz_id:
-            if type(authz_id) is unicode:
-                authz_id = authz_id.encode("utf-8")
             dgres += ',authzid="%s"' % authz_id
 
-        return base64.b64encode(dgres)
+        return base64.b64encode(dgres.encode("latin"))
 
     def check_last_challenge(self, username, password, value):
         challenge = base64.b64decode(value.strip('"'))
