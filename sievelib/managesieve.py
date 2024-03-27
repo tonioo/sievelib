@@ -602,7 +602,7 @@ class Client(object):
         return (active_script, ret)
 
     @authentication_required
-    def getscript(self, name: str) -> str|None:
+    def getscript(self, name: str) -> str:
         """
         Download a script from the server.
 
