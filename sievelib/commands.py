@@ -92,7 +92,8 @@ match_type = {
     "values": [":is", ":contains", ":matches"],
     "extension_values": {
         ":count": "relational",
-        ":value": "relational"
+        ":value": "relational",
+        ":regex": "regex"
     },
     "extra_arg": {
         "type": "string",
@@ -1019,6 +1020,11 @@ class VacationCommand(ActionCommand):
          "type": ["tag"],
          "values": [":subject"],
          "extra_arg": {"type": "string"},
+         "required": False},
+        {"name": "seconds",
+         "type": ["tag"],
+         "extension_values": {":seconds": "vacation-seconds"},
+         "extra_arg": {"type": "number"},
          "required": False},
         {"name": "days",
          "type": ["tag"],
