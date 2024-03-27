@@ -23,7 +23,7 @@ class ParseError(Exception):
         return "parsing error: %s" % self.msg
 
 
-class Lexer(object):
+class Lexer:
     """
     The lexical analysis part.
 
@@ -85,7 +85,7 @@ class Lexer(object):
             self.pos += len(m.group(0))
 
 
-class Parser(object):
+class Parser:
     """The grammatical analysis part.
 
     Here we define the SIEVE language tokens and grammar. This class
@@ -177,7 +177,7 @@ class Parser(object):
         """
         if self.__curcommand.must_follow is not None:
             if not self.__curcommand.parent:
-                prevcmd = self.result[-1] if len(self.result) else None
+                prevcmd = self.result[-1] if len(self.result) != 0 else None
             else:
                 prevcmd = (
                     self.__curcommand.parent.children[-2]
@@ -520,41 +520,36 @@ class Parser(object):
 
 
 if __name__ == "__main__":
-    from optparse import OptionParser
+    import argparse
 
-    op = OptionParser()
-    op.usage = "%prog: [options] files"
-    op.add_option(
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
         default=False,
         help="Activate verbose mode",
     )
-    op.add_option(
+    parser.add_argument(
         "-d",
         "--debug",
         action="store_true",
         default=False,
         help="Activate debug traces",
     )
-    op.add_option(
+    parser.add_argument(
         "--tosieve", action="store_true", help="Print parser results using sieve"
     )
-    options, args = op.parse_args()
-
-    if not len(args):
-        print("Nothing to parse, exiting.")
-        sys.exit(0)
-
-    for a in args:
-        p = Parser(debug=options.debug)
-        print("Parsing file %s... " % a, end=" ")
-        if p.parse_file(a):
+    parser.add_argument("files", type=str, nargs="+", help="Files to parse")
+    args = parser.parse_args()
+    for fname in args.files:
+        p = Parser(debug=args.debug)
+        print(f"Parsing file {fname}... ", end=" ")
+        if p.parse_file(fname):
             print("OK")
-            if options.verbose:
+            if args.verbose:
                 p.dump()
-            if options.tosieve:
+            if args.tosieve:
                 for r in p.result:
                     r.tosieve()
             continue
