@@ -10,8 +10,7 @@ This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 import re
 import sys
 
-from sievelib.commands import (
-    get_command_instance, CommandError, RequireCommand)
+from sievelib.commands import get_command_instance, CommandError, RequireCommand
 
 
 class ParseError(Exception):
@@ -45,15 +44,15 @@ class Lexer(object):
             parts.append(param)
         self.regexpString = b"|".join(parts)
         self.regexp = re.compile(self.regexpString, re.MULTILINE)
-        self.wsregexp = re.compile(br'\s+', re.M)
+        self.wsregexp = re.compile(rb"\s+", re.M)
 
     def curlineno(self):
         """Return the current line number"""
-        return self.text[:self.pos].count(b'\n') + 1
+        return self.text[: self.pos].count(b"\n") + 1
 
     def curcolno(self):
         """Return the current column number"""
-        return self.pos - self.text.rfind(b'\n', 0, self.pos)
+        return self.pos - self.text.rfind(b"\n", 0, self.pos)
 
     def scan(self, text):
         """Analyse some data
@@ -76,10 +75,10 @@ class Lexer(object):
 
             m = self.regexp.match(text, self.pos)
             if m is None:
-                token = text[self.pos:]
+                token = text[self.pos :]
                 m = self.wsregexp.search(token)
                 if m is not None:
-                    token = token[:m.start()]
+                    token = token[: m.start()]
                 raise ParseError("unknown token %s" % token)
 
             yield (m.lastgroup, m.group(m.lastgroup))
@@ -92,22 +91,23 @@ class Parser(object):
     Here we define the SIEVE language tokens and grammar. This class
     works with a Lexer object in order to check for grammar validity.
     """
+
     lrules = [
-        (b"left_bracket", br'\['),
-        (b"right_bracket", br'\]'),
-        (b"left_parenthesis", br'\('),
-        (b"right_parenthesis", br'\)'),
-        (b"left_cbracket", br'{'),
-        (b"right_cbracket", br'}'),
-        (b"semicolon", br';'),
-        (b"comma", br','),
-        (b"hash_comment", br'#.*$'),
-        (b"bracket_comment", br'/\*[\s\S]*?\*/'),
-        (b"multiline", br'text:[^$]*?[\r\n]+\.$'),
-        (b"string", br'"([^"\\]|\\.)*"'),
-        (b"identifier", br'[a-zA-Z_][\w]*'),
-        (b"tag", br':[a-zA-Z_][\w]*'),
-        (b"number", br'[0-9]+[KMGkmg]?'),
+        (b"left_bracket", rb"\["),
+        (b"right_bracket", rb"\]"),
+        (b"left_parenthesis", rb"\("),
+        (b"right_parenthesis", rb"\)"),
+        (b"left_cbracket", rb"{"),
+        (b"right_cbracket", rb"}"),
+        (b"semicolon", rb";"),
+        (b"comma", rb","),
+        (b"hash_comment", rb"#.*$"),
+        (b"bracket_comment", rb"/\*[\s\S]*?\*/"),
+        (b"multiline", rb"text:[^$]*?[\r\n]+\.$"),
+        (b"string", rb'"([^"\\]|\\.)*"'),
+        (b"identifier", rb"[a-zA-Z_][\w]*"),
+        (b"tag", rb":[a-zA-Z_][\w]*"),
+        (b"number", rb"[0-9]+[KMGkmg]?"),
     ]
 
     def __init__(self, debug=False):
@@ -160,11 +160,11 @@ class Parser(object):
         try:
             etype, evalue = self.__expected_brackets.pop()
         except IndexError:
-            raise ParseError("unexpected closing bracket %s (none opened)" %
-                             (tvalue,))
+            raise ParseError("unexpected closing bracket %s (none opened)" % (tvalue,))
         if ttype != etype:
-            raise ParseError("unexpected closing bracket %s (expected %s)" %
-                             (tvalue, evalue))
+            raise ParseError(
+                "unexpected closing bracket %s (expected %s)" % (tvalue, evalue)
+            )
 
     def __up(self, onlyrecord=False):
         """Return to the current command's parent
@@ -179,12 +179,19 @@ class Parser(object):
             if not self.__curcommand.parent:
                 prevcmd = self.result[-1] if len(self.result) else None
             else:
-                prevcmd = self.__curcommand.parent.children[-2] \
-                    if len(self.__curcommand.parent.children) >= 2 else None
+                prevcmd = (
+                    self.__curcommand.parent.children[-2]
+                    if len(self.__curcommand.parent.children) >= 2
+                    else None
+                )
             if prevcmd is None or prevcmd.name not in self.__curcommand.must_follow:
-                raise ParseError("the %s command must follow an %s command" %
-                                 (self.__curcommand.name,
-                                  " or ".join(self.__curcommand.must_follow)))
+                raise ParseError(
+                    "the %s command must follow an %s command"
+                    % (
+                        self.__curcommand.name,
+                        " or ".join(self.__curcommand.must_follow),
+                    )
+                )
 
         if not self.__curcommand.parent:
             # collect current amount of hash comments for later
@@ -203,16 +210,16 @@ class Parser(object):
                 break
             # Make sure to detect all done tests (including 'not' ones).
             condition = (
-                self.__curcommand.get_type() == "test" and
-                self.__curcommand.iscomplete()
+                self.__curcommand.get_type() == "test"
+                and self.__curcommand.iscomplete()
             )
             if condition:
                 continue
             # If we are on a control accepting a test list, next token
             # must be a comma or a right parenthesis.
             condition = (
-                self.__curcommand.get_type() == "test" and
-                self.__curcommand.variable_args_nb
+                self.__curcommand.get_type() == "test"
+                and self.__curcommand.variable_args_nb
             )
             if condition:
                 self.__set_expected("comma", "right_parenthesis")
@@ -236,9 +243,8 @@ class Parser(object):
             return True
 
         ctype = self.__curcommand.get_type()
-        condition = (
-            ctype == "action" or
-            (ctype == "control" and not self.__curcommand.accept_children)
+        condition = ctype == "action" or (
+            ctype == "control" and not self.__curcommand.accept_children
         )
         if condition:
             if testsemicolon:
@@ -303,15 +309,15 @@ class Parser(object):
             return self.__curcommand.check_next_arg(ttype, tvalue.decode("ascii"))
 
         if ttype == "left_bracket":
-            self.__push_expected_bracket("right_bracket", b'}')
+            self.__push_expected_bracket("right_bracket", b"}")
             self.__cstate = self.__stringlist
             self.__curstringlist = []
             self.__set_expected("string")
             return True
 
         condition = (
-            ttype in ["left_cbracket", "comma"] and
-            self.__curcommand.non_deterministic_args
+            ttype in ["left_cbracket", "comma"]
+            and self.__curcommand.non_deterministic_args
         )
         if condition:
             self.__curcommand.reassign_arguments()
@@ -339,8 +345,7 @@ class Parser(object):
             test = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
             if test.get_type() != "test":
                 raise ParseError(
-                    "Expected test command, '{}' found instead"
-                    .format(test.name)
+                    "Expected test command, '{}' found instead".format(test.name)
                 )
             self.__curcommand.check_next_arg("test", test)
             self.__expected = test.get_expected_first()
@@ -348,7 +353,7 @@ class Parser(object):
             return self.__check_command_completion(testsemicolon=False)
 
         if ttype == "left_parenthesis":
-            self.__push_expected_bracket("right_parenthesis", b')')
+            self.__push_expected_bracket("right_parenthesis", b")")
             self.__set_expected("identifier")
             return True
 
@@ -391,18 +396,20 @@ class Parser(object):
 
             if ttype != "identifier":
                 return False
-            command = get_command_instance(
-                tvalue.decode("ascii"), self.__curcommand)
+            command = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
             if command.get_type() == "test":
-                raise ParseError(
-                    "%s may not appear as a first command" % command.name)
-            if command.get_type() == "control" and command.accept_children \
-               and command.has_arguments():
+                raise ParseError("%s may not appear as a first command" % command.name)
+            if (
+                command.get_type() == "control"
+                and command.accept_children
+                and command.has_arguments()
+            ):
                 self.__set_expected("identifier")
             if self.__curcommand is not None:
                 if not self.__curcommand.addchild(command):
-                    raise ParseError("%s unexpected after a %s" %
-                                     (tvalue, self.__curcommand.name))
+                    raise ParseError(
+                        "%s unexpected after a %s" % (tvalue, self.__curcommand.name)
+                    )
             self.__curcommand = command
             self.__cstate = self.__arguments
 
@@ -412,7 +419,7 @@ class Parser(object):
             return True
 
         if ttype == "left_cbracket":
-            self.__push_expected_bracket("right_cbracket", b'}')
+            self.__push_expected_bracket("right_cbracket", b"}")
             self.__cstate = None
             return True
 
@@ -445,7 +452,7 @@ class Parser(object):
 
         self.__reset_parser()
         try:
-            tvalue = ''
+            tvalue = ""
             for ttype, tvalue in self.lexer.scan(text):
                 if ttype == "hash_comment":
                     self.hash_comments += [tvalue.strip()]
@@ -455,33 +462,39 @@ class Parser(object):
                 if self.__expected is not None:
                     if ttype not in self.__expected:
                         if self.lexer.pos < len(text) + len(tvalue):
-                            msg = (
-                                "{} found while {} expected near '{}'"
-                                .format(ttype, "|".join(self.__expected),
-                                        text.decode()[self.lexer.pos])
+                            msg = "{} found while {} expected near '{}'".format(
+                                ttype,
+                                "|".join(self.__expected),
+                                text.decode()[self.lexer.pos],
                             )
                         else:
-                            msg = (
-                                "%s found while %s expected at end of file"
-                                % (ttype, "|".join(self.__expected))
+                            msg = "%s found while %s expected at end of file" % (
+                                ttype,
+                                "|".join(self.__expected),
                             )
                         raise ParseError(msg)
                     self.__expected = None
 
                 if not self.__command(ttype, tvalue):
-                    msg = (
-                        "unexpected token '%s' found near '%s'"
-                        % (tvalue.decode(), text.decode()[self.lexer.pos])
+                    msg = "unexpected token '%s' found near '%s'" % (
+                        tvalue.decode(),
+                        text.decode()[self.lexer.pos],
                     )
                     raise ParseError(msg)
             if self.__expected_brackets:
                 self.__set_expected(self.__expected_brackets[-1][0])
             if self.__expected is not None:
-                raise ParseError("end of script reached while %s expected" %
-                                 "|".join(self.__expected))
+                raise ParseError(
+                    "end of script reached while %s expected"
+                    % "|".join(self.__expected)
+                )
 
         except (ParseError, CommandError) as e:
-            self.error_pos = (self.lexer.curlineno(), self.lexer.curcolno(), len(tvalue))
+            self.error_pos = (
+                self.lexer.curlineno(),
+                self.lexer.curcolno(),
+                len(tvalue),
+            )
             self.error = "line %d: %s" % (self.error_pos[0], str(e))
             return False
         return True
@@ -511,12 +524,23 @@ if __name__ == "__main__":
 
     op = OptionParser()
     op.usage = "%prog: [options] files"
-    op.add_option("-v", "--verbose", action="store_true", default=False,
-                  help="Activate verbose mode")
-    op.add_option("-d", "--debug", action="store_true", default=False,
-                  help="Activate debug traces")
-    op.add_option("--tosieve", action="store_true",
-                  help="Print parser results using sieve")
+    op.add_option(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Activate verbose mode",
+    )
+    op.add_option(
+        "-d",
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Activate debug traces",
+    )
+    op.add_option(
+        "--tosieve", action="store_true", help="Print parser results using sieve"
+    )
     options, args = op.parse_args()
 
     if not len(args):
@@ -525,7 +549,7 @@ if __name__ == "__main__":
 
     for a in args:
         p = Parser(debug=options.debug)
-        print("Parsing file %s... " % a, end=' ')
+        print("Parsing file %s... " % a, end=" ")
         if p.parse_file(a):
             print("OK")
             if options.verbose:

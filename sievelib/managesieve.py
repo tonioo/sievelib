@@ -7,6 +7,7 @@ a user to syntactically flawed scripts.
 
 Implementation based on RFC 5804.
 """
+
 import base64
 import re
 import socket
@@ -18,11 +19,17 @@ from . import tools
 
 CRLF = b"\r\n"
 
-KNOWN_CAPABILITIES = [u"IMPLEMENTATION", u"SASL", u"SIEVE",
-                      u"STARTTLS", u"NOTIFY", u"LANGUAGE",
-                      u"VERSION"]
+KNOWN_CAPABILITIES = [
+    "IMPLEMENTATION",
+    "SASL",
+    "SIEVE",
+    "STARTTLS",
+    "NOTIFY",
+    "LANGUAGE",
+    "VERSION",
+]
 
-SUPPORTED_AUTH_MECHS = [u"DIGEST-MD5", u"PLAIN", u"LOGIN", u"OAUTHBEARER"]
+SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN", "OAUTHBEARER"]
 
 
 class Error(Exception):
@@ -76,10 +83,10 @@ class Client(object):
         self.errcode = None
 
         self.__capabilities = {}
-        self.__respcode_expr = re.compile(br"(OK|NO|BYE)\s*(.+)?")
-        self.__error_expr = re.compile(br'(\([\w/-]+\))?\s*(".+")')
-        self.__size_expr = re.compile(br"\{(\d+)\+?\}")
-        self.__active_expr = re.compile(br"ACTIVE", re.IGNORECASE)
+        self.__respcode_expr = re.compile(rb"(OK|NO|BYE)\s*(.+)?")
+        self.__error_expr = re.compile(rb'(\([\w/-]+\))?\s*(".+")')
+        self.__size_expr = re.compile(rb"\{(\d+)\+?\}")
+        self.__active_expr = re.compile(rb"ACTIVE", re.IGNORECASE)
 
     def __del__(self):
         if self.sock is not None:
@@ -108,10 +115,7 @@ class Client(object):
         """
         buf = b""
         if len(self.__read_buffer):
-            limit = (
-                size if size <= len(self.__read_buffer) else
-                len(self.__read_buffer)
-            )
+            limit = size if size <= len(self.__read_buffer) else len(self.__read_buffer)
             buf = self.__read_buffer[:limit]
             self.__read_buffer = self.__read_buffer[limit:]
             size -= limit
@@ -144,7 +148,7 @@ class Client(object):
             try:
                 pos = self.__read_buffer.index(CRLF)
                 ret = self.__read_buffer[:pos]
-                self.__read_buffer = self.__read_buffer[pos + len(CRLF):]
+                self.__read_buffer = self.__read_buffer[pos + len(CRLF) :]
                 break
             except ValueError:
                 pass
@@ -237,12 +241,12 @@ class Client(object):
         :return: transformed script as bytes
         """
         if isinstance(content, str):
-            content = content.encode('utf-8')
+            content = content.encode("utf-8")
         return b"{%d+}%s%s" % (len(content), CRLF, content)
 
     def __send_command(
-            self, name, args=None, withcontent=False, extralines=None,
-            nblines=-1):
+        self, name, args=None, withcontent=False, extralines=None, nblines=-1
+    ):
         """Send a command to the server.
 
         If args is not empty, we concatenate the given command with
@@ -292,8 +296,7 @@ class Client(object):
             if cname not in KNOWN_CAPABILITIES:
                 continue
             self.__capabilities[cname] = (
-                parts[1].strip(b'"').decode("utf-8")
-                if len(parts) > 1 else None
+                parts[1].strip(b'"').decode("utf-8") if len(parts) > 1 else None
             )
         return True
 
@@ -336,7 +339,7 @@ class Client(object):
             login = login.encode("utf-8")
         if isinstance(password, str):
             password = password.encode("utf-8")
-        params = base64.b64encode(b'\0'.join([authz_id, login, password]))
+        params = base64.b64encode(b"\0".join([authz_id, login, password]))
         code, data = self.__send_command("AUTHENTICATE", [b"PLAIN", params])
         if code == "OK":
             return True
@@ -349,10 +352,13 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        extralines = [b'"%s"' % base64.b64encode(login.encode("utf-8")),
-                      b'"%s"' % base64.b64encode(password.encode("utf-8"))]
-        code, data = self.__send_command("AUTHENTICATE", [b"LOGIN"],
-                                         extralines=extralines)
+        extralines = [
+            b'"%s"' % base64.b64encode(login.encode("utf-8")),
+            b'"%s"' % base64.b64encode(password.encode("utf-8")),
+        ]
+        code, data = self.__send_command(
+            "AUTHENTICATE", [b"LOGIN"], extralines=extralines
+        )
         if code == "OK":
             return True
         return False
@@ -364,14 +370,15 @@ class Client(object):
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        code, data, challenge = \
-            self.__send_command("AUTHENTICATE", [b"DIGEST-MD5"],
-                                withcontent=True, nblines=1)
+        code, data, challenge = self.__send_command(
+            "AUTHENTICATE", [b"DIGEST-MD5"], withcontent=True, nblines=1
+        )
         dmd5 = DigestMD5(challenge, "sieve/%s" % self.srvaddr)
 
         code, data, challenge = self.__send_command(
             '"%s"' % dmd5.response(login, password, authz_id),
-            withcontent=True, nblines=1
+            withcontent=True,
+            nblines=1,
         )
         if not challenge:
             return False
@@ -507,9 +514,7 @@ class Client(object):
             self.__capabilities["SIEVE"] = self.__capabilities["SIEVE"].split()
         return self.__capabilities["SIEVE"]
 
-    def connect(
-            self, login, password, authz_id=b"", starttls=False,
-            authmech=None):
+    def connect(self, login, password, authz_id=b"", starttls=False, authmech=None):
         """Establish a connection with the server.
 
         This function must be used. It read the server capabilities
@@ -550,8 +555,7 @@ class Client(object):
 
         :rtype: string
         """
-        code, data, capabilities = (
-            self.__send_command("CAPABILITY", withcontent=True))
+        code, data, capabilities = self.__send_command("CAPABILITY", withcontent=True)
         if code == "OK":
             return capabilities
         return None
@@ -567,7 +571,8 @@ class Client(object):
         :rtype: boolean
         """
         code, data = self.__send_command(
-            "HAVESPACE", [scriptname.encode("utf-8"), scriptsize])
+            "HAVESPACE", [scriptname.encode("utf-8"), scriptsize]
+        )
         if code == "OK":
             return True
         return False
@@ -580,8 +585,7 @@ class Client(object):
 
         :returns: a 2-uple (active script, [script1, ...])
         """
-        code, data, listing = self.__send_command(
-            "LISTSCRIPTS", withcontent=True)
+        code, data, listing = self.__send_command("LISTSCRIPTS", withcontent=True)
         if code == "NO":
             return None
         ret = []
@@ -589,7 +593,7 @@ class Client(object):
         for l in listing.splitlines():
             if self.__size_expr.match(l):
                 continue
-            m = re.match(br'"([^"]+)"\s*(.+)', l)
+            m = re.match(rb'"([^"]+)"\s*(.+)', l)
             if m is None:
                 ret += [l.strip(b'"').decode("utf-8")]
                 continue
@@ -613,12 +617,13 @@ class Client(object):
         :returns: the script's content on succes, None otherwise
         """
         code, data, content = self.__send_command(
-            "GETSCRIPT", [name.encode("utf-8")], withcontent=True)
+            "GETSCRIPT", [name.encode("utf-8")], withcontent=True
+        )
         if code == "OK":
             lines = content.splitlines()
             if self.__size_expr.match(lines[0]) is not None:
                 lines = lines[1:]
-            return u"\n".join([line.decode("utf-8") for line in lines])
+            return "\n".join([line.decode("utf-8") for line in lines])
         return None
 
     @authentication_required
@@ -632,8 +637,7 @@ class Client(object):
         :rtype: boolean
         """
         content = self.__prepare_content(content)
-        code, data = (
-            self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content]))
+        code, data = self.__send_command("PUTSCRIPT", [name.encode("utf-8"), content])
         if code == "OK":
             return True
         return False
@@ -647,8 +651,7 @@ class Client(object):
         :param name: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command(
-            "DELETESCRIPT", [name.encode("utf-8")])
+        code, data = self.__send_command("DELETESCRIPT", [name.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -668,16 +671,15 @@ class Client(object):
         """
         if "VERSION" in self.__capabilities:
             code, data = self.__send_command(
-                "RENAMESCRIPT",
-                [oldname.encode("utf-8"), newname.encode("utf-8")])
+                "RENAMESCRIPT", [oldname.encode("utf-8"), newname.encode("utf-8")]
+            )
             if code == "OK":
                 return True
             return False
 
         (active_script, scripts) = self.listscripts()
-        condition = (
-            oldname != active_script and
-            (scripts is None or oldname not in scripts)
+        condition = oldname != active_script and (
+            scripts is None or oldname not in scripts
         )
         if condition:
             self.errmsg = b"Old script does not exist"
@@ -709,8 +711,7 @@ class Client(object):
         :param scriptname: script's name
         :rtype: boolean
         """
-        code, data = self.__send_command(
-            "SETACTIVE", [scriptname.encode("utf-8")])
+        code, data = self.__send_command("SETACTIVE", [scriptname.encode("utf-8")])
         if code == "OK":
             return True
         return False
@@ -725,8 +726,7 @@ class Client(object):
         :rtype: boolean
         """
         if "VERSION" not in self.__capabilities:
-            raise NotImplementedError(
-                "server does not support CHECKSCRIPT command")
+            raise NotImplementedError("server does not support CHECKSCRIPT command")
         content = self.__prepare_content(content)
         code, data = self.__send_command("CHECKSCRIPT", [content])
         if code == "OK":

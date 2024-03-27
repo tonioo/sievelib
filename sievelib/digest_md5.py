@@ -27,7 +27,7 @@ class DigestMD5(object):
     def __make_cnonce(self):
         ret = ""
         for i in xrange(12):
-            ret += chr(random.randint(0, 0xff))
+            ret += chr(random.randint(0, 0xFF))
         return base64.b64encode(ret)
 
     def __digest(self, value):
@@ -39,29 +39,39 @@ class DigestMD5(object):
     def __make_response(self, username, password, check=False):
         a1 = "%s:%s:%s" % (
             self.__digest("%s:%s:%s" % (username, self.realm, password)),
-            self.__params["nonce"], self.cnonce
+            self.__params["nonce"],
+            self.cnonce,
         )
         if check:
             a2 = ":%s" % self.__digesturi
         else:
             a2 = "AUTHENTICATE:%s" % self.__digesturi
-        resp = "%s:%s:00000001:%s:auth:%s" \
-               % (self.__hexdigest(a1), self.__params["nonce"],
-                  self.cnonce, self.__hexdigest(a2))
+        resp = "%s:%s:00000001:%s:auth:%s" % (
+            self.__hexdigest(a1),
+            self.__params["nonce"],
+            self.cnonce,
+            self.__hexdigest(a2),
+        )
 
         return self.__hexdigest(resp)
 
-    def response(self, username, password, authz_id=''):
-        self.realm = self.__params["realm"] \
-            if self.__params.has_key("realm") else ""
+    def response(self, username, password, authz_id=""):
+        self.realm = self.__params["realm"] if self.__params.has_key("realm") else ""
         self.cnonce = self.__make_cnonce()
         respvalue = self.__make_response(username, password)
 
-        dgres = 'username="%s",%snonce="%s",cnonce="%s",nc=00000001,qop=auth,' \
-                'digest-uri="%s",response=%s' \
-            % (username,
-               ('realm="%s",' % self.realm) if len(self.realm) else "",
-               self.__params["nonce"], self.cnonce, self.__digesturi, respvalue)
+        dgres = (
+            'username="%s",%snonce="%s",cnonce="%s",nc=00000001,qop=auth,'
+            'digest-uri="%s",response=%s'
+            % (
+                username,
+                ('realm="%s",' % self.realm) if len(self.realm) else "",
+                self.__params["nonce"],
+                self.cnonce,
+                self.__digesturi,
+                respvalue,
+            )
+        )
         if authz_id:
             if type(authz_id) is unicode:
                 authz_id = authz_id.encode("utf-8")
@@ -71,5 +81,6 @@ class DigestMD5(object):
 
     def check_last_challenge(self, username, password, value):
         challenge = base64.b64decode(value.strip('"'))
-        return challenge == \
-               ("rspauth=%s" % self.__make_response(username, password, True))
+        return challenge == (
+            "rspauth=%s" % self.__make_response(username, password, True)
+        )

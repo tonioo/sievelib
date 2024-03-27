@@ -1,6 +1,7 @@
 """
 Unit tests for the SIEVE language parser.
 """
+
 import unittest
 import os.path
 import codecs
@@ -13,33 +14,36 @@ import sievelib.commands
 
 class MytestCommand(sievelib.commands.ActionCommand):
     args_definition = [
-        {"name": "testtag",
-         "type": ["tag"],
-         "write_tag": True,
-         "values": [":testtag"],
-         "extra_arg": {"type": "number",
-                       "required": False},
-         "required": False},
-        {"name": "recipients",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {
+            "name": "testtag",
+            "type": ["tag"],
+            "write_tag": True,
+            "values": [":testtag"],
+            "extra_arg": {"type": "number", "required": False},
+            "required": False,
+        },
+        {"name": "recipients", "type": ["string", "stringlist"], "required": True},
     ]
 
 
 class Quota_notificationCommand(sievelib.commands.ActionCommand):
     args_definition = [
-        {"name": "subject",
-         "type": ["tag"],
-         "write_tag": True,
-         "values": [":subject"],
-         "extra_arg": {"type": "string"},
-         "required": False},
-        {"name": "recipient",
-         "type": ["tag"],
-         "write_tag": True,
-         "values": [":recipient"],
-         "extra_arg": {"type": "stringlist"},
-         "required": True}
+        {
+            "name": "subject",
+            "type": ["tag"],
+            "write_tag": True,
+            "values": [":subject"],
+            "extra_arg": {"type": "string"},
+            "required": False,
+        },
+        {
+            "name": "recipient",
+            "type": ["tag"],
+            "write_tag": True,
+            "values": [":recipient"],
+            "extra_arg": {"type": "stringlist"},
+            "required": True,
+        },
     ]
 
 
@@ -77,13 +81,16 @@ class AdditionalCommands(SieveTest):
     def test_add_command(self):
         self.assertRaises(
             sievelib.commands.UnknownCommand,
-            sievelib.commands.get_command_instance, 'mytest'
+            sievelib.commands.get_command_instance,
+            "mytest",
         )
         sievelib.commands.add_commands(MytestCommand)
-        sievelib.commands.get_command_instance('mytest')
-        self.compilation_ok(b"""
+        sievelib.commands.get_command_instance("mytest")
+        self.compilation_ok(
+            b"""
         mytest :testtag 10 ["testrecp1@example.com"];
-        """)
+        """
+        )
 
     def test_quota_notification(self):
         sievelib.commands.add_commands(Quota_notificationCommand)
@@ -94,10 +101,8 @@ class AdditionalCommands(SieveTest):
 
 class ValidEncodings(SieveTest):
     def test_utf8_file(self):
-        utf8_sieve = os.path.join(
-            os.path.dirname(__file__), 'files', 'utf8_sieve.txt'
-        )
-        with codecs.open(utf8_sieve, encoding='utf8') as fobj:
+        utf8_sieve = os.path.join(os.path.dirname(__file__), "files", "utf8_sieve.txt")
+        with codecs.open(utf8_sieve, encoding="utf8") as fobj:
             source_sieve = fobj.read()
         self.parser.parse_file(utf8_sieve)
         self.sieve_is(source_sieve)
@@ -105,51 +110,64 @@ class ValidEncodings(SieveTest):
 
 class ValidSyntaxes(SieveTest):
     def test_hash_comment(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if size :over 100k { # this is a comment
     discard;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     size (type: test)
         :over
         100k
     discard (type: action)
-""")
+"""
+        )
 
     def test_bracket_comment(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if size :over 100K { /* this is a comment
     this is still a comment */ discard /* this is a comment
     */ ;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     size (type: test)
         :over
         100K
     discard (type: action)
-""")
+"""
+        )
 
     def test_string_with_bracket_comment(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if header :contains "Cc" "/* comment */" {
     discard;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     header (type: test)
         :contains
         "Cc"
         "/* comment */"
     discard (type: action)
-""")
+"""
+        )
 
     def test_multiline_string(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require "reject";
 
 if allof (false, address :is ["From", "Sender"] ["blka@bla.com"]) {
@@ -169,8 +187,10 @@ Your email has been canceled too
 .
 ;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 require (type: control)
     "reject"
 if (type: control)
@@ -195,22 +215,26 @@ else (type: control)
 Your email has been canceled too
 ================================
 .
-""")
+"""
+        )
 
     def test_complex_allof_with_not(self):
         """Test for allof/anyof commands including a not test.
 
         See https://github.com/tonioo/sievelib/issues/69.
         """
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require ["fileinto", "reject"];
 
 if allof (not allof (address :is ["From","sender"] ["test1@test2.priv","test2@test2.priv"], header :matches "Subject" "INACTIVE*"), address :is "From" "user3@test3.priv")
 {
     reject;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 require (type: control)
     ["fileinto","reject"]
 if (type: control)
@@ -230,10 +254,12 @@ if (type: control)
             "From"
             "user3@test3.priv"
     reject (type: action)
-""")
+"""
+        )
 
     def test_nested_blocks(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if header :contains "Sender" "example.com" {
   if header :contains "Sender" "me@" {
     discard;
@@ -241,8 +267,10 @@ if header :contains "Sender" "example.com" {
     keep;
   }
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     header (type: test)
         :contains
@@ -260,21 +288,27 @@ if (type: control)
             "Sender"
             "you@"
         keep (type: action)
-""")
+"""
+        )
 
     def test_true_test(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if true {
 
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     true (type: test)
-""")
+"""
+        )
 
     def test_rfc5228_extended(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 #
 # Example Sieve Filter
 # Declare any optional features or extension used by the script
@@ -314,8 +348,10 @@ else
         # mailbox.
         fileinto "personal";
         }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 require (type: control)
     ["fileinto"]
 if (type: control)
@@ -349,15 +385,19 @@ elsif (type: control)
 else (type: control)
     fileinto (type: action)
         "personal"
-""")
+"""
+        )
 
     def test_explicit_comparator(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if header :contains :comparator "i;octet" "Subject" "MAKE MONEY FAST" {
   discard;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     header (type: test)
         :comparator
@@ -366,15 +406,19 @@ if (type: control)
         "Subject"
         "MAKE MONEY FAST"
     discard (type: action)
-""")
+"""
+        )
 
     def test_non_ordered_args(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if address :all :is "from" "tim@example.com" {
     discard;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     address (type: test)
         :all
@@ -382,15 +426,19 @@ if (type: control)
         "from"
         "tim@example.com"
     discard (type: action)
-""")
+"""
+        )
 
     def test_multiple_not(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if not not not not true {
     stop;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     not (type: test)
         not (type: test)
@@ -398,85 +446,107 @@ if (type: control)
                 not (type: test)
                     true (type: test)
     stop (type: action)
-""")
+"""
+        )
 
     def test_just_one_command(self):
         self.compilation_ok(b"keep;")
-        self.representation_is("""
+        self.representation_is(
+            """
 keep (type: action)
-""")
+"""
+        )
 
     def test_singletest_testlist(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if anyof (true) {
     discard;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     anyof (type: test)
         true (type: test)
     discard (type: action)
-""")
+"""
+        )
 
     def test_multitest_testlist(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if anyof(allof(address :contains "From" ""), allof(header :contains "Subject" "")) {}
-""")
+"""
+        )
 
     def test_truefalse_testlist(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if anyof(true, false) {
     discard;
 }
-""")
-        self.representation_is("""
+"""
+        )
+        self.representation_is(
+            """
 if (type: control)
     anyof (type: test)
         true (type: test)
         false (type: test)
     discard (type: action)
-""")
+"""
+        )
 
     def test_vacationext_basic(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require "vacation";
 if header :contains "subject" "cyrus" {
     vacation "I'm out -- send mail to cyrus-bugs";
 } else {
     vacation "I'm out -- call me at +1 304 555 0123";
 }
-""")
+"""
+        )
 
     def test_vacationext_medium(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require "vacation";
 if header :contains "subject" "lunch" {
     vacation :handle "ran-away" "I'm out and can't meet for lunch";
 } else {
     vacation :handle "ran-away" "I'm out";
 }
-""")
+"""
+        )
 
     def test_vacationext_with_limit(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require "vacation";
 vacation :days 23 :addresses ["tjs@example.edu",
                               "ts4z@landru.example.edu"]
    "I'm away until October 19.
    If it's an emergency, call 911, I guess." ;
-""")
+"""
+        )
 
     def test_vacationext_with_single_mail_address(self):
-        self.compilation_ok("""
+        self.compilation_ok(
+            """
 require "vacation";
 vacation :days 23 :addresses "tjs@example.edu"
    "I'm away until October 19.
    If it's an emergency, call 911, I guess." ;
-""")
+"""
+        )
 
     def test_vacationext_with_multiline(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require "vacation";
 vacation :mime text:
 Content-Type: multipart/alternative; boundary=foo
@@ -499,27 +569,33 @@ Mmmm, <A HREF="ocean.gif">surf</A>...
 --foo--
 .
 ;
-""")
+"""
+        )
 
     def test_reject_extension(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require "reject";
 
 if header :contains "subject" "viagra" {
     reject;
 }
-""")
+"""
+        )
 
     def test_fileinto_create(self):
-        self.compilation_ok(b"""require ["fileinto", "mailbox"];
+        self.compilation_ok(
+            b"""require ["fileinto", "mailbox"];
 if header :is "Sender" "owner-ietf-mta-filters@imc.org"
         {
         fileinto :create "filter";  # move to "filter" mailbox
         }
-""")
+"""
+        )
 
     def test_imap4flags_extension(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require ["fileinto", "imap4flags", "variables"];
 if size :over 1M {
     addflag "MyFlags" "Big";
@@ -530,10 +606,12 @@ if size :over 1M {
     }
     fileinto :flags "${MyFlags}" "Big messages";
 }
-""")
+"""
+        )
 
     def test_imap4flags_hasflag(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require ["imap4flags", "fileinto"];
 
 if hasflag ["test", "toto"] {
@@ -543,24 +621,30 @@ addflag "Var1" "Truc";
 if hasflag "Var1" "Truc" {
     fileinto "Truc";
 }
-""")
+"""
+        )
 
     def test_body_extension(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 require ["body", "fileinto"];
 
 if body :content "text" :contains ["missile", "coordinates"] {
     fileinto "secrets";
 }
-""")
-        self.compilation_ok(b"""
+"""
+        )
+        self.compilation_ok(
+            b"""
 require "body";
 
 if body :raw :contains "MAKE MONEY FAST" {
     discard;
 }
-""")
-        self.compilation_ok(b"""
+"""
+        )
+        self.compilation_ok(
+            b"""
 require ["body", "fileinto"];
 
 # Save messages mentioning the project schedule in the
@@ -568,46 +652,57 @@ require ["body", "fileinto"];
 if body :text :contains "project schedule" {
     fileinto "project/schedule";
 }
-""")
+"""
+        )
 
 
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 /* this is a comment /* with a nested comment inside */
 it is allowed by the RFC :p */
-""")
+"""
+        )
 
     def test_nonopened_block(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :is "Sender" "me@example.com"
     discard;
 }
-""")
+"""
+        )
 
     def test_nonclosed_block(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :is "Sender" "me@example.com" {
     discard;
 
-""")
+"""
+        )
 
     def test_nonopened_parenthesis(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :is "Sender" "me@example.com") {
     discard;
 }
-""")
+"""
+        )
 
     def test_nonopened_block2(self):
         self.compilation_ko(b"""}""")
 
     def test_unknown_token(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
 
 }
-""")
+"""
+        )
 
     def test_empty_string_list(self):
         self.compilation_ko(b"require [];")
@@ -622,247 +717,308 @@ if header :is "Sender" "Toto" & header :contains "Cc" "Tata" {
         self.compilation_ko(b'require ["toto",];')
 
     def test_nonopened_tests_list(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if anyof header :is "Sender" "me@example.com",
           header :is "Sender" "myself@example.com") {
     fileinto "trash";
 }
-""")
+"""
+        )
 
     def test_nonclosed_tests_list(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if anyof (header :is "Sender" "me@example.com",
           header :is "Sender" "myself@example.com" {
     fileinto "trash";
 }
-""")
+"""
+        )
 
     def test_nonclosed_tests_list2(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if anyof (header :is "Sender" {
     fileinto "trash";
 }
-""")
+"""
+        )
 
     def test_misplaced_comma_in_tests_list(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if anyof (header :is "Sender" "me@example.com",) {
 
 }
-""")
+"""
+        )
 
     def test_comma_inside_arguments(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 require "fileinto", "enveloppe";
-""")
+"""
+        )
 
     def test_non_ordered_args(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if address "From" :is "tim@example.com" {
     discard;
 }
-""")
+"""
+        )
 
     def test_extra_arg(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if address :is "From" "tim@example.com" "tutu" {
     discard;
 }
-""")
+"""
+        )
 
     def test_empty_not(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if not {
     discard;
 }
-""")
+"""
+        )
 
     def test_missing_semicolon(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 require ["fileinto"]
-""")
+"""
+        )
 
     def test_missing_semicolon_in_block(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if true {
     stop
 }
-""")
+"""
+        )
 
     def test_misplaced_parenthesis(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if (true) {
 
 }
-""")
+"""
+        )
 
     def test_control_command_in_test(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if stop;
-""")
+"""
+        )
 
     def test_extra_test_in_simple_control(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if address "From" "example.com" header "Subject" "Example" { stop; }
-""")
+"""
+        )
 
     def test_missing_comma_in_test_list(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if allof(anyof(address "From" "example.com") header "Subject" "Example") { stop; }
-""")
+"""
+        )
 
 
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 macommande "Toto";
-""")
+"""
+        )
 
     def test_misplaced_elsif(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 elsif true {
 
 }
-""")
+"""
+        )
 
     def test_misplaced_elsif2(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 elsif header :is "From" "toto" {
 
 }
-""")
+"""
+        )
 
     def test_misplaced_nested_elsif(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if true {
   elsif false {
 
   }
 }
-""")
+"""
+        )
 
     def test_unexpected_argument(self):
         self.compilation_ko(b'stop "toto";')
 
     def test_bad_arg_value(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :isnot "Sent" "me@example.com" {
   stop;
 }
-""")
+"""
+        )
 
     def test_bad_arg_value2(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :isnot "Sent" 10000 {
   stop;
 }
-""")
+"""
+        )
 
     def test_bad_comparator_value(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :contains :comparator "i;prout" "Subject" "MAKE MONEY FAST" {
   discard;
 }
-""")
+"""
+        )
 
     def test_not_included_extension(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :contains "Subject" "MAKE MONEY FAST" {
   fileinto "spam";
 }
-""")
+"""
+        )
 
     def test_test_outside_control(self):
         self.compilation_ko(b"true;")
 
     def test_fileinto_create_without_mailbox(self):
-        self.compilation_ko(b"""require ["fileinto"];
+        self.compilation_ko(
+            b"""require ["fileinto"];
 if header :is "Sender" "owner-ietf-mta-filters@imc.org"
         {
         fileinto :create "filter";  # move to "filter" mailbox
         }
-""")
-        self.assertEqual(
-            self.parser.error, "line 4: extension 'mailbox' not loaded")
+"""
+        )
+        self.assertEqual(self.parser.error, "line 4: extension 'mailbox' not loaded")
 
     def test_fileinto_create_without_fileinto(self):
-        self.compilation_ko(b"""require ["mailbox"];
+        self.compilation_ko(
+            b"""require ["mailbox"];
 if header :is "Sender" "owner-ietf-mta-filters@imc.org"
         {
         fileinto :create "filter";  # move to "filter" mailbox
         }
-""")
-        self.assertEqual(
-            self.parser.error, "line 4: unknown command fileinto")
+"""
+        )
+        self.assertEqual(self.parser.error, "line 4: unknown command fileinto")
 
     def test_exists_get_string_or_list(self):
-        self.compilation_ok(b"""
+        self.compilation_ok(
+            b"""
 if exists "subject"
 {
        discard;
 }
-""")
-        self.compilation_ok(b"""
+"""
+        )
+        self.compilation_ok(
+            b"""
 if exists ["subject"]
 {
        discard;
 }
-""")
+"""
+        )
 
 
 class DateCommands(SieveTest):
 
     def test_date_command(self):
-        self.compilation_ok(b"""require ["date", "relational", "fileinto"];
+        self.compilation_ok(
+            b"""require ["date", "relational", "fileinto"];
 if allof(header :is "from" "boss@example.com",
          date :value "ge" :originalzone "date" "hour" "09",
          date :value "lt" :originalzone "date" "hour" "17")
 { fileinto "urgent"; }
-""")
+"""
+        )
 
     def test_currentdate_command(self):
-        self.compilation_ok(b"""require ["date", "relational"];
+        self.compilation_ok(
+            b"""require ["date", "relational"];
 
 if allof(currentdate :value "ge" "date" "2013-10-23",
          currentdate :value "le" "date" "2014-10-12")
 {
     discard;
 }
-""")
+"""
+        )
 
     def test_currentdate_command_timezone(self):
-        self.compilation_ok(b"""require ["date", "relational"];
+        self.compilation_ok(
+            b"""require ["date", "relational"];
 
 if allof(currentdate :zone "+0100" :value "ge" "date" "2013-10-23",
          currentdate :value "le" "date" "2014-10-12")
 {
     discard;
 }
-""")
+"""
+        )
 
     def test_currentdate_norel(self):
-        self.compilation_ok(b"""require ["date"];
+        self.compilation_ok(
+            b"""require ["date"];
 
 if allof (
   currentdate :zone "+0100" :is "date" "2013-10-23"
 )
 {
     discard;
-}""")
+}"""
+        )
 
     def test_currentdate_extension_not_loaded(self):
-        self.compilation_ko(b"""require ["date"];
+        self.compilation_ko(
+            b"""require ["date"];
 
 if allof ( currentdate :value "ge" "date" "2013-10-23" , currentdate :value "le" "date" "2014-10-12" )
 {
     discard;
 }
-""")
+"""
+        )
 
 
 class VariablesCommands(SieveTest):
     def test_set_command(self):
-        self.compilation_ok(b"""require ["variables"];
+        self.compilation_ok(
+            b"""require ["variables"];
 
 set "matchsub" "testsubject";
 
@@ -872,39 +1028,47 @@ if allof (
 {
   discard;
 }
-""")
+"""
+        )
 
 
 class CopyWithoutSideEffectsTestCase(SieveTest):
     """RFC3894 test cases."""
 
     def test_redirect_with_copy(self):
-        self.compilation_ko(b"""
+        self.compilation_ko(
+            b"""
 if header :contains "subject" "test" {
     redirect :copy "dev@null.com";
 }
-""")
+"""
+        )
 
-        self.compilation_ok(b"""require "copy";
+        self.compilation_ok(
+            b"""require "copy";
 if header :contains "subject" "test" {
     redirect :copy "dev@null.com";
 }
-""")
+"""
+        )
 
     def test_fileinto_with_copy(self):
-        self.compilation_ko(b"""require "fileinto";
+        self.compilation_ko(
+            b"""require "fileinto";
 if header :contains "subject" "test" {
     fileinto :copy "Spam";
 }
-""")
-        self.assertEqual(
-            self.parser.error, "line 3: extension 'copy' not loaded")
+"""
+        )
+        self.assertEqual(self.parser.error, "line 3: extension 'copy' not loaded")
 
-        self.compilation_ok(b"""require ["fileinto", "copy"];
+        self.compilation_ok(
+            b"""require ["fileinto", "copy"];
 if header :contains "subject" "test" {
     fileinto :copy "Spam";
 }
-""")
+"""
+        )
 
 
 if __name__ == "__main__":

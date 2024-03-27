@@ -19,6 +19,7 @@ provides extra information such as:
  * etc.
 
 """
+
 import sys
 from collections.abc import Iterable
 from . import tools
@@ -49,8 +50,11 @@ class BadArgument(CommandError):
         self.expected = expected
 
     def __str__(self):
-        return "bad argument %s for command %s (%s expected)" \
-               % (self.seen, self.command, self.expected)
+        return "bad argument %s for command %s (%s expected)" % (
+            self.seen,
+            self.command,
+            self.expected,
+        )
 
 
 class BadValue(CommandError):
@@ -61,8 +65,7 @@ class BadValue(CommandError):
         self.value = value
 
     def __str__(self):
-        return "bad value %s for argument %s" \
-               % (self.value, self.argument)
+        return "bad value %s for argument %s" % (self.value, self.argument)
 
 
 class ExtensionNotLoaded(CommandError):
@@ -77,27 +80,27 @@ class ExtensionNotLoaded(CommandError):
 
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
-comparator = {"name": "comparator",
-              "type": ["tag"],
-              "values": [":comparator"],
-              "extra_arg": {"type": "string",
-                            "values": ['"i;octet"', '"i;ascii-casemap"']},
-              "required": False}
-address_part = {"name": "address-part",
-                "values": [":localpart", ":domain", ":all"],
-                "type": ["tag"],
-                "required": False}
+comparator = {
+    "name": "comparator",
+    "type": ["tag"],
+    "values": [":comparator"],
+    "extra_arg": {"type": "string", "values": ['"i;octet"', '"i;ascii-casemap"']},
+    "required": False,
+}
+address_part = {
+    "name": "address-part",
+    "values": [":localpart", ":domain", ":all"],
+    "type": ["tag"],
+    "required": False,
+}
 match_type = {
     "name": "match-type",
     "values": [":is", ":contains", ":matches"],
-    "extension_values": {
-        ":count": "relational",
-        ":value": "relational"
-    },
+    "extension_values": {":count": "relational", ":value": "relational"},
     "extra_arg": {
         "type": "string",
         "values": ['"gt"', '"ge"', '"lt"', '"le"', '"eq"', '"ne"'],
-        "valid_for": [":count", ":value"]
+        "valid_for": [":count", ":value"],
     },
     "type": ["tag"],
     "required": False,
@@ -117,6 +120,7 @@ class Command(object):
      * Must follow only certain commands
 
     """
+
     _type = None
     variable_args_nb = False
     non_deterministic_args = False
@@ -178,8 +182,8 @@ class Command(object):
                         target.write(")")
                     else:
                         target.write(
-                            "[{}]".format(", ".join(
-                                ['"%s"' % v.strip('"') for v in value])
+                            "[{}]".format(
+                                ", ".join(['"%s"' % v.strip('"') for v in value])
                             )
                         )
                     continue
@@ -272,8 +276,9 @@ class Command(object):
                         for t in value:
                             t.dump(indentlevel, target)
                     else:
-                        self.__print("[" + (",".join(value)) + "]",
-                                     indentlevel, target=target)
+                        self.__print(
+                            "[" + (",".join(value)) + "]", indentlevel, target=target
+                        )
                     continue
                 if isinstance(value, Command):
                     value.dump(indentlevel, target)
@@ -333,13 +338,15 @@ class Command(object):
                 if arg.get("required", False):
                     self.required_args += 1
         return (
-            (not self.curarg or
-             "extra_arg" not in self.curarg or
-             ("valid_for" in self.curarg["extra_arg"] and
-              atype and atype in self.curarg["extra_arg"]["type"] and
-              avalue not in self.curarg["extra_arg"]["valid_for"])) and
-            (self.rargs_cnt == self.required_args)
-        )
+            not self.curarg
+            or "extra_arg" not in self.curarg
+            or (
+                "valid_for" in self.curarg["extra_arg"]
+                and atype
+                and atype in self.curarg["extra_arg"]["type"]
+                and avalue not in self.curarg["extra_arg"]["valid_for"]
+            )
+        ) and (self.rargs_cnt == self.required_args)
 
     def get_type(self):
         """Return the command's type"""
@@ -367,8 +374,8 @@ class Command(object):
             extension = arg["extension_values"].get(value.lower())
             if extension:
                 condition = (
-                    check_extension and
-                    extension not in RequireCommand.loaded_extensions
+                    check_extension
+                    and extension not in RequireCommand.loaded_extensions
                 )
                 if condition:
                     raise ExtensionNotLoaded(extension)
@@ -376,7 +383,7 @@ class Command(object):
         return False
 
     def __is_valid_type(self, typ, typlist):
-        """ Check if type is valid based on input type list
+        """Check if type is valid based on input type list
             "string" is special because it can be used for stringlist
 
         :param typ: the type to check
@@ -422,10 +429,9 @@ class Command(object):
             return False
 
         if self.curarg is not None and "extra_arg" in self.curarg:
-            condition = (
-                atype in self.curarg["extra_arg"]["type"] and
-                ("values" not in self.curarg["extra_arg"] or
-                 avalue in self.curarg["extra_arg"]["values"])
+            condition = atype in self.curarg["extra_arg"]["type"] and (
+                "values" not in self.curarg["extra_arg"]
+                or avalue in self.curarg["extra_arg"]["values"]
             )
             if condition:
                 if add:
@@ -446,9 +452,9 @@ class Command(object):
                         if not curarg["name"] in self.arguments:
                             self.arguments[curarg["name"]] = []
                         self.arguments[curarg["name"]] += [avalue]
-                elif not self.__is_valid_type(atype, curarg["type"]) or \
-                        not self.__is_valid_value_for_arg(
-                            curarg, avalue, check_extension):
+                elif not self.__is_valid_type(
+                    atype, curarg["type"]
+                ) or not self.__is_valid_value_for_arg(curarg, avalue, check_extension):
                     failed = True
                 else:
                     self.curarg = curarg
@@ -458,21 +464,21 @@ class Command(object):
                         self.arguments[curarg["name"]] = avalue
                 break
 
-            condition = (
-                atype in curarg["type"] and
-                self.__is_valid_value_for_arg(curarg, avalue, check_extension)
+            condition = atype in curarg["type"] and self.__is_valid_value_for_arg(
+                curarg, avalue, check_extension
             )
             if condition:
                 ext = curarg.get("extension")
                 condition = (
-                    check_extension and ext and
-                    ext not in RequireCommand.loaded_extensions)
+                    check_extension
+                    and ext
+                    and ext not in RequireCommand.loaded_extensions
+                )
                 if condition:
                     raise ExtensionNotLoaded(ext)
-                condition = (
-                    "extra_arg" in curarg and
-                    ("valid_for" not in curarg["extra_arg"] or
-                     avalue in curarg["extra_arg"]["valid_for"])
+                condition = "extra_arg" in curarg and (
+                    "valid_for" not in curarg["extra_arg"]
+                    or avalue in curarg["extra_arg"]["valid_for"]
                 )
                 if condition:
                     self.curarg = curarg
@@ -483,8 +489,7 @@ class Command(object):
             pos += 1
 
         if failed:
-            raise BadArgument(self.name, avalue,
-                              self.args_definition[pos]["type"])
+            raise BadArgument(self.name, avalue, self.args_definition[pos]["type"])
         return True
 
     def __contains__(self, name):
@@ -510,6 +515,7 @@ class Command(object):
 
 class ControlCommand(Command):
     """Indermediate class to represent "control" commands"""
+
     _type = "control"
 
 
@@ -520,10 +526,9 @@ class RequireCommand(ControlCommand):
     store loaded extension names. (The result is we can check for
     unloaded extensions during the parsing)
     """
+
     args_definition = [
-        {"name": "capabilities",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "capabilities", "type": ["string", "stringlist"], "required": True}
     ]
 
     loaded_extensions = []
@@ -542,11 +547,7 @@ class RequireCommand(ControlCommand):
 class IfCommand(ControlCommand):
     accept_children = True
 
-    args_definition = [
-        {"name": "test",
-         "type": ["test"],
-         "required": True}
-    ]
+    args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
     def get_expected_first(self):
         return ["identifier"]
@@ -555,11 +556,7 @@ class IfCommand(ControlCommand):
 class ElsifCommand(ControlCommand):
     accept_children = True
     must_follow = ["if", "elsif"]
-    args_definition = [
-        {"name": "test",
-         "type": ["test"],
-         "required": True}
-    ]
+    args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
     def get_expected_first(self):
         return ["identifier"]
@@ -583,8 +580,7 @@ class ActionCommand(Command):
             for argdef in self.args_definition:
                 if name == argdef["name"]:
                     condition = (
-                        "string" in argdef["type"] or
-                        "stringlist" in argdef["type"]
+                        "string" in argdef["type"] or "stringlist" in argdef["type"]
                     )
                     if condition:
                         unquote = True
@@ -596,7 +592,7 @@ class ActionCommand(Command):
                     args.append(value.strip('"'))
                 continue
             args.append(value)
-        return (self.name, ) + tuple(args)
+        return (self.name,) + tuple(args)
 
 
 class StopCommand(ActionCommand):
@@ -606,56 +602,58 @@ class StopCommand(ActionCommand):
 class FileintoCommand(ActionCommand):
     extension = "fileinto"
     args_definition = [
-        {"name": "copy",
-         "type": ["tag"],
-         "values": [":copy"],
-         "required": False,
-         "extension": "copy"},
-        {"name": "create",
-         "type": ["tag"],
-         "values": [":create"],
-         "required": False,
-         "extension": "mailbox"},
-        {"name": "flags",
-         "type": ["tag"],
-         "values": [":flags"],
-         "extra_arg": {"type": ["string", "stringlist"]},
-         "extension": "imap4flags"},
-        {"name": "mailbox",
-         "type": ["string"],
-         "required": True}
+        {
+            "name": "copy",
+            "type": ["tag"],
+            "values": [":copy"],
+            "required": False,
+            "extension": "copy",
+        },
+        {
+            "name": "create",
+            "type": ["tag"],
+            "values": [":create"],
+            "required": False,
+            "extension": "mailbox",
+        },
+        {
+            "name": "flags",
+            "type": ["tag"],
+            "values": [":flags"],
+            "extra_arg": {"type": ["string", "stringlist"]},
+            "extension": "imap4flags",
+        },
+        {"name": "mailbox", "type": ["string"], "required": True},
     ]
 
 
 class RedirectCommand(ActionCommand):
     args_definition = [
-        {"name": "copy",
-         "type": ["tag"],
-         "values": [":copy"],
-         "required": False,
-         "extension": "copy"},
-        {"name": "address",
-         "type": ["string"],
-         "required": True}
+        {
+            "name": "copy",
+            "type": ["tag"],
+            "values": [":copy"],
+            "required": False,
+            "extension": "copy",
+        },
+        {"name": "address", "type": ["string"], "required": True},
     ]
 
 
 class RejectCommand(ActionCommand):
     extension = "reject"
-    args_definition = [
-        {"name": "text",
-         "type": ["string"],
-         "required": True}
-    ]
+    args_definition = [{"name": "text", "type": ["string"], "required": True}]
 
 
 class KeepCommand(ActionCommand):
     args_definition = [
-        {"name": "flags",
-         "type": ["tag"],
-         "values": [":flags"],
-         "extra_arg": {"type": ["string", "stringlist"]},
-         "extension": "imap4flags"},
+        {
+            "name": "flags",
+            "type": ["tag"],
+            "values": [":flags"],
+            "extra_arg": {"type": ["string", "stringlist"]},
+            "extension": "imap4flags",
+        },
     ]
 
 
@@ -667,12 +665,8 @@ class SetflagCommand(ActionCommand):
     """imap4flags extension: setflag."""
 
     args_definition = [
-        {"name": "variable-name",
-         "type": ["string"],
-         "required": False},
-        {"name": "list-of-flags",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "variable-name", "type": ["string"], "required": False},
+        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
     ]
     extension = "imap4flags"
 
@@ -681,12 +675,8 @@ class AddflagCommand(ActionCommand):
     """imap4flags extension: addflag."""
 
     args_definition = [
-        {"name": "variable-name",
-         "type": ["string"],
-         "required": False},
-        {"name": "list-of-flags",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "variable-name", "type": ["string"], "required": False},
+        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
     ]
     extension = "imap4flags"
 
@@ -695,17 +685,15 @@ class RemoveflagCommand(ActionCommand):
     """imap4flags extension: removeflag."""
 
     args_definition = [
-        {"name": "variable-name",
-         "type": ["string"]},
-        {"name": "list-of-flags",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "variable-name", "type": ["string"]},
+        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
     ]
     extension = "imap4flags"
 
 
 class TestCommand(Command):
     """Indermediate class to represent "test" commands"""
+
     _type = "test"
 
 
@@ -714,12 +702,8 @@ class AddressCommand(TestCommand):
         comparator,
         address_part,
         match_type,
-        {"name": "header-list",
-         "type": ["string", "stringlist"],
-         "required": True},
-        {"name": "key-list",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "header-list", "type": ["string", "stringlist"], "required": True},
+        {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
 
 
@@ -727,11 +711,7 @@ class AllofCommand(TestCommand):
     accept_children = True
     variable_args_nb = True
 
-    args_definition = [
-        {"name": "tests",
-         "type": ["testlist"],
-         "required": True}
-    ]
+    args_definition = [{"name": "tests", "type": ["testlist"], "required": True}]
 
     def get_expected_first(self):
         return ["left_parenthesis"]
@@ -741,11 +721,7 @@ class AnyofCommand(TestCommand):
     accept_children = True
     variable_args_nb = True
 
-    args_definition = [
-        {"name": "tests",
-         "type": ["testlist"],
-         "required": True}
-    ]
+    args_definition = [{"name": "tests", "type": ["testlist"], "required": True}]
 
     def get_expected_first(self):
         return ["left_parenthesis"]
@@ -756,12 +732,8 @@ class EnvelopeCommand(TestCommand):
         comparator,
         address_part,
         match_type,
-        {"name": "header-list",
-         "type": ["string", "stringlist"],
-         "required": True},
-        {"name": "key-list",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "header-list", "type": ["string", "stringlist"], "required": True},
+        {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
     extension = "envelope"
 
@@ -771,8 +743,7 @@ class EnvelopeCommand(TestCommand):
         value = self.arguments["header-list"]
         if isinstance(value, list):
             # FIXME
-            value = "[{}]".format(
-                ",".join('"{}"'.format(item) for item in value))
+            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
         if value.startswith("["):
             result += (tools.to_list(value),)
         else:
@@ -780,10 +751,9 @@ class EnvelopeCommand(TestCommand):
         value = self.arguments["key-list"]
         if isinstance(value, list):
             # FIXME
-            value = "[{}]".format(
-                ",".join('"{}"'.format(item) for item in value))
+            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
         if value.startswith("["):
-            result += (tools.to_list(value), )
+            result += (tools.to_list(value),)
         else:
             result = result + ([value.strip('"')],)
         return result
@@ -791,9 +761,7 @@ class EnvelopeCommand(TestCommand):
 
 class ExistsCommand(TestCommand):
     args_definition = [
-        {"name": "header-names",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "header-names", "type": ["string", "stringlist"], "required": True}
     ]
 
     def args_as_tuple(self):
@@ -805,11 +773,10 @@ class ExistsCommand(TestCommand):
         """
         value = self.arguments["header-names"]
         if isinstance(value, list):
-            value = "[{}]".format(
-                ",".join('"{}"'.format(item) for item in value))
+            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
         if not value.startswith("["):
-            return ('exists', value.strip('"'))
-        return ("exists", ) + tuple(tools.to_list(value))
+            return ("exists", value.strip('"'))
+        return ("exists",) + tuple(tools.to_list(value))
 
 
 class TrueCommand(TestCommand):
@@ -824,12 +791,8 @@ class HeaderCommand(TestCommand):
     args_definition = [
         comparator,
         match_type,
-        {"name": "header-names",
-         "type": ["string", "stringlist"],
-         "required": True},
-        {"name": "key-list",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "header-names", "type": ["string", "stringlist"], "required": True},
+        {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
 
     def args_as_tuple(self):
@@ -841,7 +804,8 @@ class HeaderCommand(TestCommand):
         result = result + (self.arguments["match-type"],)
         if "," in self.arguments["key-list"]:
             result = result + tuple(
-                tools.to_list(self.arguments["key-list"], unquote=False))
+                tools.to_list(self.arguments["key-list"], unquote=False)
+            )
         else:
             result = result + (self.arguments["key-list"].strip('"'),)
         return result
@@ -856,27 +820,28 @@ class BodyCommand(TestCommand):
     args_definition = [
         comparator,
         match_type,
-        {"name": "body-transform",
-         "values": [":raw", ":content", ":text"],
-         "extra_arg": {"type": "stringlist", "valid_for": [":content"]},
-         "type": ["tag"],
-         "required": False},
-        {"name": "key-list",
-         "type": ["string", "stringlist"],
-         "required": True},
+        {
+            "name": "body-transform",
+            "values": [":raw", ":content", ":text"],
+            "extra_arg": {"type": "stringlist", "valid_for": [":content"]},
+            "type": ["tag"],
+            "required": False,
+        },
+        {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
     extension = "body"
 
     def args_as_tuple(self):
         """Return arguments as a list."""
-        result = ("body", )
+        result = ("body",)
         result = result + (
-            self.arguments["body-transform"], self.arguments["match-type"])
+            self.arguments["body-transform"],
+            self.arguments["match-type"],
+        )
         value = self.arguments["key-list"]
         if isinstance(value, list):
             # FIXME
-            value = "[{}]".format(
-                ",".join('"{}"'.format(item) for item in value))
+            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
         if value.startswith("["):
             result += tuple(tools.to_list(value))
         else:
@@ -887,11 +852,7 @@ class BodyCommand(TestCommand):
 class NotCommand(TestCommand):
     accept_children = True
 
-    args_definition = [
-        {"name": "test",
-         "type": ["test"],
-         "required": True}
-    ]
+    args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
     def get_expected_first(self):
         return ["identifier"]
@@ -899,13 +860,13 @@ class NotCommand(TestCommand):
 
 class SizeCommand(TestCommand):
     args_definition = [
-        {"name": "comparator",
-         "type": ["tag"],
-         "values": [":over", ":under"],
-         "required": True},
-        {"name": "limit",
-         "type": ["number"],
-         "required": True},
+        {
+            "name": "comparator",
+            "type": ["tag"],
+            "values": [":over", ":under"],
+            "required": True,
+        },
+        {"name": "limit", "type": ["number"], "required": True},
     ]
 
     def args_as_tuple(self):
@@ -918,12 +879,8 @@ class HasflagCommand(TestCommand):
     args_definition = [
         comparator,
         match_type,
-        {"name": "variable-list",
-         "type": ["string", "stringlist"],
-         "required": False},
-        {"name": "list-of-flags",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "variable-list", "type": ["string", "stringlist"], "required": False},
+        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
     ]
     extension = "imap4flags"
     non_deterministic_args = True
@@ -931,12 +888,10 @@ class HasflagCommand(TestCommand):
     def reassign_arguments(self):
         """Deal with optional stringlist before a required one."""
         condition = (
-            "variable-list" in self.arguments and
-            "list-of-flags" not in self.arguments
+            "variable-list" in self.arguments and "list-of-flags" not in self.arguments
         )
         if condition:
-            self.arguments["list-of-flags"] = (
-                self.arguments.pop("variable-list"))
+            self.arguments["list-of-flags"] = self.arguments.pop("variable-list")
             self.rargs_cnt = 1
 
 
@@ -948,22 +903,18 @@ class DateCommand(TestCommand):
 
     extension = "date"
     args_definition = [
-        {"name": "zone",
-         "type": ["tag"],
-         "values": [":zone", ":originalzone"],
-         "extra_arg": {"type": "string", "valid_for": [":zone"]},
-         "required": False},
+        {
+            "name": "zone",
+            "type": ["tag"],
+            "values": [":zone", ":originalzone"],
+            "extra_arg": {"type": "string", "valid_for": [":zone"]},
+            "required": False,
+        },
         comparator,
         match_type,
-        {"name": "header-name",
-         "type": ["string"],
-         "required": True},
-        {"name": "date-part",
-         "type": ["string"],
-         "required": True},
-        {"name": "key-list",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "header-name", "type": ["string"], "required": True},
+        {"name": "date-part", "type": ["string"], "required": True},
+        {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
 
 
@@ -975,37 +926,34 @@ class CurrentdateCommand(TestCommand):
 
     extension = "date"
     args_definition = [
-        {"name": "zone",
-         "type": ["tag"],
-         "values": [":zone"],
-         "extra_arg": {"type": "string"},
-         "required": False},
+        {
+            "name": "zone",
+            "type": ["tag"],
+            "values": [":zone"],
+            "extra_arg": {"type": "string"},
+            "required": False,
+        },
         comparator,
         match_type,
-        {"name": "date-part",
-         "type": ["string"],
-         "required": True},
-        {"name": "key-list",
-         "type": ["string", "stringlist"],
-         "required": True}
+        {"name": "date-part", "type": ["string"], "required": True},
+        {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
 
     def args_as_tuple(self):
         """Return arguments as a list."""
-        result = ("currentdate", )
+        result = ("currentdate",)
         result += (
             ":zone",
             self.extra_arguments["zone"].strip('"'),
             self.arguments["match-type"],
         )
         if self.arguments["match-type"] in [":count", ":value"]:
-            result += (self.extra_arguments["match-type"].strip('"'), )
-        result += (self.arguments["date-part"].strip('"'), )
+            result += (self.extra_arguments["match-type"].strip('"'),)
+        result += (self.arguments["date-part"].strip('"'),)
         value = self.arguments["key-list"]
         if isinstance(value, list):
             # FIXME
-            value = "[{}]".format(
-                ",".join('"{}"'.format(item) for item in value))
+            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
         if value.startswith("["):
             result = result + tuple(tools.to_list(value))
         else:
@@ -1015,43 +963,47 @@ class CurrentdateCommand(TestCommand):
 
 class VacationCommand(ActionCommand):
     args_definition = [
-        {"name": "subject",
-         "type": ["tag"],
-         "values": [":subject"],
-         "extra_arg": {"type": "string"},
-         "required": False},
-        {"name": "days",
-         "type": ["tag"],
-         "values": [":days"],
-         "extra_arg": {"type": "number"},
-         "required": False},
-        {"name": "from",
-         "type": ["tag"],
-         "values": [":from"],
-         "extra_arg": {"type": "string"},
-         "required": False},
-        {"name": "addresses",
-         "type": ["tag"],
-         "values": [":addresses"],
-         "extra_arg": {"type": ["string", "stringlist"]},
-         "required": False},
-        {"name": "handle",
-         "type": ["tag"],
-         "values": [":handle"],
-         "extra_arg": {"type": "string"},
-         "required": False},
-        {"name": "mime",
-         "type": ["tag"],
-         "values": [":mime"],
-         "required": False},
-        {"name": "reason",
-         "type": ["string"],
-         "required": True},
+        {
+            "name": "subject",
+            "type": ["tag"],
+            "values": [":subject"],
+            "extra_arg": {"type": "string"},
+            "required": False,
+        },
+        {
+            "name": "days",
+            "type": ["tag"],
+            "values": [":days"],
+            "extra_arg": {"type": "number"},
+            "required": False,
+        },
+        {
+            "name": "from",
+            "type": ["tag"],
+            "values": [":from"],
+            "extra_arg": {"type": "string"},
+            "required": False,
+        },
+        {
+            "name": "addresses",
+            "type": ["tag"],
+            "values": [":addresses"],
+            "extra_arg": {"type": ["string", "stringlist"]},
+            "required": False,
+        },
+        {
+            "name": "handle",
+            "type": ["tag"],
+            "values": [":handle"],
+            "extra_arg": {"type": "string"},
+            "required": False,
+        },
+        {"name": "mime", "type": ["tag"], "values": [":mime"], "required": False},
+        {"name": "reason", "type": ["string"], "required": True},
     ]
 
 
 class SetCommand(ControlCommand):
-
     """set command, part of the variables extension
 
     http://tools.ietf.org/html/rfc5229
@@ -1059,12 +1011,8 @@ class SetCommand(ControlCommand):
 
     extension = "variables"
     args_definition = [
-        {"name": "startend",
-         "type": ["string"],
-         "required": True},
-        {"name": "date",
-         "type": ["string"],
-         "required": True}
+        {"name": "startend", "type": ["string"], "required": True},
+        {"name": "date", "type": ["string"], "required": True},
     ]
 
 
@@ -1100,10 +1048,10 @@ def get_command_instance(name, parent=None, checkexists=True):
     """
     cname = "%sCommand" % name.lower().capitalize()
     gl = globals()
-    condition = (
-        cname not in gl or
-        (checkexists and gl[cname].extension and
-         gl[cname].extension not in RequireCommand.loaded_extensions)
+    condition = cname not in gl or (
+        checkexists
+        and gl[cname].extension
+        and gl[cname].extension not in RequireCommand.loaded_extensions
     )
     if condition:
         raise UnknownCommand(name)
