@@ -1,7 +1,7 @@
 sievelib
 ========
 
-|travis| |codecov| |latest-version|
+|workflow| |codecov| |latest-version|
 
 Client-side Sieve and Managesieve library written in Python.
 
@@ -130,7 +130,7 @@ supported, with a simulated behaviour for server that do not support
 it.
 
 For the ``AUTHENTICATE`` command, supported mechanisms are ``DIGEST-MD5``,
-``PLAIN`` and ``LOGIN``.
+``PLAIN``, ``LOGIN`` and ``OAUTHBEARER``.
     
 Basic usage
 ^^^^^^^^^^^
@@ -154,7 +154,6 @@ Additional documentation is available with source code.
 
 .. |latest-version| image:: https://badge.fury.io/py/sievelib.svg
    :target: https://badge.fury.io/py/sievelib
-.. |travis| image:: https://travis-ci.org/tonioo/sievelib.png?branch=master
-   :target: https://travis-ci.org/tonioo/sievelib
+.. |workflow| image:: https://github.com/tonioo/sievelib/workflows/Sievelib/badge.svg
 .. |codecov| image:: http://codecov.io/github/tonioo/sievelib/coverage.svg?branch=master
    :target: http://codecov.io/github/tonioo/sievelib?branch=master

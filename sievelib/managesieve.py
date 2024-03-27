@@ -22,7 +22,7 @@ KNOWN_CAPABILITIES = [u"IMPLEMENTATION", u"SASL", u"SIEVE",
                       u"STARTTLS", u"NOTIFY", u"LANGUAGE",
                       u"VERSION"]
 
-SUPPORTED_AUTH_MECHS = [u"DIGEST-MD5", u"PLAIN", u"LOGIN"]
+SUPPORTED_AUTH_MECHS = [u"DIGEST-MD5", u"PLAIN", u"LOGIN", u"OAUTHBEARER"]
 
 
 class Error(Exception):
@@ -383,6 +383,25 @@ class Client(object):
             return True
         return False
 
+    def _oauthbearer_authentication(self, login, password, authz_id=""):
+        """
+        OAUTHBEARER authentication.
+
+        :param login: username
+        :param password: clear password
+        :return: True on success, False otherwise.
+        """
+        if isinstance(login, str):
+            login = login.encode("utf-8")
+        if isinstance(password, str):
+            password = password.encode("utf-8")
+        token = b"n,a=" + login + b",\001auth=Bearer " + password + b"\001\001"
+        token = base64.b64encode(token)
+        code, data = self.__send_command("AUTHENTICATE", [b"OAUTHBEARER", token])
+        if code == "OK":
+            return True
+        return False
+
     def __authenticate(self, login, password, authz_id=b"", authmech=None):
         """AUTHENTICATE command
 
@@ -435,8 +454,10 @@ class Client(object):
         code, data = self.__send_command("STARTTLS")
         if code != "OK":
             return False
+        context = ssl.SSLContext()
         try:
-            nsock = ssl.wrap_socket(self.sock, keyfile, certfile)
+            # nsock = ssl.wrap_socket(self.sock, keyfile, certfile)
+            nsock = context.wrap_socket(self.sock, keyfile, certfile)
         except ssl.SSLError as e:
             raise Error("SSL error: %s" % str(e))
         self.sock = nsock
@@ -536,7 +557,7 @@ class Client(object):
         return None
 
     @authentication_required
-    def havespace(self, scriptname, scriptsize):
+    def havespace(self, scriptname: str, scriptsize: int) -> bool:
         """Ask for available space.
 
         See MANAGESIEVE specifications, section 2.5
@@ -581,8 +602,9 @@ class Client(object):
         return (active_script, ret)
 
     @authentication_required
-    def getscript(self, name):
-        """Download a script from the server
+    def getscript(self, name: str) -> str:
+        """
+        Download a script from the server.
 
         See MANAGESIEVE specifications, section 2.9
 
@@ -600,7 +622,7 @@ class Client(object):
         return None
 
     @authentication_required
-    def putscript(self, name, content):
+    def putscript(self, name: str, content: str) -> bool:
         """Upload a script to the server
 
         See MANAGESIEVE specifications, section 2.6
@@ -617,7 +639,7 @@ class Client(object):
         return False
 
     @authentication_required
-    def deletescript(self, name):
+    def deletescript(self, name: str) -> bool:
         """Delete a script from the server
 
         See MANAGESIEVE specifications, section 2.10
@@ -632,7 +654,7 @@ class Client(object):
         return False
 
     @authentication_required
-    def renamescript(self, oldname, newname):
+    def renamescript(self, oldname: str, newname: str) -> bool:
         """Rename a script on the server
 
         See MANAGESIEVE specifications, section 2.11.1
@@ -676,7 +698,7 @@ class Client(object):
         return True
 
     @authentication_required
-    def setactive(self, scriptname):
+    def setactive(self, scriptname: str) -> bool:
         """Define the active script
 
         See MANAGESIEVE specifications, section 2.8
@@ -694,7 +716,7 @@ class Client(object):
         return False
 
     @authentication_required
-    def checkscript(self, content):
+    def checkscript(self, content: str) -> bool:
         """Check whether a script is valid
 
         See MANAGESIEVE specifications, section 2.12
