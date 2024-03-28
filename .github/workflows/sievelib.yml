@@ -79,8 +79,6 @@ jobs:
         if: endsWith(github.event.ref, '/master')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.test_pypi_password }}
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
       - name: Publish distribution to PyPI
