@@ -67,6 +67,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Create package
+        run: |
+          python setup.py sdist
       - name: Publish to Test PyPI
         if: endsWith(github.event.ref, '/master')
         uses: pypa/gh-action-pypi-publish@release/v1
