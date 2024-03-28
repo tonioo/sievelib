@@ -96,7 +96,11 @@ address_part = {
 match_type = {
     "name": "match-type",
     "values": [":is", ":contains", ":matches"],
-    "extension_values": {":count": "relational", ":value": "relational"},
+    "extension_values": {
+        ":count": "relational",
+        ":value": "relational",
+        ":regex": "regex",
+    },
     "extra_arg": {
         "type": "string",
         "values": ['"gt"', '"ge"', '"lt"', '"le"', '"eq"', '"ne"'],
@@ -974,6 +978,13 @@ class VacationCommand(ActionCommand):
             "name": "days",
             "type": ["tag"],
             "values": [":days"],
+            "extra_arg": {"type": "number"},
+            "required": False,
+        },
+        {
+            "name": "seconds",
+            "type": ["tag"],
+            "extension_values": {":seconds": "vacation-seconds"},
             "extra_arg": {"type": "number"},
             "required": False,
         },

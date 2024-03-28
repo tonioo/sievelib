@@ -572,6 +572,14 @@ Mmmm, <A HREF="ocean.gif">surf</A>...
 """
         )
 
+    def test_vacation_seconds(self):
+        self.compilation_ok(
+            """
+require ["vacation", "vacation-seconds"];
+vacation :seconds 10 :addresses ["test@example.org"] "Gone";
+"""
+        )
+
     def test_reject_extension(self):
         self.compilation_ok(
             b"""
@@ -595,7 +603,7 @@ if header :is "Sender" "owner-ietf-mta-filters@imc.org"
 
     def test_imap4flags_extension(self):
         self.compilation_ok(
-            b"""
+            rb"""
 require ["fileinto", "imap4flags", "variables"];
 if size :over 1M {
     addflag "MyFlags" "Big";
@@ -834,6 +842,14 @@ if allof(anyof(address "From" "example.com") header "Subject" "Example") { stop;
 """
         )
 
+    def test_vacation_seconds_no_arg(self):
+        self.compilation_ko(
+            """
+require ["vacation", "vacation-seconds"];
+vacation :seconds :addresses ["test@example.org"] "Gone";
+"""
+        )
+
 
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
@@ -1066,6 +1082,80 @@ if header :contains "subject" "test" {
             b"""require ["fileinto", "copy"];
 if header :contains "subject" "test" {
     fileinto :copy "Spam";
+}
+"""
+        )
+
+
+class RegexMatchTestCase(SieveTest):
+    def test_header_regex(self):
+        self.compilation_ok(
+            b"""require "regex";
+if header :regex "Subject" "^Test" {
+    discard;
+}
+"""
+        )
+
+    def test_header_regex_no_middle(self):
+        self.compilation_ko(
+            b"""require "regex";
+if header "Subject" :regex "^Test" {
+    discard;
+}
+"""
+        )
+
+    def test_envelope_regex(self):
+        self.compilation_ok(
+            b"""require ["regex","envelope"];
+if envelope :regex "from" "^test@example\\.org$" {
+    discard;
+}
+"""
+        )
+
+    def test_envelope_regex_no_middle(self):
+        self.compilation_ko(
+            b"""require "regex";
+if envelope "from" :regex "^test@example\\.org$" {
+    discard;
+}
+"""
+        )
+
+    def test_address_regex(self):
+        self.compilation_ok(
+            b"""require "regex";
+if address :regex "from" "^test@example\\.org$" {
+    discard;
+}
+"""
+        )
+
+    def test_address_regex_no_middle(self):
+        self.compilation_ko(
+            b"""require "regex";
+if address "from" :regex "^test@example\\.org$" {
+    discard;
+}
+"""
+        )
+
+    def test_body_raw_regex(self):
+        self.compilation_ok(
+            b"""require ["body", "regex"];
+if body :raw :regex "Sample" {
+    discard;
+}
+"""
+        )
+
+    def test_body_content_regex(self):
+        self.compilation_ok(
+            b"""require ["body", "regex"];
+if body :content "text" :regex "Sample" {
+    discard;
 }
 """
         )
