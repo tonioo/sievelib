@@ -14,16 +14,21 @@ import sys
 from sievelib import commands
 
 
-class FiltersSet(object):
+class FilterAlreadyExists(Exception):
+    pass
+
+
+class FiltersSet:
     """A set of filters."""
 
     def __init__(
         self,
-        name,
-        filter_name_pretext="# Filter: ",
-        filter_desc_pretext="# Description: ",
+        name: str,
+        filter_name_pretext: str = "# Filter: ",
+        filter_desc_pretext: str = "# Description: ",
     ):
-        """Represents a set of one or more filters
+        """
+        Represents a set of one or more filters.
 
         :param name: the filterset's name
         :param filter_name_pretext: the text that is used to mark a filter name
@@ -86,7 +91,7 @@ class FiltersSet(object):
             ]
             cpt += 1
 
-    def require(self, name):
+    def require(self, name: str):
         """Add a new extension to the requirements list
 
         :param name: the extension's name
@@ -271,7 +276,16 @@ class FiltersSet(object):
         """Convert name to unicode if necessary."""
         return name.decode("utf-8") if isinstance(name, bytes) else name
 
-    def addfilter(self, name, conditions, actions, matchtype="anyof"):
+    def filter_exists(self, name: str) -> bool:
+        """Check if a filter with name already exists."""
+        for existing_filter in self.filters:
+            if existing_filter["name"] == name:
+                return True
+        return False
+
+    def addfilter(
+        self, name: str, conditions: list, actions: list, matchtype: str = "anyof"
+    ):
         """Add a new filter to this filters set
 
         :param name: the filter's name
@@ -279,16 +293,21 @@ class FiltersSet(object):
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
+        name = self._unicode_filter_name(name)
+        if self.filter_exists(name):
+            raise FilterAlreadyExists
         ifcontrol = self.__create_filter(conditions, actions, matchtype)
         self.filters += [
             {
-                "name": self._unicode_filter_name(name),
+                "name": name,
                 "content": ifcontrol,
                 "enabled": True,
             }
         ]
 
-    def updatefilter(self, oldname, newname, conditions, actions, matchtype="anyof"):
+    def updatefilter(
+        self, oldname: str, newname: str, conditions, actions, matchtype: str = "anyof"
+    ) -> bool:
         """Update a specific filter
 
         Instead of removing and re-creating the filter, we update the
@@ -300,18 +319,26 @@ class FiltersSet(object):
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
+        filter_def = None
         oldname = self._unicode_filter_name(oldname)
-        newname = self._unicode_filter_name(newname)
         for f in self.filters:
             if f["name"] == oldname:
-                f["name"] = newname
-                f["content"] = self.__create_filter(conditions, actions, matchtype)
-                if not f["enabled"]:
-                    return self.disablefilter(newname)
-                return True
-        return False
+                filter_def = f
+                break
+        if not filter_def:
+            return False
+        newname = self._unicode_filter_name(newname)
+        if newname != oldname and self.filter_exists(newname):
+            raise FilterAlreadyExists
+        filter_def["name"] = newname
+        filter_def["content"] = self.__create_filter(conditions, actions, matchtype)
+        if not filter_def["enabled"]:
+            return self.disablefilter(newname)
+        return True
 
-    def replacefilter(self, oldname, sieve_filter, newname=None, description=None):
+    def replacefilter(
+        self, oldname: str, sieve_filter, newname: str = None, description: str = None
+    ):
         """replace a specific sieve_filter
 
         Instead of removing and re-creating the sieve_filter, we update the
@@ -322,22 +349,28 @@ class FiltersSet(object):
         :param sieve_filter: the sieve_filter object as get from
                              FiltersSet.getfilter()
         """
+        filter_def = None
         oldname = self._unicode_filter_name(oldname)
-        newname = self._unicode_filter_name(newname)
-        if newname is None:
-            newname = oldname
         for f in self.filters:
             if f["name"] == oldname:
-                f["name"] = newname
-                f["content"] = sieve_filter
-                if description is not None:
-                    f["description"] = description
-                if not f["enabled"]:
-                    return self.disablefilter(newname)
-                return True
-        return False
+                filter_def = f
+                break
+        if not filter_def:
+            return False
+        if newname is None:
+            newname = oldname
+        newname = self._unicode_filter_name(newname)
+        if newname != oldname and self.filter_exists(newname):
+            raise FilterAlreadyExists
+        filter_def["name"] = newname
+        filter_def["content"] = sieve_filter
+        if description is not None:
+            filter_def["description"] = description
+        if not filter_def["enabled"]:
+            return self.disablefilter(newname)
+        return True
 
-    def getfilter(self, name):
+    def getfilter(self, name: str):
         """Search for a specific filter
 
         :param name: the filter's name
@@ -351,7 +384,7 @@ class FiltersSet(object):
                 return f["content"]
         return None
 
-    def get_filter_matchtype(self, name):
+    def get_filter_matchtype(self, name: str) -> str:
         """Retrieve matchtype of the given filter."""
         flt = self.getfilter(name)
         if not flt:
@@ -361,7 +394,7 @@ class FiltersSet(object):
                 return node.__class__.__name__.lower().replace("command", "")
         return None
 
-    def get_filter_conditions(self, name):
+    def get_filter_conditions(self, name: str) -> list:
         """Retrieve conditions of the given filter."""
         flt = self.getfilter(name)
         if not flt:
@@ -401,18 +434,18 @@ class FiltersSet(object):
                 conditions.append(args)
         return conditions
 
-    def get_filter_actions(self, name):
+    def get_filter_actions(self, name: str) -> list:
         """Retrieve actions of the given filter."""
         flt = self.getfilter(name)
         if not flt:
             return None
-        actions = []
+        actions: list = []
         for node in flt.walk():
             if isinstance(node, commands.ActionCommand):
                 actions.append(node.args_as_tuple())
         return actions
 
-    def removefilter(self, name):
+    def removefilter(self, name: str) -> bool:
         """Remove a specific filter
 
         :param name: the filter's name
@@ -424,7 +457,7 @@ class FiltersSet(object):
                 return True
         return False
 
-    def enablefilter(self, name):
+    def enablefilter(self, name: str) -> bool:
         """Enable a filter
 
         Just removes the "if false" test surrouding this filter.
@@ -442,7 +475,7 @@ class FiltersSet(object):
             return True
         return False  # raise NotFound
 
-    def is_filter_disabled(self, name):
+    def is_filter_disabled(self, name: str) -> bool:
         """Tells if the filter is currently disabled or not
 
         :param name: the filter's name
@@ -453,7 +486,7 @@ class FiltersSet(object):
                 return self.__isdisabled(f["content"])
         return True
 
-    def disablefilter(self, name):
+    def disablefilter(self, name: str) -> bool:
         """Disable a filter
 
         Instead of commenting the filter, we just surround it with a
@@ -475,7 +508,7 @@ class FiltersSet(object):
             return True
         return False
 
-    def movefilter(self, name, direction):
+    def movefilter(self, name: str, direction: str) -> bool:
         """Moves the filter up or down
 
         :param name: the filter's name
