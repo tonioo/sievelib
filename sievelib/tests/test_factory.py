@@ -1,7 +1,7 @@
 import unittest
 import io
 
-from sievelib.factory import FiltersSet
+from sievelib.factory import FilterAlreadyExists, FiltersSet
 from .. import parser
 
 
@@ -9,6 +9,119 @@ class FactoryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.fs = FiltersSet("test")
+
+    def test_add_duplicate_filter(self):
+        """Try to add the same filter name twice, should fail."""
+        self.fs.addfilter(
+            "ruleX",
+            [
+                ("Sender", ":is", "toto@toto.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Toto"),
+            ],
+        )
+        with self.assertRaises(FilterAlreadyExists):
+            self.fs.addfilter(
+                "ruleX",
+                [
+                    ("Sender", ":is", "toto@toto.com"),
+                ],
+                [
+                    ("fileinto", ":copy", "Toto"),
+                ],
+            )
+
+    def test_updatefilter(self):
+        self.fs.addfilter(
+            "ruleX",
+            [
+                ("Sender", ":is", "toto@toto.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Toto"),
+            ],
+        )
+        result = self.fs.updatefilter(
+            "ruleY",
+            "ruleX",
+            [
+                ("Sender", ":is", "tata@toto.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Tata"),
+            ],
+        )
+        self.assertFalse(result)
+        result = self.fs.updatefilter(
+            "ruleX",
+            "ruleY",
+            [
+                ("Sender", ":is", "tata@toto.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Tata"),
+            ],
+        )
+        self.assertTrue(result)
+        self.assertIs(self.fs.getfilter("ruleX"), None)
+        self.assertIsNot(self.fs.getfilter("ruleY"), None)
+
+    def test_updatefilter_duplicate(self):
+        self.fs.addfilter(
+            "ruleX",
+            [
+                ("Sender", ":is", "toto@toto.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Toto"),
+            ],
+        )
+        self.fs.addfilter(
+            "ruleY",
+            [
+                ("Sender", ":is", "toto@tota.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Tota"),
+            ],
+        )
+        with self.assertRaises(FilterAlreadyExists):
+            self.fs.updatefilter(
+                "ruleX",
+                "ruleY",
+                [
+                    ("Sender", ":is", "toto@toti.com"),
+                ],
+                [
+                    ("fileinto", ":copy", "Toti"),
+                ],
+            )
+
+    def test_replacefilter(self):
+        self.fs.addfilter(
+            "ruleX",
+            [
+                ("Sender", ":is", "toto@toto.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Toto"),
+            ],
+        )
+        self.fs.addfilter(
+            "ruleY",
+            [
+                ("Sender", ":is", "toto@tota.com"),
+            ],
+            [
+                ("fileinto", ":copy", "Tota"),
+            ],
+        )
+        content = self.fs.getfilter("ruleX")
+        result = self.fs.replacefilter("ruleZ", content)
+        self.assertFalse(result)
+        result = self.fs.replacefilter("ruleY", content)
+        self.assertTrue(result)
 
     def test_get_filter_conditions(self):
         """Test get_filter_conditions method."""
