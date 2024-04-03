@@ -7,9 +7,9 @@ language used to filter emails.
 This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 
 """
-from collections.abc import Iterator
 import re
 import sys
+from typing import Iterator, Tuple
 
 from sievelib.commands import get_command_instance, CommandError, RequireCommand
 
@@ -55,7 +55,7 @@ class Lexer:
         """Return the current column number"""
         return self.pos - self.text.rfind(b"\n", 0, self.pos)
 
-    def scan(self, text: bytes) -> Iterator[tuple[str, bytes]]:
+    def scan(self, text: bytes) -> Iterator[Tuple[str, bytes]]:
         """Analyse some data
 
         Analyse the passed content. Each time a token is recognized, a

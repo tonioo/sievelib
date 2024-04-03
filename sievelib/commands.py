@@ -20,9 +20,9 @@ provides extra information such as:
 
 """
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 import sys
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, Iterator, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 from . import tools
