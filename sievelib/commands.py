@@ -20,21 +20,22 @@ provides extra information such as:
 
 """
 
-import sys
 from collections.abc import Iterable
+import sys
+from typing import Any, Dict, Iterator, List, Optional, TypedDict, Union
+from typing_extensions import NotRequired
+
 from . import tools
 
 
 class CommandError(Exception):
     """Base command exception class."""
 
-    pass
-
 
 class UnknownCommand(CommandError):
     """Specific exception raised when an unknown command is encountered"""
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
 
     def __str__(self):
@@ -78,22 +79,42 @@ class ExtensionNotLoaded(CommandError):
         return "extension '{}' not loaded".format(self.name)
 
 
+class CommandExtraArg(TypedDict):
+    """Type definition for command extra argument."""
+
+    type: Union[str, List[str]]
+    values: NotRequired[List[str]]
+    valid_for: NotRequired[List[str]]
+
+
+class CommandArg(TypedDict):
+    """Type definition for command argument."""
+
+    name: str
+    type: List[str]
+    required: NotRequired[bool]
+    values: NotRequired[List[str]]
+    extra_arg: NotRequired[CommandExtraArg]
+    extension: NotRequired[str]
+    extension_values: NotRequired[Dict[str, str]]
+
+
 # Statement elements (see RFC, section 8.3)
 # They are used in different commands.
-comparator = {
+comparator: CommandArg = {
     "name": "comparator",
     "type": ["tag"],
     "values": [":comparator"],
     "extra_arg": {"type": "string", "values": ['"i;octet"', '"i;ascii-casemap"']},
     "required": False,
 }
-address_part = {
+address_part: CommandArg = {
     "name": "address-part",
     "values": [":localpart", ":domain", ":all"],
     "type": ["tag"],
     "required": False,
 }
-match_type = {
+match_type: CommandArg = {
     "name": "match-type",
     "values": [":is", ":contains", ":matches"],
     "extension_values": {
@@ -111,7 +132,7 @@ match_type = {
 }
 
 
-class Command(object):
+class Command:
     """Generic command representation.
 
     A command is described as follow:
@@ -125,33 +146,36 @@ class Command(object):
 
     """
 
-    _type = None
-    variable_args_nb = False
-    non_deterministic_args = False
-    accept_children = False
-    must_follow = None
-    extension = None
+    args_definition: List[CommandArg]
+    _type: str
+    variable_args_nb: bool = False
+    non_deterministic_args: bool = False
+    accept_children: bool = False
+    must_follow: Optional[List[str]] = None
+    extension: Optional[str] = None
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional["Command"] = None):
         self.parent = parent
-        self.arguments = {}
-        self.extra_arguments = {}  # to store tag arguments
-        self.children = []
+        self.arguments: Dict[str, Any] = {}
+        self.extra_arguments: Dict[str, Any] = {}  # to store tag arguments
+        self.children: List[Command] = []
 
         self.nextargpos = 0
         self.required_args = -1
         self.rargs_cnt = 0
-        self.curarg = None  # for arguments that expect an argument :p (ex: :comparator)
+        self.curarg: Union[CommandArg, None] = (
+            None  # for arguments that expect an argument :p (ex: :comparator)
+        )
 
-        self.name = self.__class__.__name__.replace("Command", "")
+        self.name: str = self.__class__.__name__.replace("Command", "")
         self.name = self.name.lower()
 
-        self.hash_comments = []
+        self.hash_comments: List[bytes] = []
 
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
 
-    def tosieve(self, indentlevel=0, target=sys.stdout):
+    def tosieve(self, indentlevel: int = 0, target=sys.stdout):
         """Generate the sieve syntax corresponding to this command
 
         Recursive method.
@@ -213,14 +237,16 @@ class Command(object):
             ch.tosieve(indentlevel + 4, target=target)
         self.__print("}", indentlevel, target=target)
 
-    def __print(self, data, indentlevel, nocr=False, target=sys.stdout):
+    def __print(
+        self, data: str, indentlevel: int, nocr: bool = False, target=sys.stdout
+    ):
         text = "%s%s" % (" " * indentlevel, data)
         if nocr:
             target.write(text)
         else:
             target.write(text + "\n")
 
-    def __get_arg_type(self, arg):
+    def __get_arg_type(self, arg: str) -> Optional[List[str]]:
         """Return the type corresponding to the given name.
 
         :param arg: a defined argument name
@@ -237,11 +263,11 @@ class Command(object):
         """
         pass
 
-    def get_expected_first(self):
+    def get_expected_first(self) -> Optional[List[str]]:
         """Return the first expected token for this command"""
         return None
 
-    def has_arguments(self):
+    def has_arguments(self) -> bool:
         return len(self.args_definition) != 0
 
     def reassign_arguments(self):
@@ -252,7 +278,7 @@ class Command(object):
         """
         raise NotImplementedError
 
-    def dump(self, indentlevel=0, target=sys.stdout):
+    def dump(self, indentlevel: int = 0, target=sys.stdout):
         """Display the command
 
         Pretty printing of this command and its eventual arguments and
@@ -291,7 +317,7 @@ class Command(object):
         for ch in self.children:
             ch.dump(indentlevel, target)
 
-    def walk(self):
+    def walk(self) -> Iterator["Command"]:
         """Walk through commands."""
         yield self
         if self.has_arguments():
@@ -311,7 +337,7 @@ class Command(object):
             for node in ch.walk():
                 yield node
 
-    def addchild(self, child):
+    def addchild(self, child: "Command") -> bool:
         """Add a new child to the command
 
         A child corresponds to a command located into a block (this
@@ -325,7 +351,9 @@ class Command(object):
         self.children += [child]
         return True
 
-    def iscomplete(self, atype=None, avalue=None):
+    def iscomplete(
+        self, atype: Optional[str] = None, avalue: Optional[str] = None
+    ) -> bool:
         """Check if the command is complete
 
         Check if all required arguments have been encountered. For
@@ -342,7 +370,7 @@ class Command(object):
                 if arg.get("required", False):
                     self.required_args += 1
         return (
-            not self.curarg
+            self.curarg is None
             or "extra_arg" not in self.curarg
             or (
                 "valid_for" in self.curarg["extra_arg"]
@@ -352,20 +380,22 @@ class Command(object):
             )
         ) and (self.rargs_cnt == self.required_args)
 
-    def get_type(self):
+    def get_type(self) -> str:
         """Return the command's type"""
         if self._type is None:
             raise NotImplementedError
         return self._type
 
-    def __is_valid_value_for_arg(self, arg, value, check_extension=True):
+    def __is_valid_value_for_arg(
+        self, arg: CommandArg, value: str, check_extension: bool = True
+    ) -> bool:
         """Check if value is allowed for arg
 
         Some commands only allow a limited set of values. The method
         always returns True for methods that do not provide such a
         set.
 
-        :param arg: the argument's name
+        :param arg: the argument
         :param value: the value to check
         :param check_extension: check if value requires an extension
         :return: True on succes, False otherwise
@@ -386,7 +416,7 @@ class Command(object):
                 return True
         return False
 
-    def __is_valid_type(self, typ, typlist):
+    def __is_valid_type(self, typ: str, typlist: List[str]) -> bool:
         """Check if type is valid based on input type list
             "string" is special because it can be used for stringlist
 
@@ -399,7 +429,9 @@ class Command(object):
 
         return typ in typlist or (typ_is_str and str_list_in_typlist)
 
-    def check_next_arg(self, atype, avalue, add=True, check_extension=True):
+    def check_next_arg(
+        self, atype: str, avalue: str, add: bool = True, check_extension: bool = True
+    ) -> bool:
         """Argument validity checking
 
         This method is usually used by the parser to check if detected
@@ -468,7 +500,7 @@ class Command(object):
                         self.arguments[curarg["name"]] = avalue
                 break
 
-            condition = atype in curarg["type"] and self.__is_valid_value_for_arg(
+            condition: bool = atype in curarg["type"] and self.__is_valid_value_for_arg(
                 curarg, avalue, check_extension
             )
             if condition:
@@ -496,11 +528,11 @@ class Command(object):
             raise BadArgument(self.name, avalue, self.args_definition[pos]["type"])
         return True
 
-    def __contains__(self, name):
+    def __contains__(self, name: str) -> bool:
         """Check if argument is provided with command."""
         return name in self.arguments
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Any:
         """Shorcut to access a command argument
 
         :param name: the argument's name
@@ -535,7 +567,7 @@ class RequireCommand(ControlCommand):
         {"name": "capabilities", "type": ["string", "stringlist"], "required": True}
     ]
 
-    loaded_extensions = []
+    loaded_extensions: List[str] = []
 
     def complete_cb(self):
         if type(self.arguments["capabilities"]) != list:
@@ -553,7 +585,7 @@ class IfCommand(ControlCommand):
 
     args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
-    def get_expected_first(self):
+    def get_expected_first(self) -> List[str]:
         return ["identifier"]
 
 
@@ -562,7 +594,7 @@ class ElsifCommand(ControlCommand):
     must_follow = ["if", "elsif"]
     args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
-    def get_expected_first(self):
+    def get_expected_first(self) -> List[str]:
         return ["identifier"]
 
 
@@ -717,7 +749,7 @@ class AllofCommand(TestCommand):
 
     args_definition = [{"name": "tests", "type": ["testlist"], "required": True}]
 
-    def get_expected_first(self):
+    def get_expected_first(self) -> List[str]:
         return ["left_parenthesis"]
 
 
@@ -727,7 +759,7 @@ class AnyofCommand(TestCommand):
 
     args_definition = [{"name": "tests", "type": ["testlist"], "required": True}]
 
-    def get_expected_first(self):
+    def get_expected_first(self) -> List[str]:
         return ["left_parenthesis"]
 
 
@@ -1044,7 +1076,9 @@ def add_commands(cmds):
             globals()[command.__name__] = command
 
 
-def get_command_instance(name, parent=None, checkexists=True):
+def get_command_instance(
+    name: str, parent: Optional[Command] = None, checkexists: bool = True
+) -> Command:
     """Try to guess and create the appropriate command instance
 
     Given a command name (encountered by the parser), construct the

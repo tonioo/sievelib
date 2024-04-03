@@ -9,6 +9,7 @@ This implementation is based on RFC 5228 (http://tools.ietf.org/html/rfc5228)
 """
 import re
 import sys
+from typing import Iterator, Tuple
 
 from sievelib.commands import get_command_instance, CommandError, RequireCommand
 
@@ -16,11 +17,11 @@ from sievelib.commands import get_command_instance, CommandError, RequireCommand
 class ParseError(Exception):
     """Generic parsing error"""
 
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         self.msg = msg
 
     def __str__(self):
-        return "parsing error: %s" % self.msg
+        return f"parsing error: {self.msg}"
 
 
 class Lexer:
@@ -46,15 +47,15 @@ class Lexer:
         self.regexp = re.compile(self.regexpString, re.MULTILINE)
         self.wsregexp = re.compile(rb"\s+", re.M)
 
-    def curlineno(self):
+    def curlineno(self) -> int:
         """Return the current line number"""
         return self.text[: self.pos].count(b"\n") + 1
 
-    def curcolno(self):
+    def curcolno(self) -> int:
         """Return the current column number"""
         return self.pos - self.text.rfind(b"\n", 0, self.pos)
 
-    def scan(self, text):
+    def scan(self, text: bytes) -> Iterator[Tuple[str, bytes]]:
         """Analyse some data
 
         Analyse the passed content. Each time a token is recognized, a
@@ -79,7 +80,7 @@ class Lexer:
                 m = self.wsregexp.search(token)
                 if m is not None:
                     token = token[: m.start()]
-                raise ParseError("unknown token %s" % token)
+                raise ParseError(f"unknown token {token}")
 
             yield (m.lastgroup, m.group(m.lastgroup))
             self.pos += len(m.group(0))
@@ -110,7 +111,7 @@ class Parser:
         (b"number", rb"[0-9]+[KMGkmg]?"),
     ]
 
-    def __init__(self, debug=False):
+    def __init__(self, debug: bool = False):
         self.debug = debug
         self.lexer = Lexer(Parser.lrules)
 
@@ -144,14 +145,14 @@ class Parser:
         """
         self.__expected = args
 
-    def __push_expected_bracket(self, ttype, tvalue):
+    def __push_expected_bracket(self, ttype: str, tvalue: bytes):
         """Append a new expected bracket.
 
         Next time a bracket is closed, it must match the one provided here.
         """
         self.__expected_brackets.append((ttype, tvalue))
 
-    def __pop_expected_bracket(self, ttype, tvalue):
+    def __pop_expected_bracket(self, ttype: str, tvalue):
         """Drop the last expected bracket.
 
         If the given bracket doesn't match the dropped expected bracket,
@@ -166,7 +167,7 @@ class Parser:
                 "unexpected closing bracket %s (expected %s)" % (tvalue, evalue)
             )
 
-    def __up(self, onlyrecord=False):
+    def __up(self, onlyrecord: bool = False):
         """Return to the current command's parent
 
         This method should be called each time a command is
@@ -225,7 +226,7 @@ class Parser:
                 self.__set_expected("comma", "right_parenthesis")
             break
 
-    def __check_command_completion(self, testsemicolon=True):
+    def __check_command_completion(self, testsemicolon: bool = True) -> bool:
         """Check for command(s) completion
 
         This function should be called each time a new argument is
@@ -268,7 +269,7 @@ class Parser:
                     break
         return True
 
-    def __stringlist(self, ttype, tvalue):
+    def __stringlist(self, ttype: str, tvalue: bytes) -> bool:
         """Specific method to parse the 'string-list' type
 
         Syntax:
@@ -290,7 +291,7 @@ class Parser:
             return self.__check_command_completion()
         return False
 
-    def __argument(self, ttype, tvalue):
+    def __argument(self, ttype: str, tvalue: bytes) -> bool:
         """Argument parsing method
 
         This method acts as an entry point for 'argument' parsing.
@@ -327,7 +328,7 @@ class Parser:
 
         return False
 
-    def __arguments(self, ttype, tvalue):
+    def __arguments(self, ttype: str, tvalue: bytes) -> bool:
         """Arguments parsing method
 
         Entry point for command arguments parsing. The parser must
@@ -371,7 +372,7 @@ class Parser:
 
         return False
 
-    def __command(self, ttype, tvalue):
+    def __command(self, ttype: str, tvalue: bytes) -> bool:
         """Command parsing method
 
         Entry point for command parsing. Here is expected behaviour:
@@ -432,7 +433,7 @@ class Parser:
             return True
         return False
 
-    def parse(self, text):
+    def parse(self, text: bytes) -> bool:
         """The parser entry point.
 
         Parse the provided text to check for its validity.
@@ -452,7 +453,8 @@ class Parser:
 
         self.__reset_parser()
         try:
-            tvalue = ""
+            ttype: str
+            tvalue: bytes = b""
             for ttype, tvalue in self.lexer.scan(text):
                 if ttype == "hash_comment":
                     self.hash_comments += [tvalue.strip()]
@@ -499,7 +501,7 @@ class Parser:
             return False
         return True
 
-    def parse_file(self, name):
+    def parse_file(self, name: str) -> bool:
         """Parse the content of a file.
 
         See 'parse' method for information.

@@ -34,7 +34,7 @@ if __name__ == "__main__":
         url="https://github.com/tonioo/sievelib",
         license="MIT",
         keywords=["sieve", "managesieve", "parser", "client"],
-        install_requires=[],
+        install_requires=["typing-extensions"],
         setup_requires=["setuptools_scm"],
         use_scm_version={"local_scheme": local_scheme},
         classifiers=[

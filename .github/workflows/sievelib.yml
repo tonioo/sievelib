@@ -25,6 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install codecov pytest pytest-cov
+          pip install -e .
       - name: Run tests
         if: ${{ matrix.python-version != '3.11' }}
         run: |
