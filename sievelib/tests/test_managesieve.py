@@ -50,7 +50,7 @@ class ManageSieveTestCase(unittest.TestCase):
     def authenticate(self, mock_socket):
         """Authenticate client."""
         mock_socket.return_value.recv.side_effect = (AUTHENTICATION,)
-        self.client.connect(b"user", b"password")
+        self.client.connect("user", "password")
 
     def test_connection(self, mock_socket):
         """Test connection."""
@@ -62,7 +62,7 @@ class ManageSieveTestCase(unittest.TestCase):
     def test_auth_oauthbearer(self, mock_socket):
         """Test OAUTHBEARER mechanism."""
         mock_socket.return_value.recv.side_effect = (AUTHENTICATION,)
-        self.assertTrue(self.client.connect(b"user", b"token", authmech="OAUTHBEARER"))
+        self.assertTrue(self.client.connect("user", "token", authmech="OAUTHBEARER"))
 
     def test_capabilities(self, mock_socket):
         """Test capabilities command."""
@@ -145,7 +145,7 @@ if envelope :contains "to" "tmartin+sent" {
             CAPABILITIES_WITHOUT_VERSION + b'OK "Dovecot ready."\r\n'
             b'OK "Logged in."\r\n',
         )
-        self.client.connect(b"user", b"password")
+        self.client.connect("user", "password")
         mock_socket.return_value.recv.side_effect = (
             LISTSCRIPTS,
             GETSCRIPT,

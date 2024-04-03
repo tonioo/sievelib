@@ -10,12 +10,22 @@ are supported.
 
 import io
 import sys
+from typing import NotRequired, Optional, TypedDict, Union
 
 from sievelib import commands
 
 
 class FilterAlreadyExists(Exception):
     pass
+
+
+class Filter(TypedDict):
+    """Type definition for filter."""
+
+    name: str
+    content: commands.Command
+    enabled: bool
+    description: NotRequired[str]
 
 
 class FiltersSet:
@@ -39,8 +49,8 @@ class FiltersSet:
         self.name = name
         self.filter_name_pretext = filter_name_pretext
         self.filter_desc_pretext = filter_desc_pretext
-        self.requires = []
-        self.filters = []
+        self.requires: list[str] = []
+        self.filters: list[Filter] = []
 
     def __str__(self):
         target = io.StringIO()
@@ -49,7 +59,7 @@ class FiltersSet:
         target.close()
         return ret
 
-    def __isdisabled(self, fcontent):
+    def __isdisabled(self, fcontent: commands.Command) -> bool:
         """Tells if a filter is disabled or not
 
         Simply checks if the filter is surrounded by a "if false" test.
@@ -62,7 +72,7 @@ class FiltersSet:
             return False
         return True
 
-    def from_parser_result(self, parser):
+    def from_parser_result(self, parser: "sievelib.parser.Parser"):
         cpt = 1
         for f in parser.result:
             if isinstance(f, commands.RequireCommand):
@@ -100,13 +110,13 @@ class FiltersSet:
         if name not in self.requires:
             self.requires += [name]
 
-    def check_if_arg_is_extension(self, arg):
+    def check_if_arg_is_extension(self, arg: str):
         """Include extension if arg requires one."""
         args_using_extensions = {":copy": "copy"}
         if arg in args_using_extensions:
             self.require(args_using_extensions[arg])
 
-    def __gen_require_command(self):
+    def __gen_require_command(self) -> Union[commands.Command, None]:
         """Internal method to create a RequireCommand based on requirements
 
         Called just before this object is going to be dumped.
@@ -117,7 +127,7 @@ class FiltersSet:
         reqcmd.check_next_arg("stringlist", self.requires)
         return reqcmd
 
-    def __quote_if_necessary(self, value):
+    def __quote_if_necessary(self, value: str) -> str:
         """Add double quotes to the given string if necessary
 
         :param value: the string to check
@@ -127,7 +137,9 @@ class FiltersSet:
             return '"%s"' % value
         return value
 
-    def __build_condition(self, condition, parent, tag=None):
+    def __build_condition(
+        self, condition: list[str], parent: commands.Command, tag: Optional[str] = None
+    ) -> commands.Command:
         """Translate a condition to a valid sievelib Command.
 
         :param list condition: condition's definition
@@ -144,7 +156,12 @@ class FiltersSet:
         cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
         return cmd
 
-    def __create_filter(self, conditions, actions, matchtype="anyof"):
+    def __create_filter(
+        self,
+        conditions: list[tuple],
+        actions: list[tuple],
+        matchtype: str = "anyof",
+    ) -> commands.Command:
         """Create a new filter
 
         A filter is composed of:
@@ -272,7 +289,7 @@ class FiltersSet:
             ifcontrol.addchild(action)
         return ifcontrol
 
-    def _unicode_filter_name(self, name):
+    def _unicode_filter_name(self, name) -> str:
         """Convert name to unicode if necessary."""
         return name.decode("utf-8") if isinstance(name, bytes) else name
 
@@ -284,7 +301,11 @@ class FiltersSet:
         return False
 
     def addfilter(
-        self, name: str, conditions: list, actions: list, matchtype: str = "anyof"
+        self,
+        name: str,
+        conditions: list[tuple],
+        actions: list[tuple],
+        matchtype: str = "anyof",
     ):
         """Add a new filter to this filters set
 
@@ -306,7 +327,12 @@ class FiltersSet:
         ]
 
     def updatefilter(
-        self, oldname: str, newname: str, conditions, actions, matchtype: str = "anyof"
+        self,
+        oldname: str,
+        newname: str,
+        conditions: list[tuple],
+        actions: list[tuple],
+        matchtype: str = "anyof",
     ) -> bool:
         """Update a specific filter
 
@@ -337,8 +363,12 @@ class FiltersSet:
         return True
 
     def replacefilter(
-        self, oldname: str, sieve_filter, newname: str = None, description: str = None
-    ):
+        self,
+        oldname: str,
+        sieve_filter: commands.Command,
+        newname: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> bool:
         """replace a specific sieve_filter
 
         Instead of removing and re-creating the sieve_filter, we update the
@@ -370,7 +400,7 @@ class FiltersSet:
             return self.disablefilter(newname)
         return True
 
-    def getfilter(self, name: str):
+    def getfilter(self, name: str) -> Union[commands.Command, None]:
         """Search for a specific filter
 
         :param name: the filter's name
@@ -384,7 +414,7 @@ class FiltersSet:
                 return f["content"]
         return None
 
-    def get_filter_matchtype(self, name: str) -> str:
+    def get_filter_matchtype(self, name: str) -> Union[str, None]:
         """Retrieve matchtype of the given filter."""
         flt = self.getfilter(name)
         if not flt:
@@ -394,7 +424,7 @@ class FiltersSet:
                 return node.__class__.__name__.lower().replace("command", "")
         return None
 
-    def get_filter_conditions(self, name: str) -> list:
+    def get_filter_conditions(self, name: str) -> Union[list[str], None]:
         """Retrieve conditions of the given filter."""
         flt = self.getfilter(name)
         if not flt:
@@ -434,7 +464,7 @@ class FiltersSet:
                 conditions.append(args)
         return conditions
 
-    def get_filter_actions(self, name: str) -> list:
+    def get_filter_actions(self, name: str) -> Union[list[str], None]:
         """Retrieve actions of the given filter."""
         flt = self.getfilter(name)
         if not flt:
