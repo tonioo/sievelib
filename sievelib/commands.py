@@ -22,7 +22,7 @@ provides extra information such as:
 
 from collections.abc import Iterable, Iterator
 import sys
-from typing import Any, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 from . import tools
@@ -96,7 +96,7 @@ class CommandArg(TypedDict):
     values: NotRequired[List[str]]
     extra_arg: NotRequired[CommandExtraArg]
     extension: NotRequired[str]
-    extension_values: NotRequired[dict[str, str]]
+    extension_values: NotRequired[Dict[str, str]]
 
 
 # Statement elements (see RFC, section 8.3)
@@ -156,8 +156,8 @@ class Command:
 
     def __init__(self, parent: Optional["Command"] = None):
         self.parent = parent
-        self.arguments: dict[str, Any] = {}
-        self.extra_arguments: dict[str, Any] = {}  # to store tag arguments
+        self.arguments: Dict[str, Any] = {}
+        self.extra_arguments: Dict[str, Any] = {}  # to store tag arguments
         self.children: List[Command] = []
 
         self.nextargpos = 0

@@ -12,7 +12,7 @@ import base64
 import re
 import socket
 import ssl
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 from .digest_md5 import DigestMD5
 from . import tools
@@ -177,7 +177,7 @@ class Client:
                 raise Response(m.group(1), m.group(2))
         return ret
 
-    def __read_response(self, nblines: int = -1) -> tuple[bytes, bytes, bytes]:
+    def __read_response(self, nblines: int = -1) -> Tuple[bytes, bytes, bytes]:
         """Read a response from the server.
 
         In the usual case, we read lines until we find one that looks
@@ -252,7 +252,7 @@ class Client:
         withcontent: bool = False,
         extralines: Optional[List[bytes]] = None,
         nblines: int = -1,
-    ) -> tuple[str, str, bytes]:
+    ) -> Tuple[str, str, bytes]:
         """Send a command to the server.
 
         If args is not empty, we concatenate the given command with
@@ -605,7 +605,7 @@ class Client:
         return False
 
     @authentication_required
-    def listscripts(self) -> tuple[str, List[str]]:
+    def listscripts(self) -> Tuple[str, List[str]]:
         """List available scripts.
 
         See MANAGESIEVE specifications, section 2.7
