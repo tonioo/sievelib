@@ -12,7 +12,7 @@ import base64
 import re
 import socket
 import ssl
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from .digest_md5 import DigestMD5
 from . import tools
@@ -213,7 +213,7 @@ class Client:
 
         return (code, data, resp)
 
-    def __prepare_args(self, args: list[Any]) -> list[bytes]:
+    def __prepare_args(self, args: List[Any]) -> List[bytes]:
         """Format command arguments before sending them.
 
         Command arguments of type string must be quoted, the only
@@ -248,9 +248,9 @@ class Client:
     def __send_command(
         self,
         name: str,
-        args: Optional[list[bytes]] = None,
+        args: Optional[List[bytes]] = None,
         withcontent: bool = False,
-        extralines: Optional[list[bytes]] = None,
+        extralines: Optional[List[bytes]] = None,
         nblines: int = -1,
     ) -> tuple[str, str, bytes]:
         """Send a command to the server.
@@ -502,7 +502,7 @@ class Client:
         """
         return self.__capabilities["IMPLEMENTATION"]
 
-    def get_sasl_mechanisms(self) -> list[str]:
+    def get_sasl_mechanisms(self) -> List[str]:
         """Returns the supported authentication mechanisms.
 
         They're read from server capabilities. (see the CAPABILITY
@@ -605,7 +605,7 @@ class Client:
         return False
 
     @authentication_required
-    def listscripts(self) -> tuple[str, list[str]]:
+    def listscripts(self) -> tuple[str, List[str]]:
         """List available scripts.
 
         See MANAGESIEVE specifications, section 2.7
@@ -615,7 +615,7 @@ class Client:
         code, data, listing = self.__send_command("LISTSCRIPTS", withcontent=True)
         if code == "NO":
             return None
-        ret: list[str] = []
+        ret: List[str] = []
         active_script: str = None
         for l in listing.splitlines():
             if self.__size_expr.match(l):

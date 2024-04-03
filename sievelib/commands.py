@@ -22,7 +22,7 @@ provides extra information such as:
 
 from collections.abc import Iterable, Iterator
 import sys
-from typing import Any, NotRequired, Optional, TypedDict, Union
+from typing import Any, NotRequired, List, Optional, TypedDict, Union
 
 from . import tools
 
@@ -81,18 +81,18 @@ class ExtensionNotLoaded(CommandError):
 class CommandExtraArg(TypedDict):
     """Type definition for command extra argument."""
 
-    type: Union[str, list[str]]
-    values: NotRequired[list[str]]
-    valid_for: NotRequired[list[str]]
+    type: Union[str, List[str]]
+    values: NotRequired[List[str]]
+    valid_for: NotRequired[List[str]]
 
 
 class CommandArg(TypedDict):
     """Type definition for command argument."""
 
     name: str
-    type: list[str]
+    type: List[str]
     required: NotRequired[bool]
-    values: NotRequired[list[str]]
+    values: NotRequired[List[str]]
     extra_arg: NotRequired[CommandExtraArg]
     extension: NotRequired[str]
     extension_values: NotRequired[dict[str, str]]
@@ -145,19 +145,19 @@ class Command:
 
     """
 
-    args_definition: list[CommandArg]
+    args_definition: List[CommandArg]
     _type: str
     variable_args_nb: bool = False
     non_deterministic_args: bool = False
     accept_children: bool = False
-    must_follow: Optional[list[str]] = None
+    must_follow: Optional[List[str]] = None
     extension: Optional[str] = None
 
     def __init__(self, parent: Optional["Command"] = None):
         self.parent = parent
         self.arguments: dict[str, Any] = {}
         self.extra_arguments: dict[str, Any] = {}  # to store tag arguments
-        self.children: list[Command] = []
+        self.children: List[Command] = []
 
         self.nextargpos = 0
         self.required_args = -1
@@ -169,7 +169,7 @@ class Command:
         self.name: str = self.__class__.__name__.replace("Command", "")
         self.name = self.name.lower()
 
-        self.hash_comments: list[bytes] = []
+        self.hash_comments: List[bytes] = []
 
     def __repr__(self):
         return "%s (type: %s)" % (self.name, self._type)
@@ -245,7 +245,7 @@ class Command:
         else:
             target.write(text + "\n")
 
-    def __get_arg_type(self, arg: str) -> Optional[list[str]]:
+    def __get_arg_type(self, arg: str) -> Optional[List[str]]:
         """Return the type corresponding to the given name.
 
         :param arg: a defined argument name
@@ -262,7 +262,7 @@ class Command:
         """
         pass
 
-    def get_expected_first(self) -> Optional[list[str]]:
+    def get_expected_first(self) -> Optional[List[str]]:
         """Return the first expected token for this command"""
         return None
 
@@ -415,7 +415,7 @@ class Command:
                 return True
         return False
 
-    def __is_valid_type(self, typ: str, typlist: list[str]) -> bool:
+    def __is_valid_type(self, typ: str, typlist: List[str]) -> bool:
         """Check if type is valid based on input type list
             "string" is special because it can be used for stringlist
 
@@ -566,7 +566,7 @@ class RequireCommand(ControlCommand):
         {"name": "capabilities", "type": ["string", "stringlist"], "required": True}
     ]
 
-    loaded_extensions: list[str] = []
+    loaded_extensions: List[str] = []
 
     def complete_cb(self):
         if type(self.arguments["capabilities"]) != list:
@@ -584,7 +584,7 @@ class IfCommand(ControlCommand):
 
     args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
-    def get_expected_first(self) -> list[str]:
+    def get_expected_first(self) -> List[str]:
         return ["identifier"]
 
 
@@ -593,7 +593,7 @@ class ElsifCommand(ControlCommand):
     must_follow = ["if", "elsif"]
     args_definition = [{"name": "test", "type": ["test"], "required": True}]
 
-    def get_expected_first(self) -> list[str]:
+    def get_expected_first(self) -> List[str]:
         return ["identifier"]
 
 
@@ -748,7 +748,7 @@ class AllofCommand(TestCommand):
 
     args_definition = [{"name": "tests", "type": ["testlist"], "required": True}]
 
-    def get_expected_first(self) -> list[str]:
+    def get_expected_first(self) -> List[str]:
         return ["left_parenthesis"]
 
 
@@ -758,7 +758,7 @@ class AnyofCommand(TestCommand):
 
     args_definition = [{"name": "tests", "type": ["testlist"], "required": True}]
 
-    def get_expected_first(self) -> list[str]:
+    def get_expected_first(self) -> List[str]:
         return ["left_parenthesis"]
 
 
