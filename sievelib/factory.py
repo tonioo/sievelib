@@ -10,7 +10,7 @@ are supported.
 
 import io
 import sys
-from typing import Optional, TypedDict, Union
+from typing import List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 from sievelib import commands
@@ -50,8 +50,8 @@ class FiltersSet:
         self.name = name
         self.filter_name_pretext = filter_name_pretext
         self.filter_desc_pretext = filter_desc_pretext
-        self.requires: list[str] = []
-        self.filters: list[Filter] = []
+        self.requires: List[str] = []
+        self.filters: List[Filter] = []
 
     def __str__(self):
         target = io.StringIO()
@@ -139,7 +139,7 @@ class FiltersSet:
         return value
 
     def __build_condition(
-        self, condition: list[str], parent: commands.Command, tag: Optional[str] = None
+        self, condition: List[str], parent: commands.Command, tag: Optional[str] = None
     ) -> commands.Command:
         """Translate a condition to a valid sievelib Command.
 
@@ -159,8 +159,8 @@ class FiltersSet:
 
     def __create_filter(
         self,
-        conditions: list[tuple],
-        actions: list[tuple],
+        conditions: List[tuple],
+        actions: List[tuple],
         matchtype: str = "anyof",
     ) -> commands.Command:
         """Create a new filter
@@ -304,8 +304,8 @@ class FiltersSet:
     def addfilter(
         self,
         name: str,
-        conditions: list[tuple],
-        actions: list[tuple],
+        conditions: List[tuple],
+        actions: List[tuple],
         matchtype: str = "anyof",
     ):
         """Add a new filter to this filters set
@@ -331,8 +331,8 @@ class FiltersSet:
         self,
         oldname: str,
         newname: str,
-        conditions: list[tuple],
-        actions: list[tuple],
+        conditions: List[tuple],
+        actions: List[tuple],
         matchtype: str = "anyof",
     ) -> bool:
         """Update a specific filter
@@ -425,7 +425,7 @@ class FiltersSet:
                 return node.__class__.__name__.lower().replace("command", "")
         return None
 
-    def get_filter_conditions(self, name: str) -> Union[list[str], None]:
+    def get_filter_conditions(self, name: str) -> Union[List[str], None]:
         """Retrieve conditions of the given filter."""
         flt = self.getfilter(name)
         if not flt:
@@ -465,7 +465,7 @@ class FiltersSet:
                 conditions.append(args)
         return conditions
 
-    def get_filter_actions(self, name: str) -> Union[list[str], None]:
+    def get_filter_actions(self, name: str) -> Union[List[str], None]:
         """Retrieve actions of the given filter."""
         flt = self.getfilter(name)
         if not flt:
