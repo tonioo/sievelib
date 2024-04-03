@@ -22,7 +22,8 @@ provides extra information such as:
 
 from collections.abc import Iterable, Iterator
 import sys
-from typing import Any, NotRequired, List, Optional, TypedDict, Union
+from typing import Any, List, Optional, TypedDict, Union
+from typing_extensions import NotRequired
 
 from . import tools
 

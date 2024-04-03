@@ -10,7 +10,8 @@ are supported.
 
 import io
 import sys
-from typing import NotRequired, Optional, TypedDict, Union
+from typing import Optional, TypedDict, Union
+from typing_extensions import NotRequired
 
 from sievelib import commands
 
