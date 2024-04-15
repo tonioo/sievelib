@@ -486,7 +486,7 @@ class Client:
             context.load_cert_chain(certfile, keyfile=keyfile)
         try:
             # nsock = ssl.wrap_socket(self.sock, keyfile, certfile)
-            nsock = context.wrap_socket(self.sock)
+            nsock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
         except ssl.SSLError as e:
             raise Error("SSL error: %s" % str(e))
         self.sock = nsock
