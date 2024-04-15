@@ -481,10 +481,12 @@ class Client:
         code, data = self.__send_command("STARTTLS")
         if code != "OK":
             return False
-        context = ssl.SSLContext()
+        context = ssl.create_default_context()
+        if certfile is not None:
+            context.load_cert_chain(certfile, keyfile=keyfile)
         try:
             # nsock = ssl.wrap_socket(self.sock, keyfile, certfile)
-            nsock = context.wrap_socket(self.sock, keyfile, certfile)
+            nsock = context.wrap_socket(self.sock)
         except ssl.SSLError as e:
             raise Error("SSL error: %s" % str(e))
         self.sock = nsock
