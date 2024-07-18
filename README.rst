@@ -157,5 +157,5 @@ Additional documentation is available with source code.
 .. |latest-version| image:: https://badge.fury.io/py/sievelib.svg
    :target: https://badge.fury.io/py/sievelib
 .. |workflow| image:: https://github.com/tonioo/sievelib/workflows/Sievelib/badge.svg
-.. |codecov| image:: http://codecov.io/github/tonioo/sievelib/coverage.svg?branch=master
-   :target: http://codecov.io/github/tonioo/sievelib?branch=master
+.. |codecov| image:: https://codecov.io/github/tonioo/sievelib/graph/badge.svg?token=B1FWNSY60d 
+   :target: https://codecov.io/github/tonioo/sievelib
