@@ -998,6 +998,7 @@ class CurrentdateCommand(TestCommand):
 
 
 class VacationCommand(ActionCommand):
+    extension = "vacation"
     args_definition = [
         {
             "name": "subject",

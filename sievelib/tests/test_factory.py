@@ -583,7 +583,9 @@ if anyof (currentdate :zone "+0100" :value "gt" "date" ["2019-02-26"]) {
         self.fs.tosieve(output)
         self.assertEqual(
             output.getvalue(),
-            """# Filter: test
+            """require ["vacation"];
+
+# Filter: test
 if anyof (header :matches "Subject" "*") {
     vacation :subject "Example Autoresponder Subject" :days 7 :mime "Example Autoresponder Body";
 }
