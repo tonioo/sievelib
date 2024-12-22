@@ -281,7 +281,9 @@ class FiltersSet:
                 self.require(action.extension)
             for arg in actdef[1:]:
                 self.check_if_arg_is_extension(arg)
-                if arg.startswith(":"):
+                if isinstance(arg, int):
+                    atype = "number"
+                elif arg.startswith(":"):
                     atype = "tag"
                 else:
                     atype = "string"

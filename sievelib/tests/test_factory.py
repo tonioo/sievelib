@@ -573,6 +573,12 @@ if anyof (currentdate :zone "+0100" :value "gt" "date" ["2019-02-26"]) {
 """,
         )
 
+    def test_vacation(self):
+        self.fs.addfilter(
+            "test",
+            [("Subject", ":matches", "*")],
+            [("vacation", ":subject", "Example Autoresponder Subject", ":days", 7, ":mime", "Example Autoresponder Body")],
+        )
 
 if __name__ == "__main__":
     unittest.main()
