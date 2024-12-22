@@ -592,5 +592,34 @@ if anyof (header :matches "Subject" "*") {
 """,
         )
 
+    def test_dump(self):
+        self.fs.addfilter(
+            "test",
+            [("Subject", ":matches", "*")], [("vacation", ":subject", "Example Autoresponder Subject", ":days", 7, ":mime", "Example Autoresponder Body")]
+        )
+        output = io.StringIO()
+        self.fs.dump(output)
+        self.assertEqual(
+            output.getvalue(),
+            """require (type: control)
+    [vacation]
+
+Filter Name: test
+if (type: control)
+    anyof (type: test)
+        header (type: test)
+            :matches
+            "Subject"
+            "*"
+    vacation (type: action)
+        :subject
+        "Example Autoresponder Subject"
+        :days
+        7
+        :mime
+        "Example Autoresponder Body"
+""",
+        )
+
 if __name__ == "__main__":
     unittest.main()

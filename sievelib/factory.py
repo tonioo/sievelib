@@ -565,7 +565,7 @@ class FiltersSet:
             cpt += 1
         return False  # raise not found
 
-    def dump(self):
+    def dump(self, target=sys.stdout):
         """Dump this object
 
         Available for debugging purposes
@@ -574,13 +574,14 @@ class FiltersSet:
         cmd = self.__gen_require_command()
         if cmd:
             print("Dumping requirements")
-            cmd.dump()
-            print
+            cmd.dump(target=target)
+            target.write("\n")
 
         for f in self.filters:
-            print("Filter Name: %s" % f["name"])
-            print("Filter Description: %s" % f["description"])
-            f["content"].dump()
+            target.write("Filter Name: %s\n" % f["name"])
+            if "description" in f:
+                target.write("Filter Description: %s\n" % f["description"])
+            f["content"].dump(target=target)
 
     def tosieve(self, target=sys.stdout):
         """Generate the sieve syntax corresponding to this filters set
