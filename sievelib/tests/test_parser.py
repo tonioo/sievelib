@@ -950,7 +950,18 @@ if header :is "Sender" "owner-ietf-mta-filters@imc.org"
         }
 """
         )
-        self.assertEqual(self.parser.error, "line 4: unknown command fileinto")
+        self.assertEqual(self.parser.error, "line 4: extension 'fileinto' not loaded")
+
+    def test_unknown_command(self):
+        self.compilation_ko(
+            b"""require ["mailbox"];
+if header :is "Sender" "owner-ietf-mta-filters@imc.org"
+        {
+        foobar :create "filter";  # move to "filter" mailbox
+        }
+"""
+        )
+        self.assertEqual(self.parser.error, "line 4: unknown command 'foobar'")
 
     def test_exists_get_string_or_list(self):
         self.compilation_ok(

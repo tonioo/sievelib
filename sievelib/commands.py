@@ -39,7 +39,7 @@ class UnknownCommand(CommandError):
         self.name = name
 
     def __str__(self):
-        return "unknown command %s" % self.name
+        return "unknown command '%s'" % self.name
 
 
 class BadArgument(CommandError):
@@ -1094,11 +1094,14 @@ def get_command_instance(
     """
     cname = "%sCommand" % name.lower().capitalize()
     gl = globals()
-    condition = cname not in gl or (
+    condition = cname not in gl
+    if condition:
+        raise UnknownCommand(name)
+    condition = (
         checkexists
         and gl[cname].extension
         and gl[cname].extension not in RequireCommand.loaded_extensions
     )
     if condition:
-        raise UnknownCommand(name)
+        raise ExtensionNotLoaded(gl[cname].extension)
     return gl[cname](parent)
