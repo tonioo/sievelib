@@ -621,5 +621,21 @@ if (type: control)
 """,
         )
 
+    def test_stringlist_condition(self):
+        self.fs.addfilter(
+            "test",
+            [(["X-Foo", "X-Bar"], ":contains", ["bar", "baz"])],
+            [],
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: test
+if anyof (header :contains ["X-Foo", "X-Bar"] ["bar", "baz"]) {
+}
+"""
+            )
+
 if __name__ == "__main__":
     unittest.main()

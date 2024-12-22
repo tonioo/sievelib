@@ -153,8 +153,14 @@ class FiltersSet:
             tag = condition[1]
         cmd = commands.get_command_instance("header", parent)
         cmd.check_next_arg("tag", tag)
-        cmd.check_next_arg("string", self.__quote_if_necessary(condition[0]))
-        cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
+        if isinstance(condition[0], list):
+            cmd.check_next_arg("stringlist", [self.__quote_if_necessary(c) for c in condition[0]])
+        else:
+            cmd.check_next_arg("string", self.__quote_if_necessary(condition[0]))
+        if isinstance(condition[2], list):
+            cmd.check_next_arg("stringlist", [self.__quote_if_necessary(c) for c in condition[2]])
+        else:
+            cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
         return cmd
 
     def __create_filter(
@@ -188,7 +194,7 @@ class FiltersSet:
         ifcontrol = commands.get_command_instance("if")
         mtypeobj = commands.get_command_instance(matchtype, ifcontrol)
         for c in conditions:
-            if c[0].startswith("not"):
+            if not isinstance(c[0], list) and c[0].startswith("not"):
                 negate = True
                 cname = c[0].replace("not", "", 1)
             else:
@@ -283,6 +289,8 @@ class FiltersSet:
                 self.check_if_arg_is_extension(arg)
                 if isinstance(arg, int):
                     atype = "number"
+                elif isinstance(arg, list):
+                    atype = "stringlist"
                 elif arg.startswith(":"):
                     atype = "tag"
                 else:
