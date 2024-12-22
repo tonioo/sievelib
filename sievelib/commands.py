@@ -224,7 +224,7 @@ class Command:
                     if not value.startswith('"') and not value.startswith("["):
                         target.write("\n")
                 else:
-                    target.write(value)
+                    target.write(str(value))
 
         if not self.accept_children:
             if self.get_type() != "test":
