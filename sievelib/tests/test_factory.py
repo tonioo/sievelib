@@ -573,6 +573,69 @@ if anyof (currentdate :zone "+0100" :value "gt" "date" ["2019-02-26"]) {
 """,
         )
 
+    def test_vacation(self):
+        self.fs.addfilter(
+            "test",
+            [("Subject", ":matches", "*")],
+            [("vacation", ":subject", "Example Autoresponder Subject", ":days", 7, ":mime", "Example Autoresponder Body")],
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """require ["vacation"];
+
+# Filter: test
+if anyof (header :matches "Subject" "*") {
+    vacation :subject "Example Autoresponder Subject" :days 7 :mime "Example Autoresponder Body";
+}
+""",
+        )
+
+    def test_dump(self):
+        self.fs.addfilter(
+            "test",
+            [("Subject", ":matches", "*")], [("vacation", ":subject", "Example Autoresponder Subject", ":days", 7, ":mime", "Example Autoresponder Body")]
+        )
+        output = io.StringIO()
+        self.fs.dump(output)
+        self.assertEqual(
+            output.getvalue(),
+            """require (type: control)
+    [vacation]
+
+Filter Name: test
+if (type: control)
+    anyof (type: test)
+        header (type: test)
+            :matches
+            "Subject"
+            "*"
+    vacation (type: action)
+        :subject
+        "Example Autoresponder Subject"
+        :days
+        7
+        :mime
+        "Example Autoresponder Body"
+""",
+        )
+
+    def test_stringlist_condition(self):
+        self.fs.addfilter(
+            "test",
+            [(["X-Foo", "X-Bar"], ":contains", ["bar", "baz"])],
+            [],
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: test
+if anyof (header :contains ["X-Foo", "X-Bar"] ["bar", "baz"]) {
+}
+"""
+            )
 
 if __name__ == "__main__":
     unittest.main()
