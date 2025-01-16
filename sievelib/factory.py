@@ -14,6 +14,7 @@ from typing import List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 from sievelib import commands
+from sievelib.parser import Parser
 
 
 class FilterAlreadyExists(Exception):
@@ -73,7 +74,7 @@ class FiltersSet:
             return False
         return True
 
-    def from_parser_result(self, parser: "sievelib.parser.Parser"):
+    def from_parser_result(self, parser: Parser) -> None:
         cpt = 1
         for f in parser.result:
             if isinstance(f, commands.RequireCommand):
@@ -154,11 +155,15 @@ class FiltersSet:
         cmd = commands.get_command_instance("header", parent)
         cmd.check_next_arg("tag", tag)
         if isinstance(condition[0], list):
-            cmd.check_next_arg("stringlist", [self.__quote_if_necessary(c) for c in condition[0]])
+            cmd.check_next_arg(
+                "stringlist", [self.__quote_if_necessary(c) for c in condition[0]]
+            )
         else:
             cmd.check_next_arg("string", self.__quote_if_necessary(condition[0]))
         if isinstance(condition[2], list):
-            cmd.check_next_arg("stringlist", [self.__quote_if_necessary(c) for c in condition[2]])
+            cmd.check_next_arg(
+                "stringlist", [self.__quote_if_necessary(c) for c in condition[2]]
+            )
         else:
             cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
         return cmd
@@ -169,7 +174,8 @@ class FiltersSet:
         actions: List[tuple],
         matchtype: str = "anyof",
     ) -> commands.Command:
-        """Create a new filter
+        """
+        Create a new filter.
 
         A filter is composed of:
          * a name
@@ -228,6 +234,23 @@ class FiltersSet:
                     "stringlist",
                     "[{}]".format(",".join('"{}"'.format(val) for val in c[3])),
                 )
+            elif cname == "address":
+                cmd = commands.get_command_instance("address", ifcontrol, False)
+                if c[1].startswith(":not"):
+                    comp_tag = c[1].replace("not", "")
+                    negate = True
+                else:
+                    comp_tag = c[1]
+                cmd.check_next_arg("tag", comp_tag)
+                for arg in c[2:]:
+                    if isinstance(arg, str):
+                        finalarg = self.__quote_if_necessary(arg)
+                    else:
+                        finalarg = "[{}]".format(
+                            ",".join('"{}"'.format(val) for val in arg)
+                        )
+                    cmd.check_next_arg("stringlist", finalarg)
+
             elif cname == "body":
                 cmd = commands.get_command_instance("body", ifcontrol, False)
                 self.require(cmd.extension)
@@ -317,7 +340,7 @@ class FiltersSet:
         conditions: List[tuple],
         actions: List[tuple],
         matchtype: str = "anyof",
-    ):
+    ) -> None:
         """Add a new filter to this filters set
 
         :param name: the filter's name
