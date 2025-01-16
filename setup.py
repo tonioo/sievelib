@@ -46,6 +46,6 @@ if __name__ == "__main__":
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Topic :: Communications :: Email :: Filters",
         ],
-        python_requires=">=3.7",
+        python_requires=">=3.9",
         long_description=LONG_DESCRIPTION,
     )
