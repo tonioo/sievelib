@@ -577,7 +577,17 @@ if anyof (currentdate :zone "+0100" :value "gt" "date" ["2019-02-26"]) {
         self.fs.addfilter(
             "test",
             [("Subject", ":matches", "*")],
-            [("vacation", ":subject", "Example Autoresponder Subject", ":days", 7, ":mime", "Example Autoresponder Body")],
+            [
+                (
+                    "vacation",
+                    ":subject",
+                    "Example Autoresponder Subject",
+                    ":days",
+                    7,
+                    ":mime",
+                    "Example Autoresponder Body",
+                )
+            ],
         )
         output = io.StringIO()
         self.fs.tosieve(output)
@@ -595,7 +605,18 @@ if anyof (header :matches "Subject" "*") {
     def test_dump(self):
         self.fs.addfilter(
             "test",
-            [("Subject", ":matches", "*")], [("vacation", ":subject", "Example Autoresponder Subject", ":days", 7, ":mime", "Example Autoresponder Body")]
+            [("Subject", ":matches", "*")],
+            [
+                (
+                    "vacation",
+                    ":subject",
+                    "Example Autoresponder Subject",
+                    ":days",
+                    7,
+                    ":mime",
+                    "Example Autoresponder Body",
+                )
+            ],
         )
         output = io.StringIO()
         self.fs.dump(output)
@@ -634,8 +655,54 @@ if (type: control)
             """# Filter: test
 if anyof (header :contains ["X-Foo", "X-Bar"] ["bar", "baz"]) {
 }
-"""
-            )
+""",
+        )
+
+    def test_address_string_args(self):
+        self.fs.addfilter(
+            "test",
+            [("address", ":is", "from", "user1@test.com")],
+            [("fileinto", ":create", "folder")],
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """require ["fileinto"];
+
+# Filter: test
+if anyof (address :is "from" "user1@test.com") {
+    fileinto :create "folder";
+}
+""",
+        )
+
+    def test_address_list_args(self):
+        self.fs.addfilter(
+            "test",
+            [
+                (
+                    "address",
+                    ":is",
+                    ["from", "reply-to"],
+                    ["user1@test.com", "user2@test.com"],
+                )
+            ],
+            [("fileinto", ":create", "folder")],
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """require ["fileinto"];
+
+# Filter: test
+if anyof (address :is ["from","reply-to"] ["user1@test.com","user2@test.com"]) {
+    fileinto :create "folder";
+}
+""",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
