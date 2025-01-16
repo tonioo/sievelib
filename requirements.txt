@@ -1,3 +1,1 @@
-# Requirements are listed in setup.py. The dot on the next line refers to
-# the current directory, instructing installers to use this package's setup.py
-.
+typing-extensions

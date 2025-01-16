@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.4"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sievelib"
+dynamic = [
+  "version",
+  "dependencies",
+  "optional-dependencies"
+]
+authors = [
+  { name="Antoine Nguyen", email="tonio@ngyn.org" },
+]
+description = "Client-side SIEVE library"
+readme = "README.rst"
+requires-python = ">=3.9"
+classifiers = [
+  "Programming Language :: Python",
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Communications :: Email :: Filters",
+]
+keywords = ["sieve", "managesieve", "parser", "client"]
+license = { file = "COPYING" }
+
+[project.urls]
+Repository = "https://github.com/tonioo/sievelib"
+Issues = "https://github.com/tonioo/sievelib/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "sievelib.get_version" }
+dependencies = { file = ["requirements.txt"] }
+optional-dependencies.dev = { file = ["dev-requirements.txt"] }

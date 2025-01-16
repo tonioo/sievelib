@@ -75,7 +75,8 @@ jobs:
           python-version: '3.13'
       - name: Create package
         run: |
-          python setup.py sdist
+          python -m pip install build
+          python -m build
       - name: Publish to Test PyPI
         if: endsWith(github.event.ref, '/master')
         uses: pypa/gh-action-pypi-publish@release/v1
