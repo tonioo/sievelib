@@ -662,7 +662,7 @@ if anyof (header :contains ["X-Foo", "X-Bar"] ["bar", "baz"]) {
         self.fs.addfilter(
             "test",
             [("address", ":is", "from", "user1@test.com")],
-            [("fileinto", ":create", "folder")],
+            [("fileinto", "folder")],
         )
         output = io.StringIO()
         self.fs.tosieve(output)
@@ -672,7 +672,7 @@ if anyof (header :contains ["X-Foo", "X-Bar"] ["bar", "baz"]) {
 
 # Filter: test
 if anyof (address :is "from" "user1@test.com") {
-    fileinto :create "folder";
+    fileinto "folder";
 }
 """,
         )
@@ -694,7 +694,7 @@ if anyof (address :is "from" "user1@test.com") {
         self.fs.tosieve(output)
         self.assertEqual(
             output.getvalue(),
-            """require ["fileinto"];
+            """require ["fileinto", "mailbox"];
 
 # Filter: test
 if anyof (address :is ["from","reply-to"] ["user1@test.com","user2@test.com"]) {

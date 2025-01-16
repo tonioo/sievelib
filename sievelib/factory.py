@@ -114,7 +114,7 @@ class FiltersSet:
 
     def check_if_arg_is_extension(self, arg: str):
         """Include extension if arg requires one."""
-        args_using_extensions = {":copy": "copy"}
+        args_using_extensions = {":copy": "copy", ":create": "mailbox"}
         if arg in args_using_extensions:
             self.require(args_using_extensions[arg])
 
