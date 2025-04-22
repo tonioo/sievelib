@@ -178,7 +178,7 @@ class Client:
         return ret
 
     def __read_response(self, nblines: int = -1) -> Tuple[bytes, bytes, bytes]:
-        """Read a response from the server.
+        r"""Read a response from the server.
 
         In the usual case, we read lines until we find one that looks
         like a response (OK|NO|BYE\s*(.+)?).
@@ -214,7 +214,7 @@ class Client:
         return (code, data, resp)
 
     def __prepare_args(self, args: List[Any]) -> List[bytes]:
-        """Format command arguments before sending them.
+        r"""Format command arguments before sending them.
 
         Command arguments of type string must be quoted, the only
         exception concerns size indication (of the form {\d\+?}).
@@ -307,7 +307,7 @@ class Client:
         return True
 
     def __parse_error(self, text: bytes):
-        """Parse an error received from the server.
+        r"""Parse an error received from the server.
 
         if text corresponds to a size indication, we grab the
         remaining content from the server.
