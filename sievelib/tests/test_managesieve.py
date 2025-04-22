@@ -8,14 +8,14 @@ from sievelib import managesieve
 CAPABILITIES = (
     b'"IMPLEMENTATION" "Example1 ManageSieved v001"\r\n'
     b'"VERSION" "1.0"\r\n'
-    b'"SASL" "PLAIN SCRAM-SHA-1 GSSAPI OAUTHBEARER"\r\n'
+    b'"SASL" "PLAIN SCRAM-SHA-1 GSSAPI OAUTHBEARER XOAUTH2"\r\n'
     b'"SIEVE" "fileinto vacation"\r\n'
     b'"STARTTLS"\r\n'
 )
 
 CAPABILITIES_WITHOUT_VERSION = (
     b'"IMPLEMENTATION" "Example1 ManageSieved v001"\r\n'
-    b'"SASL" "PLAIN SCRAM-SHA-1 GSSAPI OAUTHBEARER"\r\n'
+    b'"SASL" "PLAIN SCRAM-SHA-1 GSSAPI OAUTHBEARER XOAUTH2"\r\n'
     b'"SIEVE" "fileinto vacation"\r\n'
     b'"STARTTLS"\r\n'
 )
@@ -63,6 +63,11 @@ class ManageSieveTestCase(unittest.TestCase):
         """Test OAUTHBEARER mechanism."""
         mock_socket.return_value.recv.side_effect = (AUTHENTICATION,)
         self.assertTrue(self.client.connect("user", "token", authmech="OAUTHBEARER"))
+
+    def test_auth_xoauth2(self, mock_socket):
+        """Test XOAUTH2 mechanism."""
+        mock_socket.return_value.recv.side_effect = (AUTHENTICATION,)
+        self.assertTrue(self.client.connect("user", "token", authmech="XOAUTH2"))
 
     def test_capabilities(self, mock_socket):
         """Test capabilities command."""
