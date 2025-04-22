@@ -463,6 +463,7 @@ class Command:
             return False
         if self.iscomplete(atype, avalue):
             return False
+        
 
         if self.curarg is not None and "extra_arg" in self.curarg:
             condition = atype in self.curarg["extra_arg"]["type"] and (
@@ -726,6 +727,44 @@ class RemoveflagCommand(ActionCommand):
     ]
     extension = "imap4flags"
 
+class NotifyCommand(ActionCommand):
+    """
+    Notify extension
+
+    https://datatracker.ietf.org/doc/html/rfc5435
+    """
+    extension = "enotify"
+    args_definition = [
+        {
+            "name": "from",
+            "type": ["tag"],
+            "values": [":from"],
+            "required": False,
+            "extra_arg": {"type": "string", "required": True}
+        },
+                {
+            "name": "importance",
+            "type": ["tag"],
+            "values": [":importance"],
+            "required": False,
+            "extra_arg": {"type": "string", "required": True}
+        },
+                {
+            "name": "options",
+            "type": ["tag"],
+            "values": [":options"],
+            "required": False,
+            "extra_arg": {"type": "stringlist", "required": True}
+        },
+        {
+            "name": "message",
+            "type": ["tag"],
+            "values": [":message"],
+            "required": False,
+            "extra_arg": {"type": "string", "required": True}
+        },
+        {"name": "method", "type": ["string"], "required": True},
+    ]
 
 class TestCommand(Command):
     """Indermediate class to represent "test" commands"""

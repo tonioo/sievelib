@@ -43,6 +43,7 @@ The following extensions are also supported:
 * Relational (`RFC 5231 <https://tools.ietf.org/html/rfc5231>`_)
 * Imap4flags (`RFC 5232 <https://tools.ietf.org/html/rfc5232>`_)
 * Regular expression (`Draft <https://datatracker.ietf.org/doc/html/draft-murchison-sieve-regex-08/>`_)
+* Notifications (`RFC 5435 <https://datatracker.ietf.org/doc/html/rfc5435>`_)
 
 The following extensions are partially supported:
 
