@@ -703,6 +703,31 @@ if anyof (address :is ["from","reply-to"] ["user1@test.com","user2@test.com"]) {
 """,
         )
 
+    def test_notify_action(self):
+        self.fs.addfilter(
+            "test",
+            [
+                (
+                    "from",
+                    ":contains",
+                    "boss@example.org",
+                )
+            ],
+            [("notify", ":importance", "1", ":message", "This is probably very important", "mailto:alm@example.com")],
+        )
+
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """require ["enotify"];
+
+# Filter: test
+if anyof (header :contains "from" "boss@example.org") {
+    notify :importance "1" :message "This is probably very important" "mailto:alm@example.com";
+}
+"""
+        )
 
 if __name__ == "__main__":
     unittest.main()

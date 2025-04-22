@@ -663,6 +663,19 @@ if body :text :contains "project schedule" {
 """
         )
 
+    def test_notify_extension(self):
+        self.compilation_ok(
+            b"""require ["enotify", "fileinto", "variables"];
+
+if header :contains "from" "boss@example.org" {
+    notify :importance "1"
+        :message "This is probably very important"
+                    "mailto:alm@example.com";
+    # Don't send any further notifications
+    stop;
+}
+"""
+        )
 
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
@@ -850,6 +863,19 @@ vacation :seconds :addresses ["test@example.org"] "Gone";
 """
         )
 
+    def test_notify_extension_importance_no_args(self):
+        self.compilation_ko(
+            b"""require ["enotify", "fileinto", "variables"];
+
+if header :contains "from" "boss@example.org" {
+    notify :importance
+        :message "This is probably very important";
+            "mailto:alm@example.com"
+    # Don't send any further notifications
+    stop;
+}
+"""
+        )
 
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
