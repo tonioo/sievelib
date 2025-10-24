@@ -183,7 +183,7 @@ class Client:
         """Read a response from the server.
 
         In the usual case, we read lines until we find one that looks
-        like a response (OK|NO|BYE\s*(.+)?).
+        like a response (OK|NO|BYE\\s*(.+)?).
 
         If *nblines* > 0, we read excactly nblines before returning.
 
@@ -219,7 +219,7 @@ class Client:
         """Format command arguments before sending them.
 
         Command arguments of type string must be quoted, the only
-        exception concerns size indication (of the form {\d\+?}).
+        exception concerns size indication (of the form {\\d\\+?}).
 
         :param args: list of arguments
         :return: a list for transformed arguments
@@ -314,7 +314,7 @@ class Client:
         if text corresponds to a size indication, we grab the
         remaining content from the server.
 
-        Otherwise, we try to match an error of the form \(\w+\)?\s*".+"
+        Otherwise, we try to match an error of the form \\(\\w+\\)?\\s*".+"
 
         On succes, the two public members errcode and errmsg are
         filled with the parsing results.
