@@ -9,6 +9,7 @@ Implementation based on RFC 5804.
 """
 
 import base64
+from functools import wraps
 import re
 import socket
 import ssl
@@ -62,6 +63,7 @@ def authentication_required(meth):
     :param meth: the original called method
     """
 
+    @wraps(meth)
     def check(cls, *args, **kwargs):
         if cls.authenticated:
             return meth(cls, *args, **kwargs)
