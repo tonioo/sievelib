@@ -133,7 +133,7 @@ supported, with a simulated behaviour for server that do not support
 it.
 
 For the ``AUTHENTICATE`` command, supported mechanisms are ``DIGEST-MD5``,
-``PLAIN``, ``LOGIN`` and ``OAUTHBEARER``.
+``PLAIN``, ``LOGIN``, ``OAUTHBEARER`` and ``XOAUTH2``.
     
 Basic usage
 ^^^^^^^^^^^

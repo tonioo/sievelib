@@ -31,7 +31,7 @@ KNOWN_CAPABILITIES = [
     "VERSION",
 ]
 
-SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN", "OAUTHBEARER"]
+SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN", "OAUTHBEARER", "XOAUTH2"]
 
 
 class Error(Exception):
@@ -417,6 +417,27 @@ class Client:
         token = b"n,a=" + login + b",\001auth=Bearer " + password + b"\001\001"
         token = base64.b64encode(token)
         code, data = self.__send_command("AUTHENTICATE", [b"OAUTHBEARER", token])
+        if code == "OK":
+            return True
+        return False
+
+    def _xoauth2_authentication(
+        self, login: bytes, password: bytes, authz_id: bytes = b""
+    ) -> bool:
+        """
+        OAUTHBEARER authentication.
+
+        :param login: username
+        :param password: access token
+        :return: True on success, False otherwise.
+        """
+        if isinstance(login, str):
+            login = login.encode("utf-8")
+        if isinstance(password, str):
+            password = password.encode("utf-8")
+        token = b"user=" + login + b",\001auth=Bearer " + password + b"\001\001"
+        token = base64.b64encode(token)
+        code, data = self.__send_command("AUTHENTICATE", [b"XOAUTH2", token])
         if code == "OK":
             return True
         return False
