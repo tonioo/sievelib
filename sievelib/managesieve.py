@@ -12,7 +12,7 @@ import base64
 from functools import wraps
 import re
 import socket
-import ssl
+import ssl as ssllib
 from typing import Any, List, Optional, Tuple
 
 from .digest_md5 import DigestMD5
@@ -127,7 +127,7 @@ class Client:
             return buf
         try:
             buf += self.sock.recv(size)
-        except (socket.timeout, ssl.SSLError):
+        except (socket.timeout, ssllib.SSLError):
             raise Error("Failed to read %d bytes from the server" % size)
         self.__dprint(buf)
         return buf
@@ -162,7 +162,7 @@ class Client:
                 if not len(nval):
                     break
                 self.__read_buffer += nval
-            except (socket.timeout, ssl.SSLError):
+            except (socket.timeout, ssllib.SSLError):
                 raise Error("Failed to read data from the server")
 
         if len(ret):
@@ -504,13 +504,13 @@ class Client:
         code, data = self.__send_command("STARTTLS")
         if code != "OK":
             return False
-        context = ssl.create_default_context()
+        context = ssllib.create_default_context()
         if certfile is not None:
             context.load_cert_chain(certfile, keyfile=keyfile)
         try:
-            # nsock = ssl.wrap_socket(self.sock, keyfile, certfile)
+            # nsock = ssllib.wrap_socket(self.sock, keyfile, certfile)
             nsock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
-        except ssl.SSLError as e:
+        except ssllib.SSLError as e:
             raise Error("SSL error: %s" % str(e))
         self.sock = nsock
         self.__capabilities = {}
@@ -565,6 +565,7 @@ class Client:
         password: str,
         authz_id: str = "",
         starttls: bool = False,
+        ssl: bool = False,
         authmech: Optional[str] = None,
     ):
         """Establish a connection with the server.
@@ -575,6 +576,7 @@ class Client:
         :param login: username
         :param password: clear password
         :param starttls: use a TLS connection or not
+        :param ssl: use implict TLS/SSL when connecting
         :param authmech: prefered authenticate mechanism
         :rtype: boolean
         """
@@ -584,9 +586,13 @@ class Client:
         except socket.error as msg:
             raise Error("Connection to server failed: %s" % str(msg))
 
+        if ssl:
+            context = ssllib.create_default_context()
+            self.sock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
+
         if not self.__get_capabilities():
             raise Error("Failed to read capabilities from server")
-        if starttls and not self.__starttls():
+        if not ssl and starttls and not self.__starttls():
             return False
         if self.__authenticate(login, password, authz_id, authmech):
             return True
