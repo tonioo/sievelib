@@ -134,6 +134,8 @@ it.
 
 For the ``AUTHENTICATE`` command, supported mechanisms are ``DIGEST-MD5``,
 ``PLAIN``, ``LOGIN``, ``OAUTHBEARER`` and ``XOAUTH2``.
+
+Both explicit TLS via STARTTLS and implicit TLS are supported.
     
 Basic usage
 ^^^^^^^^^^^
