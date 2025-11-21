@@ -490,7 +490,20 @@ class Client:
         self.errmsg = b"No suitable mechanism found"
         return False
 
-    def __starttls(self, keyfile=None, certfile=None) -> bool:
+    def __enable_ssl(
+        self, keyfile: Optional[str] = None, certfile: Optional[str] = None
+    ):
+        """Enable encryption for current socket."""
+        context = ssllib.create_default_context()
+        if certfile is not None:
+            context.load_cert_chain(certfile, keyfile=keyfile)
+        try:
+            nsock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
+        except ssllib.SSLError as e:
+            raise Error("SSL error: %s" % str(e))
+        self.sock = nsock
+
+    def __starttls(self, **kwargs) -> bool:
         """STARTTLS command
 
         See MANAGESIEVE specifications, section 2.2.
@@ -504,15 +517,7 @@ class Client:
         code, data = self.__send_command("STARTTLS")
         if code != "OK":
             return False
-        context = ssllib.create_default_context()
-        if certfile is not None:
-            context.load_cert_chain(certfile, keyfile=keyfile)
-        try:
-            # nsock = ssllib.wrap_socket(self.sock, keyfile, certfile)
-            nsock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
-        except ssllib.SSLError as e:
-            raise Error("SSL error: %s" % str(e))
-        self.sock = nsock
+        self.__enable_ssl(**kwargs)
         self.__capabilities = {}
         self.__get_capabilities()
         return True
@@ -587,8 +592,7 @@ class Client:
             raise Error("Connection to server failed: %s" % str(msg))
 
         if ssl:
-            context = ssllib.create_default_context()
-            self.sock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
+            self.__enable_ssl()
 
         if not self.__get_capabilities():
             raise Error("Failed to read capabilities from server")
