@@ -1,5 +1,5 @@
 """
-A MANAGESIEVE client.
+A MANAGESIEVE client. 
 
 A protocol for securely managing Sieve scripts on a remote server.
 This protocol allows a user to have multiple scripts, and also alerts
@@ -76,7 +76,13 @@ class Client:
     read_size = 4096
     read_timeout = 5
 
-    def __init__(self, srvaddr: str, srvport: int = 4190, debug: bool = False):
+    def __init__(
+        self,
+        srvaddr: str,
+        srvport: int = 4190,
+        srvhostname: Optional[str] = None,
+        debug: bool = False,
+    ):
         self.srvaddr = srvaddr
         self.srvport = srvport
         self.__debug = debug
@@ -85,6 +91,7 @@ class Client:
         self.authenticated: bool = False
         self.errcode: bytes = None
         self.errmsg: bytes = b""
+        self.srvhostname = srvhostname if srvhostname else self.srvaddr
 
         self.__capabilities: dict[str, str] = {}
         self.__respcode_expr = re.compile(rb"(OK|NO|BYE)\s*(.+)?")
@@ -498,7 +505,7 @@ class Client:
         if certfile is not None:
             context.load_cert_chain(certfile, keyfile=keyfile)
         try:
-            nsock = context.wrap_socket(self.sock, server_hostname=self.srvaddr)
+            nsock = context.wrap_socket(self.sock, server_hostname=self.srvhostname)
         except ssllib.SSLError as e:
             raise Error("SSL error: %s" % str(e))
         self.sock = nsock
