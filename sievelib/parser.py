@@ -25,7 +25,7 @@ class ParseError(Exception):
 
 
 class Lexer:
-    """
+    r"""
     The lexical analysis part.
 
     This class provides a simple way to define tokens (with patterns)
