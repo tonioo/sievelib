@@ -677,6 +677,7 @@ if header :contains "from" "boss@example.org" {
 """
         )
 
+
 class InvalidSyntaxes(SieveTest):
     def test_nested_comments(self):
         self.compilation_ko(
@@ -877,6 +878,7 @@ if header :contains "from" "boss@example.org" {
 """
         )
 
+
 class LanguageRestrictions(SieveTest):
     def test_unknown_control(self):
         self.compilation_ko(
@@ -1065,6 +1067,32 @@ if allof ( currentdate :value "ge" "date" "2013-10-23" , currentdate :value "le"
     discard;
 }
 """
+        )
+
+
+class EnvironmentCommand(SieveTest):
+
+    def test_environment_test(self):
+        self.compilation_ok(
+            b"""require ["environment", "fileinto"];
+if environment :matches "remote_ip" "192.168.*" {
+    fileinto "INBOX.Unsafe_Emails";
+    stop;
+}
+"""
+        )
+
+    def test_missing_import(self):
+        self.compilation_ko(
+            b"""require ["fileinto"];
+if environment :matches "remote_ip" "192.168.*" {
+    fileinto "INBOX.Unsafe_Emails";
+    stop;
+}
+"""
+        )
+        self.assertEqual(
+            self.parser.error, "line 2: extension 'environment' not loaded"
         )
 
 
