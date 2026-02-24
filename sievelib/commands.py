@@ -85,6 +85,7 @@ class CommandExtraArg(TypedDict):
     type: Union[str, List[str]]
     values: NotRequired[List[str]]
     valid_for: NotRequired[List[str]]
+    required: NotRequired[bool]
 
 
 class CommandArg(TypedDict):
@@ -301,7 +302,7 @@ class Command:
                         atype = arg["extra_arg"]["type"]
                     else:
                         continue
-                if type(value) == list:
+                if isinstance(value, list):
                     if self.__get_arg_type(arg["name"]) == ["testlist"]:
                         for t in value:
                             t.dump(indentlevel, target)
@@ -325,7 +326,7 @@ class Command:
                 if not arg["name"] in self.arguments:
                     continue
                 value = self.arguments[arg["name"]]
-                if type(value) == list:
+                if isinstance(value, list):
                     if self.__get_arg_type(arg["name"]) == ["testlist"]:
                         for t in value:
                             for node in t.walk():
@@ -463,10 +464,9 @@ class Command:
             return False
         if self.iscomplete(atype, avalue):
             return False
-        
 
         if self.curarg is not None and "extra_arg" in self.curarg:
-            condition = atype in self.curarg["extra_arg"]["type"] and (
+            condition: bool = atype in self.curarg["extra_arg"]["type"] and (
                 "values" not in self.curarg["extra_arg"]
                 or avalue in self.curarg["extra_arg"]["values"]
             )
@@ -501,7 +501,7 @@ class Command:
                         self.arguments[curarg["name"]] = avalue
                 break
 
-            condition: bool = atype in curarg["type"] and self.__is_valid_value_for_arg(
+            condition = atype in curarg["type"] and self.__is_valid_value_for_arg(
                 curarg, avalue, check_extension
             )
             if condition:
@@ -571,7 +571,7 @@ class RequireCommand(ControlCommand):
     loaded_extensions: List[str] = []
 
     def complete_cb(self):
-        if type(self.arguments["capabilities"]) != list:
+        if not isinstance(self.arguments["capabilities"], list):
             exts = [self.arguments["capabilities"]]
         else:
             exts = self.arguments["capabilities"]
@@ -612,16 +612,22 @@ class ActionCommand(Command):
 
     def args_as_tuple(self):
         args = []
-        for name, value in list(self.arguments.items()):
+        for argdef in self.args_definition:
             unquote = False
-            for argdef in self.args_definition:
-                if name == argdef["name"]:
-                    condition = (
-                        "string" in argdef["type"] or "stringlist" in argdef["type"]
-                    )
-                    if condition:
-                        unquote = True
-                        break
+            if argdef["name"] not in self.arguments:
+                continue
+            value = self.arguments[argdef["name"]]
+            atype = argdef["type"]
+            if "tag" in atype:
+                args.append(value)
+                if argdef["name"] in self.extra_arguments:
+                    value = self.extra_arguments[argdef["name"]]
+                    atype = argdef["extra_arg"]["type"]
+                else:
+                    continue
+            condition = "string" in atype or "stringlist" in atype
+            if condition:
+                unquote = True
             if unquote:
                 if "," in value:
                     args += tools.to_list(value)
@@ -727,12 +733,14 @@ class RemoveflagCommand(ActionCommand):
     ]
     extension = "imap4flags"
 
+
 class NotifyCommand(ActionCommand):
     """
     Notify extension
 
     https://datatracker.ietf.org/doc/html/rfc5435
     """
+
     extension = "enotify"
     args_definition = [
         {
@@ -740,31 +748,32 @@ class NotifyCommand(ActionCommand):
             "type": ["tag"],
             "values": [":from"],
             "required": False,
-            "extra_arg": {"type": "string", "required": True}
+            "extra_arg": {"type": "string", "required": True},
         },
-                {
+        {
             "name": "importance",
             "type": ["tag"],
             "values": [":importance"],
             "required": False,
-            "extra_arg": {"type": "string", "required": True}
+            "extra_arg": {"type": "string", "required": True},
         },
-                {
+        {
             "name": "options",
             "type": ["tag"],
             "values": [":options"],
             "required": False,
-            "extra_arg": {"type": "stringlist", "required": True}
+            "extra_arg": {"type": "stringlist", "required": True},
         },
         {
             "name": "message",
             "type": ["tag"],
             "values": [":message"],
             "required": False,
-            "extra_arg": {"type": "string", "required": True}
+            "extra_arg": {"type": "string", "required": True},
         },
         {"name": "method", "type": ["string"], "required": True},
     ]
+
 
 class TestCommand(Command):
     """Indermediate class to represent "test" commands"""
