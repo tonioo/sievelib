@@ -1,8 +1,8 @@
 import unittest
 import io
 
+from sievelib import parser
 from sievelib.factory import FilterAlreadyExists, FiltersSet
-from .. import parser
 
 
 class FactoryTestCase(unittest.TestCase):
@@ -713,7 +713,16 @@ if anyof (address :is ["from","reply-to"] ["user1@test.com","user2@test.com"]) {
                     "boss@example.org",
                 )
             ],
-            [("notify", ":importance", "1", ":message", "This is probably very important", "mailto:alm@example.com")],
+            [
+                (
+                    "notify",
+                    ":importance",
+                    "1",
+                    ":message",
+                    "This is probably very important",
+                    "mailto:alm@example.com",
+                )
+            ],
         )
 
         output = io.StringIO()
@@ -726,8 +735,54 @@ if anyof (address :is ["from","reply-to"] ["user1@test.com","user2@test.com"]) {
 if anyof (header :contains "from" "boss@example.org") {
     notify :importance "1" :message "This is probably very important" "mailto:alm@example.com";
 }
-"""
+""",
         )
+
+    def test_get_filter_actions_with_extra_args(self):
+        self.fs.require("date")
+        self.fs.require("relational")
+        self.fs.require("vacation")
+        conditions = [
+            ("currentdate", ":zone", "+0500", ":value", "ge", "date", "2026-01-01"),
+            ("currentdate", ":zone", "+0500", ":value", "le", "date", "2026-01-31"),
+        ]
+
+        actions = [
+            (
+                "vacation",
+                ":days",
+                1,
+                ":addresses",
+                "s09@example.test",
+                ":from",
+                "s09@example.test",
+                ":subject",
+                "Subject",
+                "I'll be off until december 31th",
+            )
+        ]
+
+        rule_name = "Vacation rule"
+        self.fs.addfilter(rule_name, conditions, actions, "allof")
+        actionsr = self.fs.get_filter_actions(rule_name)
+        self.assertEqual(
+            actionsr,
+            [
+                (
+                    "vacation",
+                    ":subject",
+                    "Subject",
+                    ":days",
+                    1,
+                    ":from",
+                    "s09@example.test",
+                    ":addresses",
+                    "s09@example.test",
+                    "I'll be off until december 31th",
+                )
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
