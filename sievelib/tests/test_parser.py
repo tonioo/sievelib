@@ -4,7 +4,6 @@ Unit tests for the SIEVE language parser.
 
 import unittest
 import os.path
-import codecs
 import io
 
 from sievelib.parser import Parser
@@ -17,7 +16,6 @@ class MytestCommand(sievelib.commands.ActionCommand):
         {
             "name": "testtag",
             "type": ["tag"],
-            "write_tag": True,
             "values": [":testtag"],
             "extra_arg": {"type": "number", "required": False},
             "required": False,
@@ -31,7 +29,6 @@ class Quota_notificationCommand(sievelib.commands.ActionCommand):
         {
             "name": "subject",
             "type": ["tag"],
-            "write_tag": True,
             "values": [":subject"],
             "extra_arg": {"type": "string"},
             "required": False,
@@ -39,7 +36,6 @@ class Quota_notificationCommand(sievelib.commands.ActionCommand):
         {
             "name": "recipient",
             "type": ["tag"],
-            "write_tag": True,
             "values": [":recipient"],
             "extra_arg": {"type": "stringlist"},
             "required": True,
@@ -102,7 +98,7 @@ class AdditionalCommands(SieveTest):
 class ValidEncodings(SieveTest):
     def test_utf8_file(self):
         utf8_sieve = os.path.join(os.path.dirname(__file__), "files", "utf8_sieve.txt")
-        with codecs.open(utf8_sieve, encoding="utf8") as fobj:
+        with open(utf8_sieve, encoding="utf8") as fobj:
             source_sieve = fobj.read()
         self.parser.parse_file(utf8_sieve)
         self.sieve_is(source_sieve)
