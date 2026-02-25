@@ -63,7 +63,6 @@ commands. For example::
       args_definition = [
           {"name": "testtag",
               "type": ["tag"],
-              "write_tag": True,
               "values": [":testtag"],
               "extra_arg": {"type": "number",
                             "required": False},
