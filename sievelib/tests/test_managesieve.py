@@ -39,6 +39,32 @@ GETSCRIPT = (
 )
 
 
+def recv_then_eof(*chunks):
+    """Simulate a server sending chunks then closing the connection.
+
+    Each recv() call returns at most one chunk (split to respect the
+    requested size), then b"" (EOF). A client that keeps reading after
+    EOF would spin forever, so we fail loudly instead.
+    """
+    pending = list(chunks)
+    eof_reads = 0
+
+    def recv(size):
+        nonlocal eof_reads
+        if pending:
+            chunk = pending.pop(0)
+            if len(chunk) > size:
+                pending.insert(0, chunk[size:])
+                chunk = chunk[:size]
+            return chunk
+        eof_reads += 1
+        if eof_reads > 10:
+            raise AssertionError("recv() called again after EOF")
+        return b""
+
+    return recv
+
+
 @mock.patch("socket.socket")
 class ManageSieveTestCase(unittest.TestCase):
     """Managesieve test cases."""
@@ -159,6 +185,35 @@ if envelope :contains "to" "tmartin+sent" {
             b'OK "deletescript completed."\r\n',
         )
         self.assertTrue(self.client.renamescript("main_script", "new_script"))
+
+    def test_connection_closed_during_greeting(self, mock_socket):
+        """Test server closing the connection while sending capabilities."""
+        mock_socket.return_value.recv.side_effect = recv_then_eof(
+            b'"IMPLEMENTATION" "Dovecot Pigeonhole"\r\n"SIEVE" "fileinto'
+        )
+        with self.assertRaisesRegex(managesieve.Error, "Connection closed"):
+            self.client.connect("user", "password")
+
+    def test_connection_closed_during_literal(self, mock_socket):
+        """Test server closing the connection in the middle of a literal."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = recv_then_eof(
+            b"{54}\r\n#this is my wonder"
+        )
+        with self.assertRaisesRegex(managesieve.Error, "Connection closed"):
+            self.client.getscript("main_script")
+
+    def test_getscript_literal_split(self, mock_socket):
+        """Test literal received through several recv() calls."""
+        self.authenticate(mock_socket)
+        script = b'require "fileinto";\r\n\r\nkeep;\r\n'
+        mock_socket.return_value.recv.side_effect = recv_then_eof(
+            b"{%d}\r\n" % len(script) + script[:5],
+            script[5:12],
+            script[12:] + b'OK "Getscript completed."\r\n',
+        )
+        content = self.client.getscript("main_script")
+        self.assertEqual(content, 'require "fileinto";\n\nkeep;')
 
 
 if __name__ == "__main__":

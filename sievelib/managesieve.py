@@ -117,12 +117,13 @@ class Client:
 
         Eventually, we try to grab the missing part from the server
         for Client.read_timeout seconds. If no data can be
-        retrieved, it is considered as a fatal error and an 'Error'
-        exception is raised.
+        retrieved, or if the connection is closed before the whole
+        block is received, it is considered as a fatal error and an
+        'Error' exception is raised.
 
         :param size: number of bytes to read
         :rtype: string
-        :returns: the read block (can be empty)
+        :returns: the read block
         """
         buf = b""
         if len(self.__read_buffer):
@@ -130,13 +131,16 @@ class Client:
             buf = self.__read_buffer[:limit]
             self.__read_buffer = self.__read_buffer[limit:]
             size -= limit
-        if not size:
-            return buf
-        try:
-            buf += self.sock.recv(size)
-        except (socket.timeout, ssllib.SSLError):
-            raise Error("Failed to read %d bytes from the server" % size)
-        self.__dprint(buf)
+        while size:
+            try:
+                nval = self.sock.recv(size)
+            except (socket.timeout, ssllib.SSLError):
+                raise Error("Failed to read %d bytes from the server" % size)
+            self.__dprint(nval)
+            if not len(nval):
+                raise Error("Connection closed by server")
+            buf += nval
+            size -= len(nval)
         return buf
 
     def __read_line(self) -> bytes:
@@ -148,8 +152,8 @@ class Client:
 
         If we failed, we try to read new content from the server for
         Client.read_timeout seconds. If no data can be
-        retrieved, it is considered as a fatal error and an 'Error'
-        exception is raised.
+        retrieved, or if the connection is closed, it is considered
+        as a fatal error and an 'Error' exception is raised.
 
         :rtype: string
         :return: the read line
@@ -167,7 +171,7 @@ class Client:
                 nval = self.sock.recv(self.read_size)
                 self.__dprint(nval)
                 if not len(nval):
-                    break
+                    raise Error("Connection closed by server")
                 self.__read_buffer += nval
             except (socket.timeout, ssllib.SSLError):
                 raise Error("Failed to read data from the server")
