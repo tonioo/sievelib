@@ -95,6 +95,12 @@ class ManageSieveTestCase(unittest.TestCase):
         mock_socket.return_value.recv.side_effect = (AUTHENTICATION,)
         self.assertTrue(self.client.connect("user", "token", authmech="XOAUTH2"))
 
+    def test_auth_unsupported_mechanism(self, mock_socket):
+        """Test that an unsupported mechanism is rejected."""
+        with self.assertRaises(managesieve.Error):
+            self.client.connect("user", "password", authmech="DIGEST-MD5")
+        mock_socket.return_value.connect.assert_not_called()
+
     def test_capabilities(self, mock_socket):
         """Test capabilities command."""
         self.authenticate(mock_socket)

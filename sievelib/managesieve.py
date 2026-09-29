@@ -15,7 +15,6 @@ import socket
 import ssl as ssllib
 from typing import Any, List, Optional, Tuple
 
-from .digest_md5 import DigestMD5
 from . import tools
 
 
@@ -31,7 +30,7 @@ KNOWN_CAPABILITIES = [
     "VERSION",
 ]
 
-SUPPORTED_AUTH_MECHS = ["DIGEST-MD5", "PLAIN", "LOGIN", "OAUTHBEARER", "XOAUTH2"]
+SUPPORTED_AUTH_MECHS = ["PLAIN", "LOGIN", "OAUTHBEARER", "XOAUTH2"]
 
 
 class Error(Exception):
@@ -382,35 +381,6 @@ class Client:
             return True
         return False
 
-    def _digest_md5_authentication(
-        self, login: bytes, password: bytes, authz_id: bytes = b""
-    ) -> bool:
-        """SASL DIGEST-MD5 authentication
-
-        :param login: username
-        :param password: clear password
-        :return: True on success, False otherwise.
-        """
-        code, data, challenge = self.__send_command(
-            "AUTHENTICATE", [b"DIGEST-MD5"], withcontent=True, nblines=1
-        )
-        dmd5 = DigestMD5(challenge, "sieve/%s" % self.srvaddr)
-
-        code, data, challenge = self.__send_command(
-            '"%s"' % dmd5.response(login, password, authz_id),
-            withcontent=True,
-            nblines=1,
-        )
-        if not challenge:
-            return False
-        if not dmd5.check_last_challenge(login, password, challenge):
-            self.errmsg = "Bad challenge received from server"
-            return False
-        code, data = self.__send_command('""')
-        if code == "OK":
-            return True
-        return False
-
     def _oauthbearer_authentication(
         self, login: bytes, password: bytes, authz_id: bytes = b""
     ) -> bool:
@@ -479,7 +449,7 @@ class Client:
             raise Error("SASL not supported by the server")
         srv_mechanisms = self.get_sasl_mechanisms()
 
-        if authmech is None or authmech not in SUPPORTED_AUTH_MECHS:
+        if authmech is None:
             mech_list = SUPPORTED_AUTH_MECHS
         else:
             mech_list = [authmech]
@@ -596,6 +566,8 @@ class Client:
         :param authmech: prefered authenticate mechanism
         :rtype: boolean
         """
+        if authmech is not None and authmech not in SUPPORTED_AUTH_MECHS:
+            raise Error("Unsupported authentication mechanism: %s" % authmech)
         try:
             self.sock = socket.create_connection((self.srvaddr, self.srvport))
             self.sock.settimeout(Client.read_timeout)

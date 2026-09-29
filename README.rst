@@ -132,8 +132,8 @@ All mandatory commands are supported. The ``RENAME`` extension is
 supported, with a simulated behaviour for server that do not support
 it.
 
-For the ``AUTHENTICATE`` command, supported mechanisms are ``DIGEST-MD5``,
-``PLAIN``, ``LOGIN``, ``OAUTHBEARER`` and ``XOAUTH2``.
+For the ``AUTHENTICATE`` command, supported mechanisms are ``PLAIN``,
+``LOGIN``, ``OAUTHBEARER`` and ``XOAUTH2``.
 
 Both explicit TLS via STARTTLS and implicit TLS are supported.
     
@@ -145,7 +145,7 @@ application (there isn't any shell provided)::
 
   >>> from sievelib.managesieve import Client
   >>> c = Client("server.example.com")
-  >>> c.connect("user", "password", starttls=False, authmech="DIGEST-MD5")
+  >>> c.connect("user", "password", starttls=True, authmech="PLAIN")
   True
   >>> c.listscripts()
   ("active_script", ["script1", "script2"])
