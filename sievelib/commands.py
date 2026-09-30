@@ -212,7 +212,12 @@ class Command:
                     else:
                         target.write(
                             "[{}]".format(
-                                ", ".join(['"%s"' % v.strip('"') for v in value])
+                                ", ".join(
+                                    [
+                                        v if tools.is_quoted(v) else tools.quote(v)
+                                        for v in value
+                                    ]
+                                )
                             )
                         )
                     continue
@@ -629,10 +634,7 @@ class ActionCommand(Command):
             if condition:
                 unquote = True
             if unquote:
-                if "," in value:
-                    args += tools.to_list(value)
-                else:
-                    args.append(value.strip('"'))
+                args.append(tools.unquote_arg(value))
                 continue
             args.append(value)
         return (self.name,) + tuple(args)
@@ -824,22 +826,9 @@ class EnvelopeCommand(TestCommand):
     def args_as_tuple(self):
         """Return arguments as a list."""
         result = ("envelope", self.arguments["match-type"])
-        value = self.arguments["header-list"]
-        if isinstance(value, list):
-            # FIXME
-            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
-        if value.startswith("["):
-            result += (tools.to_list(value),)
-        else:
-            result += ([value.strip('"')],)
-        value = self.arguments["key-list"]
-        if isinstance(value, list):
-            # FIXME
-            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
-        if value.startswith("["):
-            result += (tools.to_list(value),)
-        else:
-            result = result + ([value.strip('"')],)
+        for name in ["header-list", "key-list"]:
+            value = tools.unquote_arg(self.arguments[name])
+            result += (value if isinstance(value, list) else [value],)
         return result
 
 
@@ -855,12 +844,10 @@ class ExistsCommand(TestCommand):
         parser. Il faut uniformiser tout ça !!
 
         """
-        value = self.arguments["header-names"]
-        if isinstance(value, list):
-            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
-        if not value.startswith("["):
-            return ("exists", value.strip('"'))
-        return ("exists",) + tuple(tools.to_list(value))
+        value = tools.unquote_arg(self.arguments["header-names"])
+        if not isinstance(value, list):
+            return ("exists", value)
+        return ("exists",) + tuple(value)
 
 
 class TrueCommand(TestCommand):
@@ -881,18 +868,11 @@ class HeaderCommand(TestCommand):
 
     def args_as_tuple(self):
         """Return arguments as a list."""
-        if "," in self.arguments["header-names"]:
-            result = tuple(tools.to_list(self.arguments["header-names"]))
-        else:
-            result = (self.arguments["header-names"].strip('"'),)
-        result = result + (self.arguments["match-type"],)
-        if "," in self.arguments["key-list"]:
-            result = result + tuple(
-                tools.to_list(self.arguments["key-list"], unquote=False)
-            )
-        else:
-            result = result + (self.arguments["key-list"].strip('"'),)
-        return result
+        return (
+            tools.unquote_arg(self.arguments["header-names"]),
+            self.arguments["match-type"],
+            tools.unquote_arg(self.arguments["key-list"]),
+        )
 
 
 class BodyCommand(TestCommand):
@@ -922,14 +902,8 @@ class BodyCommand(TestCommand):
             self.arguments["body-transform"],
             self.arguments["match-type"],
         )
-        value = self.arguments["key-list"]
-        if isinstance(value, list):
-            # FIXME
-            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
-        if value.startswith("["):
-            result += tuple(tools.to_list(value))
-        else:
-            result += (value.strip('"'),)
+        value = tools.unquote_arg(self.arguments["key-list"])
+        result += tuple(value) if isinstance(value, list) else (value,)
         return result
 
 
@@ -1028,20 +1002,14 @@ class CurrentdateCommand(TestCommand):
         result = ("currentdate",)
         result += (
             ":zone",
-            self.extra_arguments["zone"].strip('"'),
+            tools.unquote(self.extra_arguments["zone"]),
             self.arguments["match-type"],
         )
         if self.arguments["match-type"] in [":count", ":value"]:
-            result += (self.extra_arguments["match-type"].strip('"'),)
-        result += (self.arguments["date-part"].strip('"'),)
-        value = self.arguments["key-list"]
-        if isinstance(value, list):
-            # FIXME
-            value = "[{}]".format(",".join('"{}"'.format(item) for item in value))
-        if value.startswith("["):
-            result = result + tuple(tools.to_list(value))
-        else:
-            result = result + (value.strip('"'),)
+            result += (tools.unquote(self.extra_arguments["match-type"]),)
+        result += (tools.unquote(self.arguments["date-part"]),)
+        value = tools.unquote_arg(self.arguments["key-list"])
+        result += tuple(value) if isinstance(value, list) else (value,)
         return result
 
 

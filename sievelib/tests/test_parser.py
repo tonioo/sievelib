@@ -161,6 +161,22 @@ if (type: control)
 """
         )
 
+    def test_escaped_strings(self):
+        self.compilation_ok(
+            rb"""
+if header :is ["Subject", "X-\"Foo\""] ["a \"b\"", "back\\"] {
+    keep;
+}
+"""
+        )
+        self.sieve_is(
+            r"""# Filter: Unnamed rule 1
+if header :is ["Subject", "X-\"Foo\""] ["a \"b\"", "back\\"] {
+    keep;
+}
+"""
+        )
+
     def test_multiline_string(self):
         self.compilation_ok(
             b"""
