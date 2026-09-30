@@ -436,7 +436,7 @@ if anyof (not true, false) {
             """require ["fileinto"];
 
 # Filter: rule1
-if anyof (exists ["list-help","list-unsubscribe","list-subscribe","list-owner"]) {
+if anyof (exists ["list-help", "list-unsubscribe", "list-subscribe", "list-owner"]) {
     fileinto "Toto";
 }
 """,
@@ -464,7 +464,7 @@ if anyof (exists ["list-help","list-unsubscribe","list-subscribe","list-owner"])
             """require ["fileinto"];
 
 # Filter: rule1
-if anyof (not exists ["list-help","list-unsubscribe","list-subscribe","list-owner"]) {
+if anyof (not exists ["list-help", "list-unsubscribe", "list-subscribe", "list-owner"]) {
     fileinto "Toto";
 }
 """,
@@ -732,6 +732,65 @@ if anyof (header :contains ["X-Foo", "X-Bar"] ["bar", "baz"]) {
 """,
         )
 
+    def test_string_quoting(self):
+        """Strings are always quoted and escaped."""
+        conditions = [
+            ("Subject", ":contains", "'tis"),
+            ("Subject", ":contains", 'a "b" c'),
+            ("Subject", ":is", '"quoted"'),
+            ("Subject", ":is", "back\\slash"),
+            ("Subject", ":is", "a, b"),
+            (["X-Foo", 'X-"Bar"'], ":contains", ["a,b", 'c"d']),
+            ("exists", 'X-"Foo"', "X-Bar"),
+            ("envelope", ":is", ["From"], ['h"i', "a,b"]),
+            ("body", ":raw", ":contains", 'm"x', "a,b"),
+            ("currentdate", ":zone", "+0100", ":is", "date", '20"19'),
+        ]
+        actions = [("fileinto", 'Fo"o'), ("redirect", "a,b@test.com")]
+        self.fs.addfilter("test", conditions, actions, "allof")
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            r"""require ["envelope", "body", "date", "fileinto"];
+
+# Filter: test
+if allof (header :contains "Subject" "'tis", header :contains "Subject" "a \"b\" c", header :is "Subject" "\"quoted\"", header :is "Subject" "back\\slash", header :is "Subject" "a, b", header :contains ["X-Foo", "X-\"Bar\""] ["a,b", "c\"d"], exists ["X-\"Foo\"", "X-Bar"], envelope :is ["From"] ["h\"i", "a,b"], body :contains :raw ["m\"x", "a,b"], currentdate :zone "+0100" :is "date" ["20\"19"]) {
+    fileinto "Fo\"o";
+    redirect "a,b@test.com";
+}
+""",
+        )
+        # Values must be read back unchanged...
+        self.assertEqual(self.fs.get_filter_conditions("test"), conditions)
+        self.assertEqual(self.fs.get_filter_actions("test"), actions)
+        # ...including after a round trip through the parser
+        p = parser.Parser()
+        self.assertTrue(p.parse(output.getvalue()))
+        fs = FiltersSet("test")
+        fs.from_parser_result(p)
+        self.assertEqual(fs.get_filter_conditions("test"), conditions)
+        self.assertEqual(fs.get_filter_actions("test"), actions)
+
+    def test_address_string_quoting(self):
+        self.fs.addfilter(
+            "test",
+            [("address", ":is", ["from", "to"], 'us"er@test.com')],
+            [("keep",)],
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            r"""# Filter: test
+if anyof (address :is ["from", "to"] "us\"er@test.com") {
+    keep;
+}
+""",
+        )
+        p = parser.Parser()
+        self.assertTrue(p.parse(output.getvalue()))
+
     def test_address_string_args(self):
         self.fs.addfilter(
             "test",
@@ -771,7 +830,7 @@ if anyof (address :is "from" "user1@test.com") {
             """require ["fileinto", "mailbox"];
 
 # Filter: test
-if anyof (address :is ["from","reply-to"] ["user1@test.com","user2@test.com"]) {
+if anyof (address :is ["from", "reply-to"] ["user1@test.com", "user2@test.com"]) {
     fileinto :create "folder";
 }
 """,

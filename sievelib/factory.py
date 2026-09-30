@@ -13,7 +13,7 @@ import sys
 from typing import List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
-from sievelib import commands
+from sievelib import commands, tools
 from sievelib.parser import Parser
 
 
@@ -141,15 +141,20 @@ class FiltersSet:
         "currentdate",
     )
 
-    def __quote_if_necessary(self, value: str) -> str:
-        """Add double quotes to the given string if necessary
+    def __add_string_arg(
+        self, cmd: commands.Command, value: Union[str, List[str]]
+    ) -> None:
+        """Add a string or a string list argument to the given command
 
-        :param value: the string to check
-        :return: the string between quotes
+        Values are always quoted and escaped.
+
+        :param cmd: the command to update
+        :param value: the raw value(s)
         """
-        if not value.startswith(('"', "'")):
-            return '"%s"' % value
-        return value
+        if isinstance(value, (list, tuple)):
+            cmd.check_next_arg("stringlist", [tools.quote(v) for v in value])
+        else:
+            cmd.check_next_arg("string", tools.quote(value))
 
     def __build_condition(
         self, condition: List[str], parent: commands.Command, tag: Optional[str] = None
@@ -166,18 +171,8 @@ class FiltersSet:
             tag = condition[1]
         cmd = commands.get_command_instance("header", parent)
         cmd.check_next_arg("tag", tag)
-        if isinstance(condition[0], list):
-            cmd.check_next_arg(
-                "stringlist", [self.__quote_if_necessary(c) for c in condition[0]]
-            )
-        else:
-            cmd.check_next_arg("string", self.__quote_if_necessary(condition[0]))
-        if isinstance(condition[2], list):
-            cmd.check_next_arg(
-                "stringlist", [self.__quote_if_necessary(c) for c in condition[2]]
-            )
-        else:
-            cmd.check_next_arg("string", self.__quote_if_necessary(condition[2]))
+        self.__add_string_arg(cmd, condition[0])
+        self.__add_string_arg(cmd, condition[2])
         return cmd
 
     def __create_filter(
@@ -239,9 +234,7 @@ class FiltersSet:
                 cmd.check_next_arg("number", c[2])
             elif cname == "exists":
                 cmd = commands.get_command_instance("exists", ifcontrol)
-                cmd.check_next_arg(
-                    "stringlist", "[%s]" % (",".join('"%s"' % val for val in c[1:]))
-                )
+                self.__add_string_arg(cmd, c[1:])
             elif cname == "envelope":
                 cmd = commands.get_command_instance("envelope", ifcontrol, False)
                 self.require("envelope")
@@ -251,14 +244,8 @@ class FiltersSet:
                 else:
                     comp_tag = c[1]
                 cmd.check_next_arg("tag", comp_tag)
-                cmd.check_next_arg(
-                    "stringlist",
-                    "[{}]".format(",".join('"{}"'.format(val) for val in c[2])),
-                )
-                cmd.check_next_arg(
-                    "stringlist",
-                    "[{}]".format(",".join('"{}"'.format(val) for val in c[3])),
-                )
+                self.__add_string_arg(cmd, c[2])
+                self.__add_string_arg(cmd, c[3])
             elif cname == "address":
                 cmd = commands.get_command_instance("address", ifcontrol, False)
                 if c[1].startswith(":not"):
@@ -268,14 +255,7 @@ class FiltersSet:
                     comp_tag = c[1]
                 cmd.check_next_arg("tag", comp_tag)
                 for arg in c[2:]:
-                    if isinstance(arg, str):
-                        finalarg = self.__quote_if_necessary(arg)
-                    else:
-                        finalarg = "[{}]".format(
-                            ",".join('"{}"'.format(val) for val in arg)
-                        )
-                    cmd.check_next_arg("stringlist", finalarg)
-
+                    self.__add_string_arg(cmd, arg)
             elif cname == "body":
                 cmd = commands.get_command_instance("body", ifcontrol, False)
                 self.require(cmd.extension)
@@ -286,14 +266,12 @@ class FiltersSet:
                 else:
                     comp_tag = c[2]
                 cmd.check_next_arg("tag", comp_tag)
-                cmd.check_next_arg(
-                    "stringlist", "[%s]" % (",".join('"%s"' % val for val in c[3:]))
-                )
+                self.__add_string_arg(cmd, c[3:])
             elif cname == "currentdate":
                 cmd = commands.get_command_instance("currentdate", ifcontrol, False)
                 self.require(cmd.extension)
                 cmd.check_next_arg("tag", c[1])
-                cmd.check_next_arg("string", self.__quote_if_necessary(c[2]))
+                self.__add_string_arg(cmd, c[2])
                 if c[3].startswith(":not"):
                     comp_tag = c[3].replace("not", "")
                     negate = True
@@ -303,16 +281,11 @@ class FiltersSet:
                 next_arg_pos = 4
                 if comp_tag == ":value":
                     self.require("relational")
-                    cmd.check_next_arg(
-                        "string", self.__quote_if_necessary(c[next_arg_pos])
-                    )
+                    self.__add_string_arg(cmd, c[next_arg_pos])
                     next_arg_pos += 1
-                cmd.check_next_arg("string", self.__quote_if_necessary(c[next_arg_pos]))
+                self.__add_string_arg(cmd, c[next_arg_pos])
                 next_arg_pos += 1
-                cmd.check_next_arg(
-                    "stringlist",
-                    "[%s]" % (",".join('"%s"' % val for val in c[next_arg_pos:])),
-                )
+                self.__add_string_arg(cmd, c[next_arg_pos:])
             else:
                 # header command fallback
                 if c[1].startswith(":not"):
@@ -343,7 +316,7 @@ class FiltersSet:
                     atype = "tag"
                 else:
                     atype = "string"
-                    arg = self.__quote_if_necessary(arg)
+                    arg = tools.quote(arg)
                 action.check_next_arg(atype, arg, check_extension=False)
             ifcontrol.addchild(action)
         return ifcontrol
