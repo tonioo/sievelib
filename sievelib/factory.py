@@ -129,6 +129,18 @@ class FiltersSet:
         reqcmd.check_next_arg("stringlist", self.requires)
         return reqcmd
 
+    #: Tests (other than header) that can be used as a condition's name
+    supported_tests = (
+        "true",
+        "false",
+        "size",
+        "exists",
+        "envelope",
+        "address",
+        "body",
+        "currentdate",
+    )
+
     def __quote_if_necessary(self, value: str) -> str:
         """Add double quotes to the given string if necessary
 
@@ -191,7 +203,13 @@ class FiltersSet:
           (action's name, value)
 
         It uses the "header" test to generate the sieve syntax
-        corresponding to the given conditions.
+        corresponding to the given conditions. When the first element
+        is not the name of a supported test, it is considered as a
+        header name. To match a header whose name collides with a
+        test's name (``true``, ``size``, ``notexists``...), use the
+        explicit form::
+
+          ("header", header's name, operator, value)
 
         :param conditions: the list of conditions
         :param actions: the list of actions
@@ -200,14 +218,21 @@ class FiltersSet:
         ifcontrol = commands.get_command_instance("if")
         mtypeobj = commands.get_command_instance(matchtype, ifcontrol)
         for c in conditions:
-            if not isinstance(c[0], list) and c[0].startswith("not"):
+            negate = False
+            cname = c[0]
+            if cname == "header" and len(c) == 4:
+                # explicit header test, never interpreted as something else
+                c = c[1:]
+                cname = None
+            elif (
+                isinstance(cname, str)
+                and cname.startswith("not")
+                and cname[3:] in self.supported_tests
+            ):
                 negate = True
-                cname = c[0].replace("not", "", 1)
-            else:
-                negate = False
-                cname = c[0]
+                cname = cname[3:]
             if cname in ("true", "false"):
-                cmd = commands.get_command_instance(c[0], ifcontrol)
+                cmd = commands.get_command_instance(cname, ifcontrol)
             elif cname == "size":
                 cmd = commands.get_command_instance("size", ifcontrol)
                 cmd.check_next_arg("tag", c[1])

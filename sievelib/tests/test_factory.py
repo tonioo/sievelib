@@ -340,6 +340,80 @@ if anyof (not header :contains "Sender" "toto@toto.com") {
 """,
         )
 
+    def test_add_header_filter_name_starting_with_not(self):
+        """A header whose name starts with 'not' must not be negated."""
+        output = io.StringIO()
+        self.fs.addfilter(
+            "rule1",
+            [("notes", ":contains", "x"), ("nothing", ":notcontains", "y")],
+            [("keep",)],
+        )
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: rule1
+if anyof (header :contains "notes" "x", not header :contains "nothing" "y") {
+    keep;
+}
+""",
+        )
+        self.assertEqual(
+            self.fs.get_filter_conditions("rule1"),
+            [("notes", ":contains", "x"), ("nothing", ":notcontains", "y")],
+        )
+
+    def test_add_explicit_header_filter(self):
+        """Explicit form allows header names colliding with test names."""
+        output = io.StringIO()
+        self.fs.addfilter(
+            "rule1",
+            [
+                ("header", "true", ":contains", "x"),
+                ("header", "exists", ":contains", "x"),
+                ("header", "address", ":notcontains", "x"),
+                ("header", "notsize", ":is", "x"),
+                ("header", ["body", "envelope"], ":is", ["x", "y"]),
+                ("header", "Subject", ":contains", "x"),
+            ],
+            [("keep",)],
+        )
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: rule1
+if anyof (header :contains "true" "x", header :contains "exists" "x", not header :contains "address" "x", header :is "notsize" "x", header :is ["body", "envelope"] ["x", "y"], header :contains "Subject" "x") {
+    keep;
+}
+""",
+        )
+
+    def test_header_named_header(self):
+        """The 3-uple form still targets a header literally named 'header'."""
+        output = io.StringIO()
+        self.fs.addfilter("rule1", [("header", ":contains", "x")], [("keep",)])
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: rule1
+if anyof (header :contains "header" "x") {
+    keep;
+}
+""",
+        )
+
+    def test_add_negated_constant_filter(self):
+        output = io.StringIO()
+        self.fs.addfilter("rule1", [("nottrue",), ("false",)], [("keep",)])
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: rule1
+if anyof (not true, false) {
+    keep;
+}
+""",
+        )
+
     def test_add_exists_filter(self):
         output = io.StringIO()
         self.fs.addfilter(
