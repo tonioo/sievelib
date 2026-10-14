@@ -627,10 +627,19 @@ class FiltersSet:
             cmd.tosieve(target=target)
             target.write("\n")
         for f in self.filters:
-            target.write("{}{}\n".format(self.filter_name_pretext, f["name"]))
+            # Name and description go in a hash comment: a line break
+            # would end it and let the rest be read as sieve commands.
+            target.write(
+                "{}{}\n".format(
+                    self.filter_name_pretext, " ".join(f["name"].splitlines())
+                )
+            )
             if "description" in f and f["description"]:
                 target.write(
-                    "{}{}\n".format(self.filter_desc_pretext, f["description"])
+                    "{}{}\n".format(
+                        self.filter_desc_pretext,
+                        " ".join(f["description"].splitlines()),
+                    )
                 )
             f["content"].tosieve(target=target)
 
