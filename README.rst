@@ -119,7 +119,42 @@ make the generation of Sieve rules easier::
   if anyof (header :is "Sender" "toto@toto.com") {
       fileinto "Toto";
   }
-  >>> 
+  >>>
+
+Updating existing filters
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An existing script can be loaded into a ``FiltersSet`` from a parser
+result. Rules preceded by a ``# Filter: <name>`` comment keep that
+name. The other rules are named after their position in the script:
+``Unnamed rule 1``, ``Unnamed rule 2``, and so on. Use these names to
+update a rule::
+
+  >>> from sievelib.parser import Parser
+  >>> from sievelib.factory import FiltersSet
+  >>> p = Parser()
+  >>> p.parse('''require ["fileinto"];
+  ... if header :contains "Subject" "a" { fileinto "A"; }
+  ... if header :contains "Subject" "b" { fileinto "B"; }
+  ... ''')
+  True
+  >>> fs = FiltersSet("test")
+  >>> fs.from_parser_result(p)
+  >>> [f["name"] for f in fs.filters]
+  ['Unnamed rule 1', 'Unnamed rule 2']
+  >>> fs.updatefilter("Unnamed rule 2", "Unnamed rule 2",
+  ...                 [("Subject", ":contains", "b"),
+  ...                  ("Subject", ":contains", "c")],
+  ...                 [("fileinto", "B")])
+  True
+
+Keep in mind that:
+
+* the generated names are computed when the script is loaded. They are
+  not renumbered when filters are added or removed later,
+* ``tosieve()`` writes a ``# Filter:`` comment before each rule, so
+  generated names become real names in the produced script,
+* filters are also available by position via the ``fs.filters`` list.
 
 Additional documentation is available within source code.
 
