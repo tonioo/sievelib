@@ -262,6 +262,16 @@ if anyof (header :is "Subject" "s") {
 """,
         )
 
+    def test_movefilter(self):
+        for name in ["a", "b", "c"]:
+            self.fs.addfilter(name, [("Subject", ":is", name)], [("keep",)])
+        self.assertFalse(self.fs.movefilter("a", "up"))
+        self.assertFalse(self.fs.movefilter("c", "down"))
+        self.assertFalse(self.fs.movefilter("unknown", "up"))
+        self.assertTrue(self.fs.movefilter("a", "down"))
+        self.assertTrue(self.fs.movefilter("c", "up"))
+        self.assertEqual([f["name"] for f in self.fs.filters], ["b", "c", "a"])
+
     def test_disablefilter_twice(self):
         self.fs.addfilter("rule", [("Subject", ":is", "s")], [("keep",)])
         self.assertTrue(self.fs.disablefilter("rule"))

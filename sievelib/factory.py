@@ -10,7 +10,7 @@ are supported.
 
 import io
 import sys
-from typing import List, Optional, TypedDict, Union
+from typing import List, Optional, Tuple, TypedDict, Union
 from typing_extensions import NotRequired
 
 from sievelib import commands, tools
@@ -156,8 +156,15 @@ class FiltersSet:
         else:
             cmd.check_next_arg("string", tools.quote(value))
 
+    @staticmethod
+    def __split_match_tag(tag: str) -> Tuple[str, bool]:
+        """Split a negated match type, e.g. ":notis" gives (":is", True)."""
+        if tag.startswith(":not"):
+            return ":" + tag[4:], True
+        return tag, False
+
     def __build_condition(
-        self, condition: List[str], parent: commands.Command, tag: Optional[str] = None
+        self, condition: List[str], parent: commands.Command, tag: str
     ) -> commands.Command:
         """Translate a condition to a valid sievelib Command.
 
@@ -167,8 +174,6 @@ class FiltersSet:
         :rtype: Command
         :return: the generated command
         """
-        if tag is None:
-            tag = condition[1]
         cmd = commands.get_command_instance("header", parent)
         cmd.check_next_arg("tag", tag)
         self.__add_string_arg(cmd, condition[0])
@@ -238,21 +243,15 @@ class FiltersSet:
             elif cname == "envelope":
                 cmd = commands.get_command_instance("envelope", ifcontrol, False)
                 self.require("envelope")
-                if c[1].startswith(":not"):
-                    comp_tag = c[1].replace("not", "")
-                    negate = True
-                else:
-                    comp_tag = c[1]
+                comp_tag, negated = self.__split_match_tag(c[1])
+                negate = negate or negated
                 cmd.check_next_arg("tag", comp_tag)
                 self.__add_string_arg(cmd, c[2])
                 self.__add_string_arg(cmd, c[3])
             elif cname == "address":
                 cmd = commands.get_command_instance("address", ifcontrol, False)
-                if c[1].startswith(":not"):
-                    comp_tag = c[1].replace("not", "")
-                    negate = True
-                else:
-                    comp_tag = c[1]
+                comp_tag, negated = self.__split_match_tag(c[1])
+                negate = negate or negated
                 cmd.check_next_arg("tag", comp_tag)
                 for arg in c[2:]:
                     self.__add_string_arg(cmd, arg)
@@ -260,11 +259,8 @@ class FiltersSet:
                 cmd = commands.get_command_instance("body", ifcontrol, False)
                 self.require(cmd.extension)
                 cmd.check_next_arg("tag", c[1])
-                if c[2].startswith(":not"):
-                    comp_tag = c[2].replace("not", "")
-                    negate = True
-                else:
-                    comp_tag = c[2]
+                comp_tag, negated = self.__split_match_tag(c[2])
+                negate = negate or negated
                 cmd.check_next_arg("tag", comp_tag)
                 self.__add_string_arg(cmd, c[3:])
             elif cname == "currentdate":
@@ -275,11 +271,8 @@ class FiltersSet:
                     cmd.check_next_arg("tag", c[1])
                     self.__add_string_arg(cmd, c[2])
                     next_arg_pos = 3
-                if c[next_arg_pos].startswith(":not"):
-                    comp_tag = c[next_arg_pos].replace("not", "")
-                    negate = True
-                else:
-                    comp_tag = c[next_arg_pos]
+                comp_tag, negated = self.__split_match_tag(c[next_arg_pos])
+                negate = negate or negated
                 cmd.check_next_arg("tag", comp_tag, check_extension=False)
                 next_arg_pos += 1
                 if comp_tag == ":value":
@@ -291,13 +284,8 @@ class FiltersSet:
                 self.__add_string_arg(cmd, c[next_arg_pos:])
             else:
                 # header command fallback
-                if c[1].startswith(":not"):
-                    cmd = self.__build_condition(
-                        c, ifcontrol, c[1].replace("not", "", 1)
-                    )
-                    negate = True
-                else:
-                    cmd = self.__build_condition(c, ifcontrol)
+                comp_tag, negate = self.__split_match_tag(c[1])
+                cmd = self.__build_condition(c, ifcontrol, comp_tag)
             if negate:
                 not_cmd = commands.get_command_instance("not", ifcontrol)
                 not_cmd.check_next_arg("test", cmd)
@@ -328,12 +316,17 @@ class FiltersSet:
         """Convert name to unicode if necessary."""
         return name.decode("utf-8") if isinstance(name, bytes) else name
 
+    def __find(self, name: str) -> Optional[Filter]:
+        """Return the filter with the given name, or None."""
+        name = self._unicode_filter_name(name)
+        for f in self.filters:
+            if f["name"] == name:
+                return f
+        return None
+
     def filter_exists(self, name: str) -> bool:
         """Check if a filter with name already exists."""
-        for existing_filter in self.filters:
-            if existing_filter["name"] == name:
-                return True
-        return False
+        return self.__find(name) is not None
 
     def addfilter(
         self,
@@ -380,16 +373,11 @@ class FiltersSet:
         :param actions: the list of actions
         :param matchtype: "anyof" or "allof"
         """
-        filter_def = None
-        oldname = self._unicode_filter_name(oldname)
-        for f in self.filters:
-            if f["name"] == oldname:
-                filter_def = f
-                break
+        filter_def = self.__find(oldname)
         if not filter_def:
             return False
         newname = self._unicode_filter_name(newname)
-        if newname != oldname and self.filter_exists(newname):
+        if newname != filter_def["name"] and self.filter_exists(newname):
             raise FilterAlreadyExists
         filter_def["name"] = newname
         filter_def["content"] = self.__create_filter(conditions, actions, matchtype)
@@ -414,17 +402,11 @@ class FiltersSet:
         :param sieve_filter: the sieve_filter object as get from
                              FiltersSet.getfilter()
         """
-        filter_def = None
-        oldname = self._unicode_filter_name(oldname)
-        for f in self.filters:
-            if f["name"] == oldname:
-                filter_def = f
-                break
+        filter_def = self.__find(oldname)
         if not filter_def:
             return False
-        if newname is None:
-            newname = oldname
-        newname = self._unicode_filter_name(newname)
+        oldname = filter_def["name"]
+        newname = oldname if newname is None else self._unicode_filter_name(newname)
         if newname != oldname and self.filter_exists(newname):
             raise FilterAlreadyExists
         filter_def["name"] = newname
@@ -441,13 +423,12 @@ class FiltersSet:
         :param name: the filter's name
         :return: the Command object if found, None otherwise
         """
-        name = self._unicode_filter_name(name)
-        for f in self.filters:
-            if f["name"] == name:
-                if not f["enabled"]:
-                    return f["content"].children[0]
-                return f["content"]
-        return None
+        f = self.__find(name)
+        if not f:
+            return None
+        if not f["enabled"]:
+            return f["content"].children[0]
+        return f["content"]
 
     def get_filter_matchtype(self, name: str) -> Union[str, None]:
         """Retrieve matchtype of the given filter."""
@@ -517,12 +498,11 @@ class FiltersSet:
 
         :param name: the filter's name
         """
-        name = self._unicode_filter_name(name)
-        for f in self.filters:
-            if f["name"] == name:
-                self.filters.remove(f)
-                return True
-        return False
+        f = self.__find(name)
+        if not f:
+            return False
+        self.filters.remove(f)
+        return True
 
     def enablefilter(self, name: str) -> bool:
         """Enable a filter
@@ -531,27 +511,20 @@ class FiltersSet:
 
         :param name: the filter's name
         """
-        name = self._unicode_filter_name(name)
-        for f in self.filters:
-            if f["name"] != name:
-                continue
-            if not self.__isdisabled(f["content"]):
-                return False
-            f["content"] = f["content"].children[0]
-            f["enabled"] = True
-            return True
-        return False  # raise NotFound
+        f = self.__find(name)
+        if not f or not self.__isdisabled(f["content"]):
+            return False
+        f["content"] = f["content"].children[0]
+        f["enabled"] = True
+        return True
 
     def is_filter_disabled(self, name: str) -> bool:
         """Tells if the filter is currently disabled or not
 
         :param name: the filter's name
         """
-        name = self._unicode_filter_name(name)
-        for f in self.filters:
-            if f["name"] == name:
-                return self.__isdisabled(f["content"])
-        return True
+        f = self.__find(name)
+        return not f or self.__isdisabled(f["content"])
 
     def disablefilter(self, name: str) -> bool:
         """Disable a filter
@@ -562,20 +535,16 @@ class FiltersSet:
         :param name: the filter's name
         :return: True if filter was disabled, False otherwise
         """
-        name = self._unicode_filter_name(name)
+        f = self.__find(name)
+        if not f or self.__isdisabled(f["content"]):
+            return False
         ifcontrol = commands.get_command_instance("if")
         falsecmd = commands.get_command_instance("false", ifcontrol)
         ifcontrol.check_next_arg("test", falsecmd)
-        for f in self.filters:
-            if f["name"] != name:
-                continue
-            if self.__isdisabled(f["content"]):
-                return False
-            ifcontrol.addchild(f["content"])
-            f["content"] = ifcontrol
-            f["enabled"] = False
-            return True
-        return False
+        ifcontrol.addchild(f["content"])
+        f["content"] = ifcontrol
+        f["enabled"] = False
+        return True
 
     def movefilter(self, name: str, direction: str) -> bool:
         """Moves the filter up or down
@@ -583,23 +552,15 @@ class FiltersSet:
         :param name: the filter's name
         :param direction: string "up" or "down"
         """
-        name = self._unicode_filter_name(name)
-        cpt = 0
-        for f in self.filters:
-            if f["name"] == name:
-                if direction == "up":
-                    if cpt == 0:
-                        return False
-                    self.filters.remove(f)
-                    self.filters.insert(cpt - 1, f)
-                    return True
-                if cpt == len(self.filters) - 1:
-                    return False
-                self.filters.remove(f)
-                self.filters.insert(cpt + 1, f)
-                return True
-            cpt += 1
-        return False  # raise not found
+        f = self.__find(name)
+        if not f:
+            return False
+        pos = self.filters.index(f)
+        newpos = pos - 1 if direction == "up" else pos + 1
+        if not 0 <= newpos < len(self.filters):
+            return False
+        self.filters.insert(newpos, self.filters.pop(pos))
+        return True
 
     def dump(self, target=sys.stdout):
         """Dump this object
