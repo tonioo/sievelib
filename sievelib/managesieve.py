@@ -13,6 +13,7 @@ from functools import wraps
 import re
 import socket
 import ssl as ssllib
+import warnings
 from typing import Any, List, Optional, Tuple
 
 from . import tools
@@ -94,7 +95,7 @@ class Client:
 
         self.__capabilities: dict[str, str] = {}
         self.__respcode_expr = re.compile(rb"(OK|NO|BYE)\s*(.+)?")
-        self.__error_expr = re.compile(rb'(\([\w/-]+\))?\s*(".+")')
+        self.__error_expr = re.compile(rb'(\([\w/-]+\))?\s*(".+")?$')
         self.__size_expr = re.compile(rb"\{(\d+)\+?\}")
         self.__literal_expr = re.compile(rb"\{(\d+)\+?\}\r\n")
         self.__active_expr = re.compile(rb"ACTIVE", re.IGNORECASE)
@@ -310,7 +311,7 @@ class Client:
 
     def __get_capabilities(self) -> bool:
         code, data, capabilities = self.__read_response()
-        if code == "NO":
+        if code == b"NO":
             return False
 
         for l in capabilities.splitlines():
@@ -323,7 +324,7 @@ class Client:
             )
         return True
 
-    def __parse_error(self, text: bytes):
+    def __parse_error(self, text: Optional[bytes]):
         """Parse an error received from the server.
 
         if text corresponds to a size indication, we grab the
@@ -336,9 +337,14 @@ class Client:
 
         :param text: the response to parse
         """
+        self.errcode = b""
+        self.errmsg = b""
+        if not text:
+            # a bare NO is valid (RFC 5804)
+            return
+
         m = self.__size_expr.match(text)
         if m is not None:
-            self.errcode = b""
             self.errmsg = self.__read_block(int(m.group(1)) + 2)
             return
 
@@ -347,9 +353,8 @@ class Client:
             raise Error("Bad error message")
         if m.group(1) is not None:
             self.errcode = m.group(1).strip(b"()")
-        else:
-            self.errcode = b""
-        self.errmsg = m.group(2).strip(b'"')
+        if m.group(2) is not None:
+            self.errmsg = m.group(2).strip(b'"')
 
     def _plain_authentication(
         self, login: bytes, password: bytes, authz_id: bytes = b""
@@ -586,6 +591,12 @@ class Client:
             raise Error("Failed to read capabilities from server")
         if not ssl and starttls and not self.__starttls():
             return False
+        if not isinstance(self.sock, ssllib.SSLSocket):
+            warnings.warn(
+                "Credentials are sent over an unencrypted connection, "
+                "use starttls=True or ssl=True",
+                stacklevel=2,
+            )
         if self.__authenticate(login, password, authz_id, authmech):
             return True
         return False
@@ -727,11 +738,11 @@ class Client:
                 return True
             return False
 
-        (active_script, scripts) = self.listscripts()
-        condition = oldname != active_script and (
-            scripts is None or oldname not in scripts
-        )
-        if condition:
+        listing = self.listscripts()
+        if listing is None:
+            return False
+        active_script, scripts = listing
+        if oldname != active_script and oldname not in scripts:
             self.errmsg = b"Old script does not exist"
             return False
         if newname in scripts:

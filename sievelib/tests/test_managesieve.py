@@ -2,6 +2,7 @@
 
 import unittest
 from unittest import mock
+import warnings
 
 from sievelib import managesieve
 
@@ -72,6 +73,11 @@ class ManageSieveTestCase(unittest.TestCase):
     def setUp(self):
         """Create client."""
         self.client = managesieve.Client("127.0.0.1")
+        # tests connect without TLS on purpose, see test_unencrypted_warning
+        catcher = warnings.catch_warnings()
+        catcher.__enter__()
+        self.addCleanup(catcher.__exit__, None, None, None)
+        warnings.filterwarnings("ignore", "Credentials are sent", UserWarning)
 
     def authenticate(self, mock_socket):
         """Authenticate client."""
@@ -100,6 +106,35 @@ class ManageSieveTestCase(unittest.TestCase):
         with self.assertRaises(managesieve.Error):
             self.client.connect("user", "password", authmech="DIGEST-MD5")
         mock_socket.return_value.connect.assert_not_called()
+
+    def test_unencrypted_warning(self, mock_socket):
+        """Test a warning is emitted when authenticating without TLS."""
+        mock_socket.return_value.recv.side_effect = (AUTHENTICATION,)
+        with self.assertWarnsRegex(UserWarning, "unencrypted"):
+            self.client.connect("user", "password")
+
+    def test_greeting_no(self, mock_socket):
+        """Test a NO greeting is reported as an error."""
+        mock_socket.return_value.recv.side_effect = (b'NO "Service unavailable"\r\n',)
+        with self.assertRaisesRegex(managesieve.Error, "capabilities"):
+            self.client.connect("user", "password")
+
+    def test_no_without_message(self, mock_socket):
+        """Test NO responses without a quoted message."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = (b"NO\r\n",)
+        self.assertFalse(self.client.deletescript("test_script"))
+        self.assertEqual((self.client.errcode, self.client.errmsg), (b"", b""))
+        mock_socket.return_value.recv.side_effect = (b"NO (QUOTA/MAXSIZE)\r\n",)
+        self.assertFalse(self.client.putscript("test_script", "keep;"))
+        self.assertEqual(
+            (self.client.errcode, self.client.errmsg), (b"QUOTA/MAXSIZE", b"")
+        )
+        mock_socket.return_value.recv.side_effect = (b'NO (NONEXISTENT) "No"\r\n',)
+        self.assertFalse(self.client.deletescript("test_script"))
+        self.assertEqual(
+            (self.client.errcode, self.client.errmsg), (b"NONEXISTENT", b"No")
+        )
 
     def test_capabilities(self, mock_socket):
         """Test capabilities command."""
@@ -210,6 +245,16 @@ if envelope :contains "to" "tmartin+sent" {
             b'OK "deletescript completed."\r\n',
         )
         self.assertTrue(self.client.renamescript("main_script", "new_script"))
+
+    def test_renamescript_simulated_listing_fails(self, mock_socket):
+        """Test renamescript simulation when LISTSCRIPTS fails."""
+        mock_socket.return_value.recv.side_effect = (
+            CAPABILITIES_WITHOUT_VERSION + b'OK "Dovecot ready."\r\n'
+            b'OK "Logged in."\r\n',
+        )
+        self.client.connect("user", "password")
+        mock_socket.return_value.recv.side_effect = (b'NO "Try later"\r\n',)
+        self.assertFalse(self.client.renamescript("main_script", "new_script"))
 
     def test_connection_closed_during_greeting(self, mock_socket):
         """Test server closing the connection while sending capabilities."""
