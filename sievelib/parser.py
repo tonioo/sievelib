@@ -80,7 +80,7 @@ class Lexer:
                 m = self.wsregexp.search(token)
                 if m is not None:
                     token = token[: m.start()]
-                raise ParseError(f"unknown token {token}")
+                raise ParseError(f"unknown token {token.decode(errors='replace')}")
 
             yield (m.lastgroup, m.group(m.lastgroup))
             self.pos += len(m.group(0))
@@ -161,10 +161,13 @@ class Parser:
         try:
             etype, evalue = self.__expected_brackets.pop()
         except IndexError:
-            raise ParseError("unexpected closing bracket %s (none opened)" % (tvalue,))
+            raise ParseError(
+                "unexpected closing bracket %s (none opened)" % tvalue.decode()
+            )
         if ttype != etype:
             raise ParseError(
-                "unexpected closing bracket %s (expected %s)" % (tvalue, evalue)
+                "unexpected closing bracket %s (expected %s)"
+                % (tvalue.decode(), evalue.decode())
             )
 
     def __up(self, onlyrecord: bool = False):
@@ -310,7 +313,7 @@ class Parser:
             return self.__curcommand.check_next_arg(ttype, tvalue.decode("ascii"))
 
         if ttype == "left_bracket":
-            self.__push_expected_bracket("right_bracket", b"}")
+            self.__push_expected_bracket("right_bracket", b"]")
             self.__cstate = self.__stringlist
             self.__curstringlist = []
             self.__set_expected("string")
@@ -414,7 +417,8 @@ class Parser:
             if self.__curcommand is not None:
                 if not self.__curcommand.addchild(command):
                     raise ParseError(
-                        "%s unexpected after a %s" % (tvalue, self.__curcommand.name)
+                        "%s unexpected after a %s"
+                        % (tvalue.decode(), self.__curcommand.name)
                     )
             self.__curcommand = command
             self.__cstate = self.__arguments
@@ -443,6 +447,10 @@ class Parser:
             self.__up()
             return True
         return False
+
+    def __near(self, text: bytes) -> str:
+        """Return the character at the current position, for error messages."""
+        return text[self.lexer.pos : self.lexer.pos + 1].decode(errors="replace")
 
     def parse(self, text: bytes) -> bool:
         """The parser entry point.
@@ -478,7 +486,7 @@ class Parser:
                             msg = "{} found while {} expected near '{}'".format(
                                 ttype,
                                 "|".join(self.__expected),
-                                text.decode()[self.lexer.pos],
+                                self.__near(text),
                             )
                         else:
                             msg = "%s found while %s expected at end of file" % (
@@ -491,7 +499,7 @@ class Parser:
                 if not self.__command(ttype, tvalue):
                     msg = "unexpected token '%s' found near '%s'" % (
                         tvalue.decode(),
-                        text.decode()[self.lexer.pos],
+                        self.__near(text),
                     )
                     raise ParseError(msg)
             if self.__expected_brackets:
@@ -502,7 +510,7 @@ class Parser:
                     % "|".join(self.__expected)
                 )
 
-        except (ParseError, CommandError) as e:
+        except (ParseError, CommandError, UnicodeDecodeError) as e:
             self.error_pos = (
                 self.lexer.curlineno(),
                 self.lexer.curcolno(),

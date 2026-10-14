@@ -1136,16 +1136,19 @@ def get_command_instance(
     :param parent: the eventual parent command
     :return: a new class instance
     """
-    cname = "%sCommand" % name.lower().capitalize()
-    gl = globals()
-    condition = cname not in gl
-    if condition:
+    cls = globals().get("%sCommand" % name.lower().capitalize())
+    # only concrete commands: skip base classes and other module globals
+    if not (
+        isinstance(cls, type)
+        and issubclass(cls, Command)
+        and hasattr(cls, "args_definition")
+    ):
         raise UnknownCommand(name)
     condition = (
         checkexists
-        and gl[cname].extension
-        and gl[cname].extension not in RequireCommand.loaded_extensions
+        and cls.extension
+        and cls.extension not in RequireCommand.loaded_extensions
     )
     if condition:
-        raise ExtensionNotLoaded(gl[cname].extension)
-    return gl[cname](parent)
+        raise ExtensionNotLoaded(cls.extension)
+    return cls(parent)

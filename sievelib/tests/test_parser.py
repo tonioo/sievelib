@@ -733,6 +733,21 @@ class InvalidSyntaxes(SieveTest):
         self.compilation_ko(b'require "imap4flags"; keep :flags;')
         self.compilation_ko(b'require "imap4flags"; setflag;')
 
+    def test_internal_names_are_not_commands(self):
+        # these names used to crash the parser
+        for name in [b"unknown", b"action", b"control", b"test", b"command"]:
+            self.compilation_ko(name + b' "x";')
+
+    def test_error_after_non_ascii_text(self):
+        # the error position used to be computed on the decoded text
+        self.compilation_ko(
+            'if header :is "Subject" "éééééééééééééééé" { keep } }'.encode()
+        )
+
+    def test_invalid_utf8(self):
+        self.compilation_ko(b'if header :is "Subject" "\xff" { keep; }')
+        self.compilation_ko(b"\xff")
+
     def test_hasflag_without_argument(self):
         # used to loop forever
         self.compilation_ko(b'require "imap4flags"; if hasflag { keep; }')
