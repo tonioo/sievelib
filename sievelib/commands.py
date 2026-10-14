@@ -1099,16 +1099,42 @@ class VacationCommand(ActionCommand):
     ]
 
 
-class SetCommand(ControlCommand):
-    """set command, part of the variables extension
+class SetCommand(ActionCommand):
+    """set action, part of the variables extension
 
     http://tools.ietf.org/html/rfc5229
     """
 
     extension = "variables"
+    # one argument per modifier precedence level (RFC 5229, section 4.1)
     args_definition = [
-        {"name": "startend", "type": ["string"], "required": True},
-        {"name": "date", "type": ["string"], "required": True},
+        {
+            "name": "case",
+            "type": ["tag"],
+            "values": [":lower", ":upper"],
+            "required": False,
+        },
+        {
+            "name": "first-case",
+            "type": ["tag"],
+            "values": [":lowerfirst", ":upperfirst"],
+            "required": False,
+        },
+        {
+            "name": "quotewildcard",
+            "type": ["tag"],
+            "values": [":quotewildcard"],
+            "required": False,
+        },
+        {
+            "name": "encoding",
+            "type": ["tag"],
+            "extension_values": {":quoteregex": "regex", ":encodeurl": "enotify"},
+            "required": False,
+        },
+        {"name": "length", "type": ["tag"], "values": [":length"], "required": False},
+        {"name": "name", "type": ["string"], "required": True},
+        {"name": "value", "type": ["string"], "required": True},
     ]
 
 

@@ -1205,6 +1205,35 @@ if allof (
 """
         )
 
+    def test_set_modifiers(self):
+        self.compilation_ok(
+            b"""require ["variables", "enotify"];
+set :length :upperfirst :lower "a" "Hello";
+set :encodeurl "b" "a b";
+"""
+        )
+        self.representation_is(
+            """
+require (type: control)
+    ["variables","enotify"]
+set (type: action)
+    :lower
+    :upperfirst
+    :length
+    "a"
+    "Hello"
+set (type: action)
+    :encodeurl
+    "b"
+    "a b"
+"""
+        )
+
+    def test_set_errors(self):
+        self.compilation_ko(b'set "a" "b";')
+        self.compilation_ko(b'require "variables"; set "a";')
+        self.compilation_ko(b'require "variables"; set :quoteregex "a" "b";')
+
 
 class CopyWithoutSideEffectsTestCase(SieveTest):
     """RFC3894 test cases."""

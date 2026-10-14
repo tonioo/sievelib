@@ -50,6 +50,7 @@ The following extensions are partially supported:
 
 * Date and Index (`RFC 5260 <https://tools.ietf.org/html/rfc5260>`_)
 * Checking Mailbox Status and Accessing Mailbox Metadata (`RFC 5490 <https://tools.ietf.org/html/rfc5490>`_)
+* Variables (`RFC 5229 <https://tools.ietf.org/html/rfc5229>`_): the ``string`` test is not supported
 
 Extending the parser
 ^^^^^^^^^^^^^^^^^^^^
