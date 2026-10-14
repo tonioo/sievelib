@@ -5,6 +5,7 @@ Unit tests for the SIEVE language parser.
 import unittest
 import os.path
 import io
+import threading
 
 from sievelib.parser import Parser
 from sievelib.factory import FiltersSet
@@ -241,7 +242,7 @@ require ["fileinto", "reject"];
 
 if allof (not allof (address :is ["From","sender"] ["test1@test2.priv","test2@test2.priv"], header :matches "Subject" "INACTIVE*"), address :is "From" "user3@test3.priv")
 {
-    reject;
+    reject "Inactive";
 }
 """
         )
@@ -266,8 +267,27 @@ if (type: control)
             "From"
             "user3@test3.priv"
     reject (type: action)
+        "Inactive"
 """
         )
+
+    def test_multiline_string_special_chars(self):
+        self.compilation_ok(
+            b'require "reject";\r\n'
+            b"reject text:\r\n"
+            b"It costs $5.\r\n"
+            b"..dot-stuffed line\r\n"
+            b".\r\n"
+            b";\r\n"
+        )
+
+    def test_loaded_extensions_are_per_thread(self):
+        self.compilation_ok(b'require "fileinto";')
+        # another thread starting a parse must not reset our extensions
+        thread = threading.Thread(target=Parser().parse, args=(b"keep;",))
+        thread.start()
+        thread.join()
+        self.assertEqual(sievelib.commands.parser_state.loaded_extensions, ["fileinto"])
 
     def test_nested_blocks(self):
         self.compilation_ok(
@@ -598,7 +618,7 @@ vacation :seconds 10 :addresses ["test@example.org"] "Gone";
 require "reject";
 
 if header :contains "subject" "viagra" {
-    reject;
+    reject "No spam";
 }
 """
         )
@@ -641,6 +661,41 @@ addflag "Var1" "Truc";
 if hasflag "Var1" "Truc" {
     fileinto "Truc";
 }
+"""
+        )
+
+    def test_imap4flags_optional_variable(self):
+        self.compilation_ok(
+            rb"""
+require "imap4flags";
+setflag "\\Seen";
+setflag "Var1" ["\\Seen", "\\Flagged"];
+keep :flags "\\Seen";
+if anyof (hasflag "\\Seen", hasflag "Var1" "\\Flagged") {
+    keep;
+}
+"""
+        )
+        self.representation_is(
+            r"""
+require (type: control)
+    "imap4flags"
+setflag (type: action)
+    "\\Seen"
+setflag (type: action)
+    "Var1"
+    ["\\Seen","\\Flagged"]
+keep (type: action)
+    :flags
+    "\\Seen"
+if (type: control)
+    anyof (type: test)
+        hasflag (type: test)
+            "\\Seen"
+        hasflag (type: test)
+            "Var1"
+            "\\Flagged"
+    keep (type: action)
 """
         )
 
@@ -691,6 +746,32 @@ if header :contains "from" "boss@example.org" {
 
 
 class InvalidSyntaxes(SieveTest):
+    def test_missing_required_argument(self):
+        self.compilation_ko(b"redirect;")
+        self.compilation_ko(b'require "fileinto"; fileinto;')
+        self.compilation_ko(b'require "imap4flags"; keep :flags;')
+        self.compilation_ko(b'require "imap4flags"; setflag;')
+
+    def test_internal_names_are_not_commands(self):
+        # these names used to crash the parser
+        for name in [b"unknown", b"action", b"control", b"test", b"command"]:
+            self.compilation_ko(name + b' "x";')
+
+    def test_error_after_non_ascii_text(self):
+        # the error position used to be computed on the decoded text
+        self.compilation_ko(
+            'if header :is "Subject" "éééééééééééééééé" { keep } }'.encode()
+        )
+
+    def test_invalid_utf8(self):
+        self.compilation_ko(b'if header :is "Subject" "\xff" { keep; }')
+        self.compilation_ko(b"\xff")
+
+    def test_hasflag_without_argument(self):
+        # used to loop forever
+        self.compilation_ko(b'require "imap4flags"; if hasflag { keep; }')
+        self.compilation_ko(b'require "imap4flags"; if anyof (hasflag, true) { keep; }')
+
     def test_nested_comments(self):
         self.compilation_ko(
             b"""
@@ -1123,6 +1204,35 @@ if allof (
 }
 """
         )
+
+    def test_set_modifiers(self):
+        self.compilation_ok(
+            b"""require ["variables", "enotify"];
+set :length :upperfirst :lower "a" "Hello";
+set :encodeurl "b" "a b";
+"""
+        )
+        self.representation_is(
+            """
+require (type: control)
+    ["variables","enotify"]
+set (type: action)
+    :lower
+    :upperfirst
+    :length
+    "a"
+    "Hello"
+set (type: action)
+    :encodeurl
+    "b"
+    "a b"
+"""
+        )
+
+    def test_set_errors(self):
+        self.compilation_ko(b'set "a" "b";')
+        self.compilation_ko(b'require "variables"; set "a";')
+        self.compilation_ko(b'require "variables"; set :quoteregex "a" "b";')
 
 
 class CopyWithoutSideEffectsTestCase(SieveTest):

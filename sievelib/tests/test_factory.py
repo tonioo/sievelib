@@ -191,6 +191,94 @@ class FactoryTestCase(unittest.TestCase):
         conditions = self.fs.get_filter_conditions("ruleE")
         self.assertEqual(orig_conditions, conditions)
 
+    def test_get_filter_conditions_negated(self):
+        orig_conditions = [
+            ("notaddress", ":is", "from", "a@test.com"),
+            ("Subject", ":is", "s"),
+            ("notsize", ":over", "1M"),
+            ("nottrue",),
+            ("false",),
+        ]
+        self.fs.addfilter("rule", orig_conditions, [("keep",)])
+        self.assertEqual(
+            self.fs.get_filter_conditions("rule"),
+            [
+                ("address", ":notis", "from", "a@test.com"),
+                ("Subject", ":is", "s"),
+                ("notsize", ":over", "1M"),
+                ("nottrue",),
+                ("false",),
+            ],
+        )
+
+    def test_get_filter_conditions_default_arguments(self):
+        p = parser.Parser()
+        self.assertTrue(
+            p.parse(
+                """require ["body", "date"];
+if anyof (header "Subject" "x", body "y", currentdate "date" "2026-01-01") {
+    keep;
+}
+"""
+            )
+        )
+        self.fs.from_parser_result(p)
+        self.assertEqual(
+            self.fs.get_filter_conditions("Unnamed rule 1"),
+            [
+                ("Subject", ":is", "x"),
+                ("body", ":text", ":is", "y"),
+                ("currentdate", ":is", "date", "2026-01-01"),
+            ],
+        )
+
+    def test_currentdate_without_zone(self):
+        conditions = [("currentdate", ":notvalue", "ge", "date", "2026-01-01")]
+        self.fs.addfilter("rule", conditions, [("keep",)])
+        self.assertEqual(
+            str(self.fs),
+            """require ["date", "relational"];
+
+# Filter: rule
+if anyof (not currentdate :value "ge" "date" ["2026-01-01"]) {
+    keep;
+}
+""",
+        )
+        self.assertEqual(self.fs.get_filter_conditions("rule"), conditions)
+
+    def test_action_with_list_argument(self):
+        self.fs.addfilter(
+            "rule", [("Subject", ":is", "s")], [("addflag", ["\\Seen", "a b"])]
+        )
+        self.assertEqual(
+            str(self.fs),
+            r"""require ["imap4flags"];
+
+# Filter: rule
+if anyof (header :is "Subject" "s") {
+    addflag ["\\Seen", "a b"];
+}
+""",
+        )
+
+    def test_movefilter(self):
+        for name in ["a", "b", "c"]:
+            self.fs.addfilter(name, [("Subject", ":is", name)], [("keep",)])
+        self.assertFalse(self.fs.movefilter("a", "up"))
+        self.assertFalse(self.fs.movefilter("c", "down"))
+        self.assertFalse(self.fs.movefilter("unknown", "up"))
+        self.assertTrue(self.fs.movefilter("a", "down"))
+        self.assertTrue(self.fs.movefilter("c", "up"))
+        self.assertEqual([f["name"] for f in self.fs.filters], ["b", "c", "a"])
+
+    def test_disablefilter_twice(self):
+        self.fs.addfilter("rule", [("Subject", ":is", "s")], [("keep",)])
+        self.assertTrue(self.fs.disablefilter("rule"))
+        self.assertFalse(self.fs.disablefilter("rule"))
+        self.assertTrue(self.fs.enablefilter("rule"))
+        self.assertFalse(self.fs.is_filter_disabled("rule"))
+
     def test_get_filter_conditions_from_parser_result(self):
         res = """require ["fileinto"];
 
@@ -497,9 +585,6 @@ if anyof (size :over 100k) {
         self.assertIs(self.fs.getfilter("rule1"), None)
 
     def test_disablefilter(self):
-        """
-        FIXME: Extra spaces are written between if and anyof, why?!
-        """
         self.fs.addfilter(
             "rule1", [("Sender", ":is", "toto@toto.com")], [("fileinto", "Toto")]
         )
@@ -513,7 +598,7 @@ if anyof (size :over 100k) {
 
 # Filter: rule1
 if false {
-    if     anyof (header :is "Sender" "toto@toto.com") {
+    if anyof (header :is "Sender" "toto@toto.com") {
         fileinto "Toto";
     }
 }
@@ -696,7 +781,10 @@ if anyof (header :matches "Subject" "*") {
         self.fs.dump(output)
         self.assertEqual(
             output.getvalue(),
-            """require (type: control)
+            """Dumping filters set test
+
+Dumping requirements
+require (type: control)
     [vacation]
 
 Filter Name: test

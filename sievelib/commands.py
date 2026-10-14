@@ -22,6 +22,7 @@ provides extra information such as:
 
 from collections.abc import Iterable
 import sys
+import threading
 from typing import Any, Dict, Iterator, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
@@ -133,6 +134,17 @@ match_type: CommandArg = {
 }
 
 
+class _ParserState(threading.local):
+    """Parsing state, kept per thread so parsers can run concurrently."""
+
+    def __init__(self):
+        # extensions loaded by "require" in the script being parsed
+        self.loaded_extensions: List[str] = []
+
+
+parser_state = _ParserState()
+
+
 class Command:
     """Generic command representation.
 
@@ -222,12 +234,13 @@ class Command:
                         )
                     continue
                 if isinstance(value, Command):
-                    value.tosieve(indentlevel, target=target)
+                    # a test is written inline, never indented
+                    value.tosieve(target=target)
                     continue
 
                 if "string" in atype:
                     target.write(value)
-                    if not value.startswith('"') and not value.startswith("["):
+                    if not value.startswith('"'):  # multi-line string
                         target.write("\n")
                 else:
                     target.write(str(value))
@@ -414,8 +427,7 @@ class Command:
             extension = arg["extension_values"].get(value.lower())
             if extension:
                 condition = (
-                    check_extension
-                    and extension not in RequireCommand.loaded_extensions
+                    check_extension and extension not in parser_state.loaded_extensions
                 )
                 if condition:
                     raise ExtensionNotLoaded(extension)
@@ -467,7 +479,11 @@ class Command:
         """
         if not self.has_arguments():
             return False
-        if self.iscomplete(atype, avalue):
+        # a complete command may still accept optional arguments
+        condition = self.iscomplete(atype, avalue) and self.nextargpos >= len(
+            self.args_definition
+        )
+        if condition:
             return False
 
         if self.curarg is not None and "extra_arg" in self.curarg:
@@ -514,7 +530,7 @@ class Command:
                 condition = (
                     check_extension
                     and ext
-                    and ext not in RequireCommand.loaded_extensions
+                    and ext not in parser_state.loaded_extensions
                 )
                 if condition:
                     raise ExtensionNotLoaded(ext)
@@ -526,9 +542,15 @@ class Command:
                     self.curarg = curarg
                 if add:
                     self.arguments[curarg["name"]] = avalue
+                if "tag" not in curarg["type"]:
+                    # optional positional argument: the next one comes after
+                    self.nextargpos = pos + 1
                 break
 
             pos += 1
+        else:
+            # no argument definition matches
+            return False
 
         if failed:
             raise BadArgument(self.name, avalue, self.args_definition[pos]["type"])
@@ -564,16 +586,13 @@ class ControlCommand(Command):
 class RequireCommand(ControlCommand):
     """The 'require' command
 
-    This class has one big difference with others as it is used to
-    store loaded extension names. (The result is we can check for
-    unloaded extensions during the parsing)
+    Loaded extension names are stored in parser_state, so we can check
+    for unloaded extensions during the parsing.
     """
 
     args_definition = [
         {"name": "capabilities", "type": ["string", "stringlist"], "required": True}
     ]
-
-    loaded_extensions: List[str] = []
 
     def complete_cb(self):
         if not isinstance(self.arguments["capabilities"], list):
@@ -582,8 +601,8 @@ class RequireCommand(ControlCommand):
             exts = self.arguments["capabilities"]
         for ext in exts:
             ext = ext.strip('"')
-            if ext not in RequireCommand.loaded_extensions:
-                RequireCommand.loaded_extensions += [ext]
+            if ext not in parser_state.loaded_extensions:
+                parser_state.loaded_extensions.append(ext)
 
 
 class IfCommand(ControlCommand):
@@ -706,34 +725,36 @@ class DiscardCommand(ActionCommand):
     args_definition = []
 
 
-class SetflagCommand(ActionCommand):
+class _FlagActionCommand(ActionCommand):
+    """imap4flags extension: base class of setflag, addflag and removeflag."""
+
+    args_definition = [
+        {"name": "variable-name", "type": ["string"], "required": False},
+        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
+    ]
+    extension = "imap4flags"
+    non_deterministic_args = True
+
+    def reassign_arguments(self):
+        """Deal with optional string before a required one."""
+        condition = (
+            "variable-name" in self.arguments and "list-of-flags" not in self.arguments
+        )
+        if condition:
+            self.arguments["list-of-flags"] = self.arguments.pop("variable-name")
+            self.rargs_cnt = 1
+
+
+class SetflagCommand(_FlagActionCommand):
     """imap4flags extension: setflag."""
 
-    args_definition = [
-        {"name": "variable-name", "type": ["string"], "required": False},
-        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
-    ]
-    extension = "imap4flags"
 
-
-class AddflagCommand(ActionCommand):
+class AddflagCommand(_FlagActionCommand):
     """imap4flags extension: addflag."""
 
-    args_definition = [
-        {"name": "variable-name", "type": ["string"], "required": False},
-        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
-    ]
-    extension = "imap4flags"
 
-
-class RemoveflagCommand(ActionCommand):
+class RemoveflagCommand(_FlagActionCommand):
     """imap4flags extension: removeflag."""
-
-    args_definition = [
-        {"name": "variable-name", "type": ["string"]},
-        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
-    ]
-    extension = "imap4flags"
 
 
 class NotifyCommand(ActionCommand):
@@ -792,6 +813,15 @@ class AddressCommand(TestCommand):
         {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
 
+    def args_as_tuple(self):
+        """Return arguments as a list."""
+        return (
+            "address",
+            self.arguments.get("match-type", ":is"),
+            tools.unquote_arg(self.arguments["header-list"]),
+            tools.unquote_arg(self.arguments["key-list"]),
+        )
+
 
 class AllofCommand(TestCommand):
     accept_children = True
@@ -825,7 +855,7 @@ class EnvelopeCommand(TestCommand):
 
     def args_as_tuple(self):
         """Return arguments as a list."""
-        result = ("envelope", self.arguments["match-type"])
+        result = ("envelope", self.arguments.get("match-type", ":is"))
         for name in ["header-list", "key-list"]:
             value = tools.unquote_arg(self.arguments[name])
             result += (value if isinstance(value, list) else [value],)
@@ -853,9 +883,15 @@ class ExistsCommand(TestCommand):
 class TrueCommand(TestCommand):
     args_definition = []
 
+    def args_as_tuple(self):
+        return ("true",)
+
 
 class FalseCommand(TestCommand):
     args_definition = []
+
+    def args_as_tuple(self):
+        return ("false",)
 
 
 class HeaderCommand(TestCommand):
@@ -870,7 +906,7 @@ class HeaderCommand(TestCommand):
         """Return arguments as a list."""
         return (
             tools.unquote_arg(self.arguments["header-names"]),
-            self.arguments["match-type"],
+            self.arguments.get("match-type", ":is"),
             tools.unquote_arg(self.arguments["key-list"]),
         )
 
@@ -899,8 +935,8 @@ class BodyCommand(TestCommand):
         """Return arguments as a list."""
         result = ("body",)
         result = result + (
-            self.arguments["body-transform"],
-            self.arguments["match-type"],
+            self.arguments.get("body-transform", ":text"),
+            self.arguments.get("match-type", ":is"),
         )
         value = tools.unquote_arg(self.arguments["key-list"])
         result += tuple(value) if isinstance(value, list) else (value,)
@@ -1000,12 +1036,10 @@ class CurrentdateCommand(TestCommand):
     def args_as_tuple(self):
         """Return arguments as a list."""
         result = ("currentdate",)
-        result += (
-            ":zone",
-            tools.unquote(self.extra_arguments["zone"]),
-            self.arguments["match-type"],
-        )
-        if self.arguments["match-type"] in [":count", ":value"]:
+        if "zone" in self.arguments:
+            result += (":zone", tools.unquote(self.extra_arguments["zone"]))
+        result += (self.arguments.get("match-type", ":is"),)
+        if result[-1] in [":count", ":value"]:
             result += (tools.unquote(self.extra_arguments["match-type"]),)
         result += (tools.unquote(self.arguments["date-part"]),)
         value = tools.unquote_arg(self.arguments["key-list"])
@@ -1079,16 +1113,42 @@ class VacationCommand(ActionCommand):
     ]
 
 
-class SetCommand(ControlCommand):
-    """set command, part of the variables extension
+class SetCommand(ActionCommand):
+    """set action, part of the variables extension
 
     http://tools.ietf.org/html/rfc5229
     """
 
     extension = "variables"
+    # one argument per modifier precedence level (RFC 5229, section 4.1)
     args_definition = [
-        {"name": "startend", "type": ["string"], "required": True},
-        {"name": "date", "type": ["string"], "required": True},
+        {
+            "name": "case",
+            "type": ["tag"],
+            "values": [":lower", ":upper"],
+            "required": False,
+        },
+        {
+            "name": "first-case",
+            "type": ["tag"],
+            "values": [":lowerfirst", ":upperfirst"],
+            "required": False,
+        },
+        {
+            "name": "quotewildcard",
+            "type": ["tag"],
+            "values": [":quotewildcard"],
+            "required": False,
+        },
+        {
+            "name": "encoding",
+            "type": ["tag"],
+            "extension_values": {":quoteregex": "regex", ":encodeurl": "enotify"},
+            "required": False,
+        },
+        {"name": "length", "type": ["tag"], "values": [":length"], "required": False},
+        {"name": "name", "type": ["string"], "required": True},
+        {"name": "value", "type": ["string"], "required": True},
     ]
 
 
@@ -1124,16 +1184,19 @@ def get_command_instance(
     :param parent: the eventual parent command
     :return: a new class instance
     """
-    cname = "%sCommand" % name.lower().capitalize()
-    gl = globals()
-    condition = cname not in gl
-    if condition:
+    cls = globals().get("%sCommand" % name.lower().capitalize())
+    # only concrete commands: skip base classes and other module globals
+    if not (
+        isinstance(cls, type)
+        and issubclass(cls, Command)
+        and hasattr(cls, "args_definition")
+    ):
         raise UnknownCommand(name)
     condition = (
         checkexists
-        and gl[cname].extension
-        and gl[cname].extension not in RequireCommand.loaded_extensions
+        and cls.extension
+        and cls.extension not in parser_state.loaded_extensions
     )
     if condition:
-        raise ExtensionNotLoaded(gl[cname].extension)
-    return gl[cname](parent)
+        raise ExtensionNotLoaded(cls.extension)
+    return cls(parent)
