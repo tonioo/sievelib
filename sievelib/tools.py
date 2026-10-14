@@ -26,21 +26,8 @@ def unquote(value: str) -> str:
     return re.sub(r"\\(.)", r"\1", value[1:-1], flags=re.DOTALL)
 
 
-def to_list(stringlist: str, unquote: bool = True) -> List[str]:
-    """Convert a string representing a list to real list."""
-    stringlist = stringlist[1:-1]
-    return [
-        string.strip('"') if unquote else string for string in stringlist.split(",")
-    ]
-
-
 def unquote_arg(value: Union[str, List[str]]) -> Union[str, List[str]]:
-    """Unquote a string or a string list argument.
-
-    A string list can be either a real list or its string representation.
-    """
+    """Unquote a string or a string list argument."""
     if isinstance(value, list):
         return [unquote(item) for item in value]
-    if value.startswith("["):
-        return to_list(value)
     return unquote(value)

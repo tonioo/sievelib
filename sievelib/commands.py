@@ -240,7 +240,7 @@ class Command:
 
                 if "string" in atype:
                     target.write(value)
-                    if not value.startswith('"') and not value.startswith("["):
+                    if not value.startswith('"'):  # multi-line string
                         target.write("\n")
                 else:
                     target.write(str(value))

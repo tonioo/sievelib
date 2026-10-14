@@ -372,7 +372,7 @@ class Client:
         return False
 
     def _login_authentication(
-        self, login: bytes, password: bytes, authz_id: bytes = ""
+        self, login: bytes, password: bytes, authz_id: bytes = b""
     ) -> bool:
         """SASL LOGIN authentication
 
@@ -401,10 +401,6 @@ class Client:
         :param password: clear password
         :return: True on success, False otherwise.
         """
-        if isinstance(login, str):
-            login = login.encode("utf-8")
-        if isinstance(password, str):
-            password = password.encode("utf-8")
         token = b"n,a=" + login + b",\001auth=Bearer " + password + b"\001\001"
         token = base64.b64encode(token)
         code, data = self.__send_command("AUTHENTICATE", [b"OAUTHBEARER", token])
@@ -422,10 +418,6 @@ class Client:
         :param password: access token
         :return: True on success, False otherwise.
         """
-        if isinstance(login, str):
-            login = login.encode("utf-8")
-        if isinstance(password, str):
-            password = password.encode("utf-8")
         token = b"user=" + login + b",\001auth=Bearer " + password + b"\001\001"
         token = base64.b64encode(token)
         code, data = self.__send_command("AUTHENTICATE", [b"XOAUTH2", token])

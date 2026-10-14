@@ -137,7 +137,7 @@ class Parser:
         self.__expected_brackets = []
         parser_state.loaded_extensions = []
 
-    def __set_expected(self, *args, **kwargs):
+    def __set_expected(self, *args):
         """Set the next expected token.
 
         One or more tokens can be provided. (they will represent the
