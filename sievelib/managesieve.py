@@ -258,13 +258,14 @@ class Client:
     def __prepare_content(self, content: str) -> bytes:
         """Format script content before sending it.
 
-        Script length must be inserted before the content,
+        Line breaks are normalized to CRLF, as required by RFC 5228,
+        then script length must be inserted before the content,
         enclosed in curly braces, separated by CRLF.
 
         :param content: script content as str or bytes
         :return: transformed script as bytes
         """
-        bcontent: bytes = content.encode("utf-8")
+        bcontent: bytes = re.sub(r"\r?\n", "\r\n", content).encode("utf-8")
         return b"{%d+}%s%s" % (len(bcontent), CRLF, bcontent)
 
     def __send_command(
