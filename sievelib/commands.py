@@ -467,7 +467,11 @@ class Command:
         """
         if not self.has_arguments():
             return False
-        if self.iscomplete(atype, avalue):
+        # a complete command may still accept optional arguments
+        condition = self.iscomplete(atype, avalue) and self.nextargpos >= len(
+            self.args_definition
+        )
+        if condition:
             return False
 
         if self.curarg is not None and "extra_arg" in self.curarg:
@@ -526,9 +530,15 @@ class Command:
                     self.curarg = curarg
                 if add:
                     self.arguments[curarg["name"]] = avalue
+                if "tag" not in curarg["type"]:
+                    # optional positional argument: the next one comes after
+                    self.nextargpos = pos + 1
                 break
 
             pos += 1
+        else:
+            # no argument definition matches
+            return False
 
         if failed:
             raise BadArgument(self.name, avalue, self.args_definition[pos]["type"])
@@ -706,34 +716,36 @@ class DiscardCommand(ActionCommand):
     args_definition = []
 
 
-class SetflagCommand(ActionCommand):
+class _FlagActionCommand(ActionCommand):
+    """imap4flags extension: base class of setflag, addflag and removeflag."""
+
+    args_definition = [
+        {"name": "variable-name", "type": ["string"], "required": False},
+        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
+    ]
+    extension = "imap4flags"
+    non_deterministic_args = True
+
+    def reassign_arguments(self):
+        """Deal with optional string before a required one."""
+        condition = (
+            "variable-name" in self.arguments and "list-of-flags" not in self.arguments
+        )
+        if condition:
+            self.arguments["list-of-flags"] = self.arguments.pop("variable-name")
+            self.rargs_cnt = 1
+
+
+class SetflagCommand(_FlagActionCommand):
     """imap4flags extension: setflag."""
 
-    args_definition = [
-        {"name": "variable-name", "type": ["string"], "required": False},
-        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
-    ]
-    extension = "imap4flags"
 
-
-class AddflagCommand(ActionCommand):
+class AddflagCommand(_FlagActionCommand):
     """imap4flags extension: addflag."""
 
-    args_definition = [
-        {"name": "variable-name", "type": ["string"], "required": False},
-        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
-    ]
-    extension = "imap4flags"
 
-
-class RemoveflagCommand(ActionCommand):
+class RemoveflagCommand(_FlagActionCommand):
     """imap4flags extension: removeflag."""
-
-    args_definition = [
-        {"name": "variable-name", "type": ["string"]},
-        {"name": "list-of-flags", "type": ["string", "stringlist"], "required": True},
-    ]
-    extension = "imap4flags"
 
 
 class NotifyCommand(ActionCommand):

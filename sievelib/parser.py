@@ -316,16 +316,6 @@ class Parser:
             self.__set_expected("string")
             return True
 
-        condition = (
-            ttype in ["left_cbracket", "comma"]
-            and self.__curcommand.non_deterministic_args
-        )
-        if condition:
-            self.__curcommand.reassign_arguments()
-            # rewind lexer
-            self.lexer.pos -= 1
-            return True
-
         return False
 
     def __arguments(self, ttype: str, tvalue: bytes) -> bool:
@@ -342,6 +332,21 @@ class Parser:
         :param tvalue: current token value
         :return: False if an error is encountered, True otherwise
         """
+        condition = (
+            ttype in ["left_cbracket", "comma", "right_parenthesis"]
+            and self.__curcommand.non_deterministic_args
+            and not self.__curcommand.iscomplete()
+        )
+        if condition:
+            self.__curcommand.reassign_arguments()
+            if not self.__curcommand.iscomplete():
+                raise ParseError(
+                    "missing argument for command %s" % self.__curcommand.name
+                )
+            # rewind lexer so the token is read again by the parent command
+            self.lexer.pos -= 1
+            return self.__check_command_completion(testsemicolon=False)
+
         if ttype == "identifier":
             test = get_command_instance(tvalue.decode("ascii"), self.__curcommand)
             if test.get_type() != "test":
@@ -426,8 +431,14 @@ class Parser:
 
         if ttype == "semicolon":
             self.__cstate = None
+            if self.__curcommand.non_deterministic_args:
+                self.__curcommand.reassign_arguments()
             if not self.__check_command_completion(testsemicolon=False):
                 return False
+            if not self.__curcommand.iscomplete():
+                raise ParseError(
+                    "missing argument for command %s" % self.__curcommand.name
+                )
             self.__curcommand.complete_cb()
             self.__up()
             return True

@@ -241,7 +241,7 @@ require ["fileinto", "reject"];
 
 if allof (not allof (address :is ["From","sender"] ["test1@test2.priv","test2@test2.priv"], header :matches "Subject" "INACTIVE*"), address :is "From" "user3@test3.priv")
 {
-    reject;
+    reject "Inactive";
 }
 """
         )
@@ -266,6 +266,7 @@ if (type: control)
             "From"
             "user3@test3.priv"
     reject (type: action)
+        "Inactive"
 """
         )
 
@@ -598,7 +599,7 @@ vacation :seconds 10 :addresses ["test@example.org"] "Gone";
 require "reject";
 
 if header :contains "subject" "viagra" {
-    reject;
+    reject "No spam";
 }
 """
         )
@@ -641,6 +642,41 @@ addflag "Var1" "Truc";
 if hasflag "Var1" "Truc" {
     fileinto "Truc";
 }
+"""
+        )
+
+    def test_imap4flags_optional_variable(self):
+        self.compilation_ok(
+            rb"""
+require "imap4flags";
+setflag "\\Seen";
+setflag "Var1" ["\\Seen", "\\Flagged"];
+keep :flags "\\Seen";
+if anyof (hasflag "\\Seen", hasflag "Var1" "\\Flagged") {
+    keep;
+}
+"""
+        )
+        self.representation_is(
+            r"""
+require (type: control)
+    "imap4flags"
+setflag (type: action)
+    "\\Seen"
+setflag (type: action)
+    "Var1"
+    ["\\Seen","\\Flagged"]
+keep (type: action)
+    :flags
+    "\\Seen"
+if (type: control)
+    anyof (type: test)
+        hasflag (type: test)
+            "\\Seen"
+        hasflag (type: test)
+            "Var1"
+            "\\Flagged"
+    keep (type: action)
 """
         )
 
@@ -691,6 +727,17 @@ if header :contains "from" "boss@example.org" {
 
 
 class InvalidSyntaxes(SieveTest):
+    def test_missing_required_argument(self):
+        self.compilation_ko(b"redirect;")
+        self.compilation_ko(b'require "fileinto"; fileinto;')
+        self.compilation_ko(b'require "imap4flags"; keep :flags;')
+        self.compilation_ko(b'require "imap4flags"; setflag;')
+
+    def test_hasflag_without_argument(self):
+        # used to loop forever
+        self.compilation_ko(b'require "imap4flags"; if hasflag { keep; }')
+        self.compilation_ko(b'require "imap4flags"; if anyof (hasflag, true) { keep; }')
+
     def test_nested_comments(self):
         self.compilation_ko(
             b"""
