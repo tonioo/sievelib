@@ -35,3 +35,6 @@ Issues = "https://github.com/tonioo/sievelib/issues"
 version = { attr = "sievelib.get_version" }
 dependencies = { file = ["requirements.txt"] }
 optional-dependencies.dev = { file = ["dev-requirements.txt"] }
+
+[tool.pytest.ini_options]
+testpaths = ["sievelib/tests"]
