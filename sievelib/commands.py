@@ -234,7 +234,8 @@ class Command:
                         )
                     continue
                 if isinstance(value, Command):
-                    value.tosieve(indentlevel, target=target)
+                    # a test is written inline, never indented
+                    value.tosieve(target=target)
                     continue
 
                 if "string" in atype:

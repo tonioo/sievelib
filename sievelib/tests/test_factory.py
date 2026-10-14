@@ -575,9 +575,6 @@ if anyof (size :over 100k) {
         self.assertIs(self.fs.getfilter("rule1"), None)
 
     def test_disablefilter(self):
-        """
-        FIXME: Extra spaces are written between if and anyof, why?!
-        """
         self.fs.addfilter(
             "rule1", [("Sender", ":is", "toto@toto.com")], [("fileinto", "Toto")]
         )
@@ -591,7 +588,7 @@ if anyof (size :over 100k) {
 
 # Filter: rule1
 if false {
-    if     anyof (header :is "Sender" "toto@toto.com") {
+    if anyof (header :is "Sender" "toto@toto.com") {
         fileinto "Toto";
     }
 }
@@ -774,7 +771,10 @@ if anyof (header :matches "Subject" "*") {
         self.fs.dump(output)
         self.assertEqual(
             output.getvalue(),
-            """require (type: control)
+            """Dumping filters set test
+
+Dumping requirements
+require (type: control)
     [vacation]
 
 Filter Name: test

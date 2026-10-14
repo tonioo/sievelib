@@ -606,10 +606,10 @@ class FiltersSet:
 
         Available for debugging purposes
         """
-        print("Dumping filters set %s\n" % self.name)
+        target.write("Dumping filters set %s\n\n" % self.name)
         cmd = self.__gen_require_command()
         if cmd:
-            print("Dumping requirements")
+            target.write("Dumping requirements\n")
             cmd.dump(target=target)
             target.write("\n")
 
