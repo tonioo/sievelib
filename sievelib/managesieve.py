@@ -96,6 +96,7 @@ class Client:
         self.__respcode_expr = re.compile(rb"(OK|NO|BYE)\s*(.+)?")
         self.__error_expr = re.compile(rb'(\([\w/-]+\))?\s*(".+")')
         self.__size_expr = re.compile(rb"\{(\d+)\+?\}")
+        self.__literal_expr = re.compile(rb"\{(\d+)\+?\}\r\n")
         self.__active_expr = re.compile(rb"ACTIVE", re.IGNORECASE)
 
     def __del__(self):
@@ -229,7 +230,7 @@ class Client:
         """Format command arguments before sending them.
 
         Command arguments of type string must be quoted, the only
-        exception concerns size indication (of the form {\\d\\+?}).
+        exception concerns literals (as built by __prepare_content).
 
         :param args: list of arguments
         :return: a list for transformed arguments
@@ -237,10 +238,14 @@ class Client:
         ret = []
         for a in args:
             if isinstance(a, bytes):
-                if self.__size_expr.match(a):
+                m = self.__literal_expr.match(a)
+                if m and len(a) - m.end() == int(m.group(1)):
+                    # complete literal: self-delimited, sent as is
                     ret += [a]
-                else:
-                    ret += [b'"' + a + b'"']
+                    continue
+                if re.search(rb"[\r\n\0]", a):
+                    raise Error("Invalid character in argument: %r" % a)
+                ret += [tools.quote(a.decode("utf-8")).encode("utf-8")]
                 continue
             ret += [bytes(str(a).encode("utf-8"))]
         return ret

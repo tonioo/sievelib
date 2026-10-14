@@ -772,6 +772,30 @@ if allof (header :contains "Subject" "'tis", header :contains "Subject" "a \"b\"
         self.assertEqual(fs.get_filter_conditions("test"), conditions)
         self.assertEqual(fs.get_filter_actions("test"), actions)
 
+    def test_line_break_in_name_and_description(self):
+        """A line break must not inject commands outside the comment."""
+        self.fs.addfilter(
+            'a\nredirect "evil@test.com";',
+            [("Subject", ":is", "s")],
+            [("keep",)],
+        )
+        self.fs.replacefilter(
+            'a\nredirect "evil@test.com";',
+            self.fs.getfilter('a\nredirect "evil@test.com";'),
+            description="d\r\ndiscard;",
+        )
+        output = io.StringIO()
+        self.fs.tosieve(output)
+        self.assertEqual(
+            output.getvalue(),
+            """# Filter: a redirect "evil@test.com";
+# Description: d discard;
+if anyof (header :is "Subject" "s") {
+    keep;
+}
+""",
+        )
+
     def test_address_string_quoting(self):
         self.fs.addfilter(
             "test",

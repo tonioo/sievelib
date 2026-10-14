@@ -147,6 +147,25 @@ if envelope :contains "to" "tmartin+sent" {
         )
         self.assertTrue(self.client.deletescript("test_script"))
 
+    def test_script_name_is_escaped(self, mock_socket):
+        """Test quotes and backslashes in a script name are escaped."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = (
+            b'OK "deletescript completed."\r\n',
+        )
+        self.assertTrue(self.client.deletescript('clever"scr\\ipt'))
+        mock_socket.return_value.sendall.assert_called_with(
+            b'DELETESCRIPT "clever\\"scr\\\\ipt"\r\n'
+        )
+
+    def test_script_name_with_line_break_is_rejected(self, mock_socket):
+        """Test a script name cannot inject another command."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.sendall.reset_mock()
+        with self.assertRaises(managesieve.Error):
+            self.client.deletescript('x"\r\nDELETESCRIPT "important')
+        mock_socket.return_value.sendall.assert_not_called()
+
     def test_checkscript(self, mock_socket):
         """Test checkscript command."""
         self.authenticate(mock_socket)
