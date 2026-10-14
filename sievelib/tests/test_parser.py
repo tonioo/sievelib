@@ -752,6 +752,16 @@ class InvalidSyntaxes(SieveTest):
         self.compilation_ko(b'require "imap4flags"; keep :flags;')
         self.compilation_ko(b'require "imap4flags"; setflag;')
 
+    def test_repeated_tagged_argument(self):
+        self.compilation_ko(b'if header :is :contains "a" "b" { keep; }')
+        self.compilation_ko(b'if address :localpart :domain "from" "x" { keep; }')
+        self.compilation_ko(b'require "copy"; redirect :copy :copy "a";')
+        self.compilation_ko(b'require "variables"; set :lower :upper "a" "b";')
+        self.assertEqual(
+            self.parser.error,
+            "line 1: bad argument :upper for command set (a single case expected)",
+        )
+
     def test_internal_names_are_not_commands(self):
         # these names used to crash the parser
         for name in [b"unknown", b"action", b"control", b"test", b"command"]:

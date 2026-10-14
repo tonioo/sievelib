@@ -95,7 +95,11 @@ class Client:
 
         self.__capabilities: dict[str, str] = {}
         self.__respcode_expr = re.compile(rb"(OK|NO|BYE)\s*(.+)?")
-        self.__error_expr = re.compile(rb'(\([\w/-]+\))?\s*(".+")?$')
+        # [ "(" resp-code ")" ] [ quoted / literal ], see RFC 5804, section 4
+        self.__error_expr = re.compile(
+            rb'(?:\((?P<code>(?:[^)"]|"(?:[^"\\]|\\.)*")*)\)\s*)?'
+            rb'(?:"(?P<quoted>(?:[^"\\]|\\.)*)"|\{(?P<size>\d+)\+?\})?$'
+        )
         self.__size_expr = re.compile(rb"\{(\d+)\+?\}")
         self.__literal_expr = re.compile(rb"\{(\d+)\+?\}\r\n")
         self.__active_expr = re.compile(rb"ACTIVE", re.IGNORECASE)
@@ -327,10 +331,10 @@ class Client:
     def __parse_error(self, text: Optional[bytes]):
         """Parse an error received from the server.
 
-        if text corresponds to a size indication, we grab the
-        remaining content from the server.
-
-        Otherwise, we try to match an error of the form \\(\\w+\\)?\\s*".+"
+        The error may contain a response code, between parentheses,
+        and a message, given as a quoted string or as a literal. In
+        the latter case, we grab the remaining content from the
+        server.
 
         On succes, the two public members errcode and errmsg are
         filled with the parsing results.
@@ -339,22 +343,16 @@ class Client:
         """
         self.errcode = b""
         self.errmsg = b""
-        if not text:
-            # a bare NO is valid (RFC 5804)
-            return
-
-        m = self.__size_expr.match(text)
-        if m is not None:
-            self.errmsg = self.__read_block(int(m.group(1)) + 2)
-            return
-
-        m = self.__error_expr.match(text)
+        m = self.__error_expr.match(text or b"")
         if m is None:
             raise Error("Bad error message")
-        if m.group(1) is not None:
-            self.errcode = m.group(1).strip(b"()")
-        if m.group(2) is not None:
-            self.errmsg = m.group(2).strip(b'"')
+        if m.group("code") is not None:
+            self.errcode = m.group("code")
+        if m.group("quoted") is not None:
+            self.errmsg = re.sub(rb"\\(.)", rb"\1", m.group("quoted"))
+        elif m.group("size") is not None:
+            # the literal is followed by the CRLF ending the response
+            self.errmsg = self.__read_block(int(m.group("size")) + 2)[:-2]
 
     def _plain_authentication(
         self, login: bytes, password: bytes, authz_id: bytes = b""

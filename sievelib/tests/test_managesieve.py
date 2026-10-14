@@ -136,6 +136,31 @@ class ManageSieveTestCase(unittest.TestCase):
             (self.client.errcode, self.client.errmsg), (b"NONEXISTENT", b"No")
         )
 
+    def test_no_with_literal_or_code_parameters(self, mock_socket):
+        """Test NO responses with code parameters or a literal message."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = (
+            b'NO (TAG "a)b") "Not \\"here\\""\r\n',
+        )
+        self.assertFalse(self.client.deletescript("test_script"))
+        self.assertEqual(
+            (self.client.errcode, self.client.errmsg), (b'TAG "a)b"', b'Not "here"')
+        )
+        mock_socket.return_value.recv.side_effect = (
+            b"NO (QUOTA/MAXSIZE) {15}\r\nToo\r\nbig, sorry\r\n",
+            b'OK "Deletescript completed."\r\n',
+        )
+        self.assertFalse(self.client.putscript("test_script", "keep;"))
+        self.assertEqual(
+            (self.client.errcode, self.client.errmsg),
+            (b"QUOTA/MAXSIZE", b"Too\r\nbig, sorry"),
+        )
+        # the whole literal was read: the next response is not shifted
+        self.assertTrue(self.client.deletescript("test_script"))
+        mock_socket.return_value.recv.side_effect = (b"NO garbage\r\n",)
+        with self.assertRaisesRegex(managesieve.Error, "Bad error message"):
+            self.client.deletescript("test_script")
+
     def test_capabilities(self, mock_socket):
         """Test capabilities command."""
         self.authenticate(mock_socket)

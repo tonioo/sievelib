@@ -534,6 +534,9 @@ class Command:
                 )
                 if condition:
                     raise ExtensionNotLoaded(ext)
+                if "tag" in curarg["type"] and curarg["name"] in self.arguments:
+                    # e.g. ":is :contains" or, for set, ":lower :upper"
+                    raise BadArgument(self.name, avalue, "a single %s" % curarg["name"])
                 condition = "extra_arg" in curarg and (
                     "valid_for" not in curarg["extra_arg"]
                     or avalue in curarg["extra_arg"]["valid_for"]
