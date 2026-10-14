@@ -104,7 +104,7 @@ class Parser:
         (b"comma", rb","),
         (b"hash_comment", rb"#.*$"),
         (b"bracket_comment", rb"/\*[\s\S]*?\*/"),
-        (b"multiline", rb"text:[^$]*?[\r\n]+\.$"),
+        (b"multiline", rb"text:[\s\S]*?\r?\n\.\r?$"),
         (b"string", rb'"([^"\\]|\\.)*"'),
         (b"identifier", rb"[a-zA-Z_][\w]*"),
         (b"tag", rb":[a-zA-Z_][\w]*"),

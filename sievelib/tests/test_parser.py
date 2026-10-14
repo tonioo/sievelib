@@ -270,6 +270,16 @@ if (type: control)
 """
         )
 
+    def test_multiline_string_special_chars(self):
+        self.compilation_ok(
+            b'require "reject";\r\n'
+            b"reject text:\r\n"
+            b"It costs $5.\r\n"
+            b"..dot-stuffed line\r\n"
+            b".\r\n"
+            b";\r\n"
+        )
+
     def test_nested_blocks(self):
         self.compilation_ok(
             b"""
