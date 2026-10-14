@@ -199,6 +199,17 @@ if envelope :contains "to" "tmartin+sent" {
         mock_socket.return_value.recv.side_effect = (b'OK "putscript completed."\r\n',)
         self.assertTrue(self.client.putscript("test_script", script))
 
+    def test_putscript_normalizes_line_breaks(self, mock_socket):
+        """Test LF and CRLF line breaks are both sent as CRLF."""
+        self.authenticate(mock_socket)
+        mock_socket.return_value.recv.side_effect = (b'OK "putscript completed."\r\n',)
+        script = 'require "vacation";\nvacation text:\r\nété\n.\n;'
+        self.assertTrue(self.client.putscript("test_script", script))
+        mock_socket.return_value.sendall.assert_called_with(
+            b'PUTSCRIPT "test_script" {48+}\r\n'
+            b'require "vacation";\r\nvacation text:\r\n\xc3\xa9t\xc3\xa9\r\n.\r\n;\r\n'
+        )
+
     def test_deletescript(self, mock_socket):
         """Test deletescript command."""
         self.authenticate(mock_socket)
