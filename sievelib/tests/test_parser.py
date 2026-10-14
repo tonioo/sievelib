@@ -5,6 +5,7 @@ Unit tests for the SIEVE language parser.
 import unittest
 import os.path
 import io
+import threading
 
 from sievelib.parser import Parser
 from sievelib.factory import FiltersSet
@@ -279,6 +280,14 @@ if (type: control)
             b".\r\n"
             b";\r\n"
         )
+
+    def test_loaded_extensions_are_per_thread(self):
+        self.compilation_ok(b'require "fileinto";')
+        # another thread starting a parse must not reset our extensions
+        thread = threading.Thread(target=Parser().parse, args=(b"keep;",))
+        thread.start()
+        thread.join()
+        self.assertEqual(sievelib.commands.parser_state.loaded_extensions, ["fileinto"])
 
     def test_nested_blocks(self):
         self.compilation_ok(

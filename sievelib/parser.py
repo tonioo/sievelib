@@ -11,7 +11,7 @@ import re
 import sys
 from typing import Iterator, Tuple
 
-from sievelib.commands import get_command_instance, CommandError, RequireCommand
+from sievelib.commands import get_command_instance, CommandError, parser_state
 
 
 class ParseError(Exception):
@@ -135,7 +135,7 @@ class Parser:
         self.__curstringlist = None
         self.__expected = None
         self.__expected_brackets = []
-        RequireCommand.loaded_extensions = []
+        parser_state.loaded_extensions = []
 
     def __set_expected(self, *args, **kwargs):
         """Set the next expected token.

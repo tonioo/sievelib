@@ -22,6 +22,7 @@ provides extra information such as:
 
 from collections.abc import Iterable
 import sys
+import threading
 from typing import Any, Dict, Iterator, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
@@ -131,6 +132,17 @@ match_type: CommandArg = {
     "type": ["tag"],
     "required": False,
 }
+
+
+class _ParserState(threading.local):
+    """Parsing state, kept per thread so parsers can run concurrently."""
+
+    def __init__(self):
+        # extensions loaded by "require" in the script being parsed
+        self.loaded_extensions: List[str] = []
+
+
+parser_state = _ParserState()
 
 
 class Command:
@@ -414,8 +426,7 @@ class Command:
             extension = arg["extension_values"].get(value.lower())
             if extension:
                 condition = (
-                    check_extension
-                    and extension not in RequireCommand.loaded_extensions
+                    check_extension and extension not in parser_state.loaded_extensions
                 )
                 if condition:
                     raise ExtensionNotLoaded(extension)
@@ -518,7 +529,7 @@ class Command:
                 condition = (
                     check_extension
                     and ext
-                    and ext not in RequireCommand.loaded_extensions
+                    and ext not in parser_state.loaded_extensions
                 )
                 if condition:
                     raise ExtensionNotLoaded(ext)
@@ -574,16 +585,13 @@ class ControlCommand(Command):
 class RequireCommand(ControlCommand):
     """The 'require' command
 
-    This class has one big difference with others as it is used to
-    store loaded extension names. (The result is we can check for
-    unloaded extensions during the parsing)
+    Loaded extension names are stored in parser_state, so we can check
+    for unloaded extensions during the parsing.
     """
 
     args_definition = [
         {"name": "capabilities", "type": ["string", "stringlist"], "required": True}
     ]
-
-    loaded_extensions: List[str] = []
 
     def complete_cb(self):
         if not isinstance(self.arguments["capabilities"], list):
@@ -592,8 +600,8 @@ class RequireCommand(ControlCommand):
             exts = self.arguments["capabilities"]
         for ext in exts:
             ext = ext.strip('"')
-            if ext not in RequireCommand.loaded_extensions:
-                RequireCommand.loaded_extensions += [ext]
+            if ext not in parser_state.loaded_extensions:
+                parser_state.loaded_extensions.append(ext)
 
 
 class IfCommand(ControlCommand):
@@ -1147,7 +1155,7 @@ def get_command_instance(
     condition = (
         checkexists
         and cls.extension
-        and cls.extension not in RequireCommand.loaded_extensions
+        and cls.extension not in parser_state.loaded_extensions
     )
     if condition:
         raise ExtensionNotLoaded(cls.extension)
