@@ -115,7 +115,7 @@ class FiltersSet:
     def check_if_arg_is_extension(self, arg: str):
         """Include extension if arg requires one."""
         args_using_extensions = {":copy": "copy", ":create": "mailbox"}
-        if arg in args_using_extensions:
+        if isinstance(arg, str) and arg in args_using_extensions:
             self.require(args_using_extensions[arg])
 
     def __gen_require_command(self) -> Union[commands.Command, None]:
@@ -270,15 +270,18 @@ class FiltersSet:
             elif cname == "currentdate":
                 cmd = commands.get_command_instance("currentdate", ifcontrol, False)
                 self.require(cmd.extension)
-                cmd.check_next_arg("tag", c[1])
-                self.__add_string_arg(cmd, c[2])
-                if c[3].startswith(":not"):
-                    comp_tag = c[3].replace("not", "")
+                next_arg_pos = 1
+                if c[1] == ":zone":
+                    cmd.check_next_arg("tag", c[1])
+                    self.__add_string_arg(cmd, c[2])
+                    next_arg_pos = 3
+                if c[next_arg_pos].startswith(":not"):
+                    comp_tag = c[next_arg_pos].replace("not", "")
                     negate = True
                 else:
-                    comp_tag = c[3]
+                    comp_tag = c[next_arg_pos]
                 cmd.check_next_arg("tag", comp_tag, check_extension=False)
-                next_arg_pos = 4
+                next_arg_pos += 1
                 if comp_tag == ":value":
                     self.require("relational")
                     self.__add_string_arg(cmd, c[next_arg_pos])
@@ -462,11 +465,12 @@ class FiltersSet:
         if not flt:
             return None
         conditions = []
-        negate = False
+        negated = []
         for node in flt.walk():
             if isinstance(node, commands.NotCommand):
-                negate = True
-            elif isinstance(
+                negated.append(node["test"])
+                continue
+            if not isinstance(
                 node,
                 (
                     commands.HeaderCommand,
@@ -474,26 +478,27 @@ class FiltersSet:
                     commands.ExistsCommand,
                     commands.BodyCommand,
                     commands.EnvelopeCommand,
+                    commands.AddressCommand,
                     commands.CurrentdateCommand,
+                    commands.TrueCommand,
+                    commands.FalseCommand,
                 ),
             ):
-                args = node.args_as_tuple()
-                if negate:
-                    if node.name in ["header", "envelope"]:
-                        nargs = (args[0], ":not{}".format(args[1][1:]))
-                        if len(args) > 3:
-                            nargs += args[2:]
-                        else:
-                            nargs += (args[2],)
-                        args = nargs
-                    elif node.name == "body":
-                        args = args[:2] + (":not{}".format(args[2][1:]),) + args[3:]
-                    elif node.name == "currentdate":
-                        args = args[:3] + (":not{}".format(args[3][1:]),) + args[4:]
-                    elif node.name == "exists":
-                        args = ("not{}".format(args[0]),) + args[1:]
-                    negate = False
-                conditions.append(args)
+                continue
+            args = node.args_as_tuple()
+            if node in negated:
+                if node.name in ["exists", "size", "true", "false"]:
+                    # negated by prefixing the test name: notexists, notsize...
+                    args = ("not" + args[0],) + args[1:]
+                else:
+                    # negated by prefixing the match type: :notis, :notcontains...
+                    pos = 1
+                    if node.name == "body":
+                        pos = 2
+                    elif node.name == "currentdate" and args[1] == ":zone":
+                        pos = 3
+                    args = args[:pos] + (":not" + args[pos][1:],) + args[pos + 1 :]
+            conditions.append(args)
         return conditions
 
     def get_filter_actions(self, name: str) -> Union[List[str], None]:
@@ -564,6 +569,8 @@ class FiltersSet:
         for f in self.filters:
             if f["name"] != name:
                 continue
+            if self.__isdisabled(f["content"]):
+                return False
             ifcontrol.addchild(f["content"])
             f["content"] = ifcontrol
             f["enabled"] = False

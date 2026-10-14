@@ -812,6 +812,15 @@ class AddressCommand(TestCommand):
         {"name": "key-list", "type": ["string", "stringlist"], "required": True},
     ]
 
+    def args_as_tuple(self):
+        """Return arguments as a list."""
+        return (
+            "address",
+            self.arguments.get("match-type", ":is"),
+            tools.unquote_arg(self.arguments["header-list"]),
+            tools.unquote_arg(self.arguments["key-list"]),
+        )
+
 
 class AllofCommand(TestCommand):
     accept_children = True
@@ -845,7 +854,7 @@ class EnvelopeCommand(TestCommand):
 
     def args_as_tuple(self):
         """Return arguments as a list."""
-        result = ("envelope", self.arguments["match-type"])
+        result = ("envelope", self.arguments.get("match-type", ":is"))
         for name in ["header-list", "key-list"]:
             value = tools.unquote_arg(self.arguments[name])
             result += (value if isinstance(value, list) else [value],)
@@ -873,9 +882,15 @@ class ExistsCommand(TestCommand):
 class TrueCommand(TestCommand):
     args_definition = []
 
+    def args_as_tuple(self):
+        return ("true",)
+
 
 class FalseCommand(TestCommand):
     args_definition = []
+
+    def args_as_tuple(self):
+        return ("false",)
 
 
 class HeaderCommand(TestCommand):
@@ -890,7 +905,7 @@ class HeaderCommand(TestCommand):
         """Return arguments as a list."""
         return (
             tools.unquote_arg(self.arguments["header-names"]),
-            self.arguments["match-type"],
+            self.arguments.get("match-type", ":is"),
             tools.unquote_arg(self.arguments["key-list"]),
         )
 
@@ -919,8 +934,8 @@ class BodyCommand(TestCommand):
         """Return arguments as a list."""
         result = ("body",)
         result = result + (
-            self.arguments["body-transform"],
-            self.arguments["match-type"],
+            self.arguments.get("body-transform", ":text"),
+            self.arguments.get("match-type", ":is"),
         )
         value = tools.unquote_arg(self.arguments["key-list"])
         result += tuple(value) if isinstance(value, list) else (value,)
@@ -1020,12 +1035,10 @@ class CurrentdateCommand(TestCommand):
     def args_as_tuple(self):
         """Return arguments as a list."""
         result = ("currentdate",)
-        result += (
-            ":zone",
-            tools.unquote(self.extra_arguments["zone"]),
-            self.arguments["match-type"],
-        )
-        if self.arguments["match-type"] in [":count", ":value"]:
+        if "zone" in self.arguments:
+            result += (":zone", tools.unquote(self.extra_arguments["zone"]))
+        result += (self.arguments.get("match-type", ":is"),)
+        if result[-1] in [":count", ":value"]:
             result += (tools.unquote(self.extra_arguments["match-type"]),)
         result += (tools.unquote(self.arguments["date-part"]),)
         value = tools.unquote_arg(self.arguments["key-list"])
